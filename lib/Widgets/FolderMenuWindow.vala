@@ -671,35 +671,34 @@ namespace Plank
 					break;
 				}
 			} else {
-				// X11 fallback
-				int win_x = 0, win_y = 0;
-				if (controller.window.get_window () != null)
-					controller.window.get_window ().get_origin (out win_x, out win_y);
+				int mon_x = geo.x;
+				int mon_y = geo.y;
 
-				int target_x = win_x + center_x - width / 2;
-				int target_y = win_y;
+				int target_x = mon_x + center_x - width / 2;
+				int target_y = mon_y + center_y;
 				var dock_region = pm.get_dock_window_region ();
 
 				switch (pm.Position) {
 				case Gtk.PositionType.BOTTOM:
-					target_y = win_y + dock_region.height - pm.get_visual_thickness_for_item (TargetItem) - height - GAP;
+					target_y = mon_y + mon_h - dock_region.height - GAP - height;
 					break;
 				case Gtk.PositionType.TOP:
-					target_y = win_y + pm.get_visual_thickness_for_item (TargetItem) + GAP;
+					target_y = mon_y + dock_region.height + GAP;
 					break;
 				case Gtk.PositionType.LEFT:
-					target_x = win_x + pm.get_visual_thickness_for_item (TargetItem) + GAP;
-					target_y = win_y + center_y - height / 2;
+					target_x = mon_x + dock_region.width + GAP;
+					target_y = mon_y + center_y - height / 2;
 					break;
 				case Gtk.PositionType.RIGHT:
-					target_x = win_x + dock_region.width - pm.get_visual_thickness_for_item (TargetItem) - width - GAP;
-					target_y = win_y + center_y - height / 2;
+					target_x = mon_x + mon_w - dock_region.width - GAP - width;
+					target_y = mon_y + center_y - height / 2;
 					break;
 				}
 
-				target_x = int.max (geo.x + GAP, int.min (geo.x + mon_w - width - GAP, target_x));
-				target_y = int.max (geo.y + GAP, int.min (geo.y + mon_h - height - GAP, target_y));
-				move (target_x, target_y);
+				var abs_x = int.max (mon_x + GAP, int.min (mon_x + mon_w - width - GAP, target_x));
+				var abs_y = int.max (mon_y + GAP, int.min (mon_y + mon_h - height - GAP, target_y));
+				move (abs_x, abs_y);
+				WindowControl.position_hover (abs_x, abs_y, width, height);
 			}
 		}
 	}

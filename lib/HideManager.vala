@@ -125,6 +125,11 @@ namespace Plank
 		/**
 		 * Initializes the hide manager. Call after the DockWindow is constructed.
 		 */
+		// LIFECYCLE SYMMETRY GUARD:
+		// Prevents disconnecting unattached handlers in ~HideManager () if destruction occurs
+		// before initialize () completes, avoiding GLib critical assertions.
+		bool is_initialized = false;
+
 		public void initialize ()
 			requires (controller.window != null)
 		{
@@ -135,12 +140,15 @@ namespace Plank
 			WindowControl.get_default ().state_changed.connect (window_state_changed);
 			if (!environment_is_session_type (XdgSessionType.WAYLAND))
 				pressure_reveal_timer_id = Gdk.threads_add_timeout (PRESSURE_REVEAL_TIMEOUT, pressure_reveal_tick);
+			is_initialized = true;
 			update_window_intersect ();
 		}
 
 		public void refresh_visibility ()
 		{
+			update_hovered_with_coords (-1, -1);
 			update_window_intersect ();
+			update_hidden ();
 		}
 		
 		~HideManager ()
@@ -148,14 +156,16 @@ namespace Plank
 			if (controller != null) {
 				controller.prefs.notify.disconnect (prefs_changed);
 				
-				if (controller.window != null) {
+				if (is_initialized && controller.window != null) {
 					unowned DockWindow window = controller.window;
 					window.enter_notify_event.disconnect (handle_enter_notify_event);
 					window.leave_notify_event.disconnect (handle_leave_notify_event);
 				}
 			}
 			
-			WindowControl.get_default ().state_changed.disconnect (window_state_changed);
+			if (is_initialized) {
+				WindowControl.get_default ().state_changed.disconnect (window_state_changed);
+			}
 			if (pressure_reveal_timer_id > 0U) {
 				Source.remove (pressure_reveal_timer_id);
 				pressure_reveal_timer_id = 0U;
@@ -169,20 +179,22 @@ namespace Plank
 		 */
 		public void update_hovered ()
 		{
-			unowned PositionManager position_manager = controller.position_manager;
 			unowned DockWindow window = controller.window;
 			
 			// get current mouse pointer location
-			int x = 0, y = 0;
-			var seat = window.get_display ().get_default_seat ();
-			var pointer = seat != null ? seat.get_pointer () : null;
-			if (pointer != null)
-				pointer.get_position (null, out x, out y);
-			
-			// get window location
-			var win_rect = position_manager.get_dock_window_region ();
-			x -= win_rect.x;
-			y -= win_rect.y;
+			int x = -1, y = -1;
+			var gdk_win = window.get_window ();
+			if (gdk_win != null) {
+				var seat = window.get_display ().get_default_seat ();
+				var pointer = seat != null ? seat.get_pointer () : null;
+				if (pointer != null)
+					gdk_win.get_device_position (pointer, out x, out y, null);
+			}
+
+			if (x < 0 && y < 0) {
+				x = controller.renderer.local_cursor.x;
+				y = controller.renderer.local_cursor.y;
+			}
 			
 			update_hovered_with_coords (x, y);
 		}
@@ -215,8 +227,8 @@ namespace Plank
 				update_needed = true;
 			}
 			
-			// disable hiding if menu is visible or drags are active
-			var disabled = (window.menu_is_visible () || drag_manager.InternalDragActive || drag_manager.ExternalDragActive);
+			// disable hiding if menu is visible, folder menu is visible, or drags are active
+			var disabled = (window.menu_is_visible () || controller.folder_menu.get_visible () || drag_manager.InternalDragActive || drag_manager.ExternalDragActive);
 			if (Disabled != disabled) {
 				Disabled = disabled;
 				update_needed = true;
@@ -372,6 +384,14 @@ namespace Plank
 		
 		void hide ()
 		{
+			if (Disabled) {
+				if (hide_timer_id > 0U) {
+					GLib.Source.remove (hide_timer_id);
+					hide_timer_id = 0U;
+				}
+				return;
+			}
+
 			if (unhide_timer_id > 0U) {
 				GLib.Source.remove (unhide_timer_id);
 				unhide_timer_id = 0U;

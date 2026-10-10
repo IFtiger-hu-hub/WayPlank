@@ -171,5 +171,14 @@ namespace Plank
 			target = list[next_index].Id;
 			return true;
 		}
+
+		public bool app_is_active (string launcher_uri)
+		{
+			foreach (var w in matching_windows (launcher_uri)) {
+				if (w.Active)
+					return true;
+			}
+			return false;
+		}
 	}
 }

@@ -112,6 +112,9 @@ namespace Plank
 		[Description(nick = "categorize-items", blurb = "Whether to categorize dock items by type (Folders, Apps, Docklets, Running, Trash).")]
 		public bool CategorizeItems { get; set; }
 		
+		[Description(nick = "accordion-docklets", blurb = "Whether to collapse docklets in-line showing only the first one at rest.")]
+		public bool AccordionDocklets { get; set; }
+		
 		/**
 		 * {@inheritDoc}
 		 */

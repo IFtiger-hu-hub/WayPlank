@@ -45,6 +45,9 @@ namespace Plank
 		public string last_explicit_monitor { get; set; default = ""; }
 		
 		public DockItemProvider? default_provider { get; private set; }
+		public unowned DefaultApplicationDockItemProvider? app_provider {
+			get { return default_provider as DefaultApplicationDockItemProvider; }
+		}
 		
 		DBusManager dbus_manager;
 		Gee.ArrayList<unowned DockItem> visible_items;
@@ -175,7 +178,7 @@ namespace Plank
 			position_manager.update (renderer.theme);
 			window.update_size_and_position ();
 			window.show_all ();
-			if (!GtkLayerShell.is_supported ())
+			if (GtkLayerShell.is_supported ())
 				window.present ();
 			window.queue_draw ();
 		}
@@ -461,7 +464,7 @@ namespace Plank
 			renderer.reset_buffers ();
 			hide_manager.wake_up ();
 			window.show_all ();
-			if (!GtkLayerShell.is_supported ())
+			if (GtkLayerShell.is_supported ())
 				window.present ();
 			renderer.animated_draw ();
 		}

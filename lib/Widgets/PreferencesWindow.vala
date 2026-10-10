@@ -80,6 +80,10 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_categorize_items;
 		[GtkChild]
+		unowned Gtk.Box box_accordion;
+		[GtkChild]
+		unowned Gtk.Switch sw_accordion_docklets;
+		[GtkChild]
 		unowned Gtk.Switch sw_autostart;
 		[GtkChild]
 		unowned Gtk.ComboBoxText cb_window_click_behavior;
@@ -344,6 +348,10 @@ namespace Plank
 				break;
 			case "CategorizeItems":
 				sw_categorize_items.set_active (prefs.CategorizeItems);
+				update_accordion_visibility ();
+				break;
+			case "AccordionDocklets":
+				sw_accordion_docklets.set_active (prefs.AccordionDocklets);
 				break;
 			case "ZoomPercent":
 				adj_zoom_percent.value = prefs.ZoomPercent;
@@ -598,6 +606,17 @@ namespace Plank
 		void categorize_items_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.CategorizeItems = ((Gtk.Switch) widget).get_active ();
+			update_accordion_visibility ();
+		}
+
+		void accordion_docklets_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.AccordionDocklets = ((Gtk.Switch) widget).get_active ();
+		}
+
+		void update_accordion_visibility ()
+		{
+			box_accordion.visible = prefs.CategorizeItems;
 		}
 		
 		void iconsize_changed (Gtk.Adjustment adj)
@@ -669,6 +688,7 @@ namespace Plank
 			sw_pressure_reveal.notify["active"].connect (pressure_reveal_toggled);
 			sw_zoom_enabled.notify["active"].connect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].connect (categorize_items_toggled);
+			sw_accordion_docklets.notify["active"].connect (accordion_docklets_toggled);
 			sw_restore_minimized.notify["active"].connect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].connect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].connect (show_attention_indicators_toggled);
@@ -720,6 +740,7 @@ namespace Plank
 			sw_pressure_reveal.notify["active"].disconnect (pressure_reveal_toggled);
 			sw_zoom_enabled.notify["active"].disconnect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].disconnect (categorize_items_toggled);
+			sw_accordion_docklets.notify["active"].disconnect (accordion_docklets_toggled);
 			sw_restore_minimized.notify["active"].disconnect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].disconnect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].disconnect (show_attention_indicators_toggled);
@@ -836,6 +857,8 @@ namespace Plank
 				sw_pressure_reveal.tooltip_text = _("Pressure Reveal is not supported under Wayland");
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
 			sw_categorize_items.set_active (prefs.CategorizeItems);
+			sw_accordion_docklets.set_active (prefs.AccordionDocklets);
+			update_accordion_visibility ();
 			cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
 			cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();
 			cb_items_alignment.sensitive = (prefs.Alignment == Gtk.Align.FILL);

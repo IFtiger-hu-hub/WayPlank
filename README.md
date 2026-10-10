@@ -1,10 +1,8 @@
 # WAYPLANK: THE ROAD TO WAYLAND DOCK
 
-> Standalone, Monolithic Fork of Plank for Wayland
+> A lightweight native Wayland dock, forked and modernized from Plank.
 >
-> Laying the Groundwork for Native Wayland Architecture
->
-> Developed by Sergio Melas (sergiomelas@gmail.com) © 2026
+> Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 > [![Release: v0.5.2 Alpha](https://img.shields.io/badge/Release-v0.5.2%20Alpha-orange.svg)](Changelogs/CHANGELOG_v0.5.2.md)
@@ -13,38 +11,26 @@
 
 ---
 
-🚀 CURRENT RUNTIME: Full Wayland with KWin, Labwc (wlroots) & GNOME (Mutter) support | 🎯 MILESTONE: First Official Alpha Release (v0.5.2)
-
----
-
 ## 📢 Current Status
 
-I developed the core engine to discover running applications (since Wayland isolates and segregates window introspection by design) based on process list matching against the content of user and system `.desktop` files. To overcome the challenges of Wayland security boundaries, I utilized AI assistance during early prototyping. The codebase has undergone comprehensive human review, bug hunting, and code purging for high performance and stability.
+Plank was completely unmaintained and broken on Wayland. Wayplank brings it back to life with a native Wayland architecture using `gtk-layer-shell`, modular bridges for different compositors, while preserving the fast and clean Cairo rendering engine we all loved.
 
-Important notice: while the core dock rendering and layout inherit the beloved look and feel from the original Plank developers (Docky Core Team), Wayplank has evolved significantly: between v0.1.0 and v0.5.1, over **12,400 lines of new code were introduced** (+49% of the active codebase) and **3,875 lines of legacy X11 infrastructure were purged**. Today, **roughly 50% of the active codebase represents modern native Wayland architecture** (our modular Multi-Compositor HAL for KWin, Labwc, and GNOME/Mutter, asynchronous D-Bus IPC bridges, embedded docklets, Layer Shell anchoring, and multi-monitor geometry tracking), while the remaining ~50% preserves Plank's rock-solid Cairo rendering pipeline.
+Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL) working out of the box with **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)**. It auto-detects your compositor at startup without messy configs. Feedback, testing, and pull requests across different setups are very welcome!
 
-Having used KDE with Plank for years, Wayplank provides a true native Wayland successor as X11 phases out. Starting with version 0.4.3, Wayplank features a modular Hardware Abstraction Layer (HAL) with native support for **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)** compositors! Testing and feedback across different Wayland environments are warmly welcome.
+* 📖 [Technical migration report](Documentation/wayplank_x11_to_wayland_report_en.md)
+* 🧪 [Compositor test matrix & protocols](FAT/)
+* 📦 [Full technical changelogs](Changelogs/)
 
-👉 *For the complete technical migration report, please refer to [`Documentation/wayplank_x11_to_wayland_report_en.md`](Documentation/wayplank_x11_to_wayland_report_en.md).*  
-👉 *For the complete Factory Acceptance Test (FAT) protocols and test matrix across compositors, see [`FAT/`](FAT/).*  
-👉 *For detailed technical changelogs for each release milestone, see [`Changelogs/`](Changelogs/).*
+### 🎯 Compositor Support & Roadmap
 
-### ⚠️ Reality Check: Where Wayplank Stands Today
+* **Tested & working:** KWin (KDE Plasma 6), Labwc (wlroots), GNOME Shell (Mutter).
+* **Next on the list:** Sway and Hyprland support are in the works.
 
-To be completely transparent: **Wayplank is fully Wayland-native, with window-management and dock integration tested and verified on KWin (KDE Plasma), Labwc (wlroots), and GNOME Shell (Mutter)**. Support for additional compositors (Sway, Hyprland) is progressing along the roadmap.
-
-### 🔍 Keep an Eye on This Repository!
-
-If you are waiting for a true, lightweight, native Wayland dock experience to replace Plank without bloated desktop dependencies:
-**Bookmark this repo and watch our releases.** This is the active launchpad where the transition to modern protocols (and our upcoming Qt backend migration) is taking place step-by-step. Community feedback, architecture testing, and PRs are warmly welcome!
+Feel free to star the repo or follow releases if you want to track progress!
 
 ---
 
-> WARNING & DISCLAIMER:
->
-> DEVELOPED FOR EXPERIMENTAL AND ADVANCED DESKTOP INTEGRATION PROFILES
->
-> We assume no responsibility for errors or omissions in the software or documentation available. In no event shall we be liable to you or any third parties for any special, punitive, incidental, indirect or consequential damages of any kind, or any damages whatsoever, including, without limitation, those resulting from loss of use, data or configurations, and on any theory of liability, arising out of or in connection with the use of this software.
+> ⚠️ **Note:** Wayplank is actively developing alpha software. It works great on daily drivers, but expect occasional bugs. Feel free to open an issue if something breaks!
 
 ---
 
@@ -52,8 +38,9 @@ If you are waiting for a true, lightweight, native Wayland dock experience to re
 
 ## 1. CORE DEPENDENCIES
 
-To compile Wayplank from source, ensure your distribution provides the required development libraries:
+To compile Wayplank from source and enable all docklets, ensure your distribution provides the required development libraries and runtime tools:
 
+### Build Dependencies (Compiler & Headers):
 - Vala compiler (`valac >= 0.40`)
 - GTK+ 3.0 development headers (`gtk3` / `libgtk-3-dev`)
 - GTK Layer Shell (`gtk-layer-shell` / `libgtk-layer-shell-dev`)
@@ -63,18 +50,24 @@ To compile Wayplank from source, ensure your distribution provides the required 
 - GLib 2.0 (`glib2` / `libglib2.0-dev`, includes `glib-compile-resources`)
 - `pkg-config` / `base-devel` / `build-essential`
 
+### Runtime Dependencies & Docklet Tools:
+- **Screenshot Docklet (Labwc / wlroots / XFCE on Labwc):** `grim`, `slurp`
+- **Screenshot Docklet (KDE Plasma):** `kde-spectacle`
+- **Screenshot Docklet (XFCE / Generic X11):** `xfce4-screenshooter` or `flameshot`
+- **Screen Brightness Docklet (Hardware control fallback):** `brightnessctl` (optional)
+
 **Quick Install Commands:**
-- **Arch Linux:**
-  ```bash
-  sudo pacman -S --needed base-devel vala gtk3 gtk-layer-shell wayland json-glib libgee glib2
-  ```
 - **Debian / Ubuntu:**
   ```bash
-  sudo apt install build-essential valac libgtk-3-dev libgtk-layer-shell-dev libwayland-dev libjson-glib-dev libgee-0.8-dev libglib2.0-dev
+  sudo apt install build-essential valac libgtk-3-dev libgtk-layer-shell-dev libwayland-dev libjson-glib-dev libgee-0.8-dev libglib2.0-dev grim slurp
+  ```
+- **Arch Linux:**
+  ```bash
+  sudo pacman -S --needed base-devel vala gtk3 gtk-layer-shell wayland json-glib libgee glib2 grim slurp
   ```
 - **Fedora:**
   ```bash
-  sudo dnf install gcc vala gtk3-devel gtk-layer-shell-devel wayland-devel json-glib-devel libgee-devel glib2-devel
+  sudo dnf install gcc vala gtk3-devel gtk-layer-shell-devel wayland-devel json-glib-devel libgee-devel glib2-devel grim slurp
   ```
 
 ---
@@ -150,7 +143,10 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 ```bash
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
-sudo dpkg -i build/wayplank_0.5.2_amd64.deb
+# Install with automatic dependency resolution:
+sudo apt install ./build/wayplank_0.5.2_amd64.deb
+# Or via dpkg:
+# sudo dpkg -i build/wayplank_0.5.2_amd64.deb && sudo apt install -f
 ```
 
 ---
@@ -230,153 +226,22 @@ wayplank -d
   - [ ] After release, focus on bug fixes and compatibility updates.
 ---
 
-# Change log
+# 📝 Release Highlights & Changelog
 
-## V0.5.2 (First Alpha Release): 2026-10-09
+Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
-> 📢 **FIRST OFFICIAL ALPHA RELEASE & FINAL MASS DEVELOPMENT MILESTONE**:  
-> Version **V0.5.2 marks the first official ALPHA release** and the conclusion of the "Mass Development" phase of Wayplank! The core foundation (Multi-Compositor HAL for KWin, Labwc, and Mutter; native Layer Shell integration; 14 monolithic docklets; categorized layout architecture; self-contained binary fallback architecture; and deep crash/leak hardening) is now fully established and rock-solid.  
-> **From this point forward, Wayplank transitions to a user-driven maintenance phase: all future changes, enhancements, and new features will be developed exclusively upon user requests, bug reports, and community feedback.**
+* 🚀 **v0.5.2 (Alpha) — 2026-10-09:** Cairo folder launcher menu, 14 built-in docklets, category layout grouping and deep audit fixing stack overflows & GObject assertions.
+* 🛠️ **v0.5.1 — 2026-10-08:** Fixed KWin resume freeze on Plasma 6 with 50ms debouncer, native screenshot docklet and 100% FAT pass rate.
+* 🖥️ **v0.5.0 — 2026-10-07:** Solved multi-monitor duplicate ID collisions, live monitor hotplugging and Mutter drag race fixes.
+* 🧩 **v0.4.3 — 2026-10-05:** Modular Multi-Compositor HAL: dynamic auto-probing for KWin, Labwc (via `zwlr_foreign_toplevel`) and GNOME Shell bridge.
+* 📦 **v0.4.2 — 2026-10-02:** First 8 monolithic docklets (Trash, Clock, Battery, etc.), total purge of X11 libs and `--replace` flag.
+* ⚙️ **v0.4.1 — 2026-09-25:** Multi-monitor config persistence, secondary display tooltip fix and smooth zoom without micro-stutters.
+* 🪟 **v0.4.0 — 2026-09-24:** KWin D-Bus scripting bridge, real-time window Dodge/Intellihide and layer-shell input region negotiation.
+* 📌 **v0.3.0 — 2026-09-23:** Drag-and-drop icon pinning, running app dots and native compositor-safe window tracking.
+* 🏗️ **v0.2.0 — 2026-09-22:** Native `gtk-layer-shell` integration, `/proc` process scanner and standalone packaging scripts.
+* 🌱 **v0.1.0 — 2026-09-19:** Initial standalone fork from Plank, clean namespace migration to `wayplank` and XDG isolated paths.
 
-**New Features & Architecture Enhancements**:
-- **(Folders) Cairo-Dock Style Folder Launcher Menu (`FolderMenuWindow`)**:
-  - **Left-Click Interactive Menu**: Left-clicking a folder dock item opens a fast, non-modal overlay displaying subdirectories, application launchers, and documents without locking the desktop.
-  - **Fluid 60 FPS Zoom Following**: Window anchors dynamically follow the horizontal center (`val.center.x`) and vertical elevation during dock magnification, keeping dock hover zoom animations completely smooth.
-  - **Decoupled Click Bounce**: Left-clicking triggers the standard icon bounce animation while the popup menu remains rock-steady and decoupled from the bounce height (`pm.get_visual_thickness_for_item (TargetItem)`) for effortless item selection.
-  - **Dark Tooltip Styling**: Rendered with exact tooltip aesthetics (`rgba(28, 28, 30, 0.95)`, 7px rounded corners, 1px border `rgba(255, 255, 255, 0.18)`), crisp white typography, and illuminated mouseover highlight (`rgba(255, 255, 255, 0.20)`).
-  - **Subdirectory Drill-Down & History**: Browse nested folders with smooth back-button navigation, execute `.desktop` applications, and open documents directly in default apps.
-  - **Intelligent Auto-Dismiss**: Automatically closes when hovering another dock item or upon a 150ms pointer exit timer.
-  - **Dedicated Right-Click Menu**: Right-click on folder items is reserved exclusively for dock management (*Keep in Dock*, *Open in File Browser*, *Preferences*, *About Wayplank*).
-- **(Docklets) 14 Embedded Monolithic Docklets Suite**: Expanded docklets suite with 3 new native docklets:
-  - **Removable Drive Ejector (`docklet://ejector`)**: Removable media manager via GIO `VolumeMonitor` and UDisks2, safe detachment desktop notifications, and dynamic right-click eject context menu.
-  - **Screen Brightness (`docklet://brightness`)**: Hardware display brightness via `org.freedesktop.login1` Session SetBrightness / `brightnessctl`, mouse-wheel brightness stepping (±5%), preset click cycling (25% → 50% → 75% → 100%), and percentage badge.
-  - **Weather Forecast (`docklet://weather`)**: Live atmospheric updates via Open-Meteo API, dynamic weather status icons, temperature badge (°C / °F), 3-day forecast popup (`WeatherWindow`), and configuration dialog (`WeatherCityDialog`) with automatic IP geolocation fallback.
-- **(Preferences) 7×2 Symmetric Docklets Grid**: Redesigned Preferences *Docklets* tab into a balanced 7×2 grid accommodating all 14 docklets with native 35px vector icons and instant live toggle switches.
-- **(Layout) Categorize Items Architecture (`categorize-items`)**:
-  - Organized layout into dedicated semantic groups: `[Folders] | [Docklets] | [Pinned Apps] | [Unpinned Transients] | [Trash]`.
-  - Dynamic separator suppression: dividers automatically hide when an adjacent category contains 0 items, preventing phantom gaps.
-  - Clamped category drag bounding: items are strictly constrained within their category boundary during drag-and-drop.
-  - Cross-separator drag pin/unpin: dragging an application icon across the transient/pinned divider automatically pins or unpins it.
-  - Clean state preservation: independent serialization (`FreeDockItems` vs `CategorizedDockItems`) restoring exact user placement when toggled.
-- **(UI / Badges) Tooltip Category Badges**: Added contextual type badges (`• Folder`, `• Running`, `• Docklet`) in free-placement mode, and sanitized Trash docklet tooltip.
-- **(Window Management) Multi-Window Cycling & Minimize/Restore**: Unified left-click handling for single-window toggle minimize/restore and multi-window focus cycling via `activate`.
-
-**Bugs Solved & Resiliency Fixes**:
-- **(Resiliency) Icon Size Slider Auto-Shrink Guard**: Fixed `PositionManager` auto-shrink calculation to prevent crushing icons to the 24px minimum during rapid slider resizing or uninitialized monitor geometry.
-- **(Menu Polish) Universal Docklet Context Menu Consistency**: Appended standard dock actions (*Preferences...*, *Shortcuts & Gestures...*, *Report a Bug...*, *About Wayplank...*) to all 14 docklets via `Utils.append_docklet_menu_items()`, and placed *Preferences...* at the top of the Preferences docklet context menu.
-- **(Layer Shell) Surface Focus Theft Elimination**: Replaced unconditional `window.present()` calls with a Layer Shell guard (`!GtkLayerShell.is_supported ()`), preventing the dock from stealing keyboard focus from active application windows upon display changes or redraws.
-- **(Animation) Stationary Screenshot Capture**: Fixed Screenshot docklet animation leaping mid-air across the screen during interactive capture.
-- **(Debouncing) Window Title & State Flood Resiliency**: Absorbed rapid bursts of window state and title changes with a 50ms asynchronous debouncer, eliminating CPU spikes and IPC stutter.
-- **(Resource Management) Lifecycle & Signal Disconnect Safety**: Ensured clean disconnection of `monitors_changed`, `prefs.notify`, and `elements_changed` when closing the Preferences dialog, preventing memory leaks and dangling closures.
-- **(KDE Plasma) KSMServer Deprecated API Workaround**: Resolved `UnknownMethod: openSwitchUser` in Plasma 6 via FreeDesktop DisplayManager interface (`SwitchToGreeter`).
-- **(Packaging) Desktop File Executable Permissions**: Set `chmod +x` on `data/wayplank.desktop` and added `Restart` desktop action to prevent KIO access denied warnings when double-clicking from Dolphin.
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.2.md`](Changelogs/CHANGELOG_v0.5.2.md).
-
-## V0.5.1: 2026-10-08
-
-**KWin Resume Event Storm Hotfix & QTimer Debouncing**:
-- **(KWin) Event Loop Starvation Hotfix**: Fixed a severe compositor freeze in KDE Plasma 6.x upon system resume from sleep where KWin server-side decorations (title bars, window movement, minimize/maximize buttons) stopped responding while client windows remained interactive.
-- **(KWin) 50ms QTimer Single-Shot Debounce**: Replaced direct, synchronous `sendWindowState()` invocations across rapid window geometry and desktop signals with an asynchronous 50ms debounced queue in `KWinBridge.vala`.
-- **(KWin) Zombie Script & Shortcut Collision Prevention**: Added `isScriptLoaded` check in `KWinBridge.handle_system_resume()`; preserves existing script instances across system sleep instead of re-registering duplicate scripts and colliding with `kglobalaccel`.
-- **(KWin) Dock Self-Filtering**: Excluded Wayplank's own surface from KWin script signal connections to prevent circular window state emissions.
-- **(Cross-Compositor: KWin / Mutter / Labwc) Screenshot Docklet (`docklet://screenshot`)**: Added native built-in Screenshot docklet supporting instant interactive rectangular capture on click and multi-mode capture (Area, Fullscreen, Window, Open Screenshots folder) across KDE Spectacle, GNOME Screenshot, Labwc/Grim, and XDG Desktop Portal.
-- **(KWin & Mutter) Virtual Desktop Tracking & Empty Workspace Dodge (FAT 4.1)**: Modernized KWin 6 virtual desktop tracking via `isOnCurrentDesktop()` and `client.desktops` array inspection; stabilized GNOME Shell workspace index matching (`ws.index()`). Switching to an empty workspace now immediately unhides / reveals the dock across compositors.
-- **(KWin) Urgent Bounce & Attention Animation (FAT 2.7)**: Initialized `LastUrgent` timestamp in `ApplicationDockItem.vala` and established 2s periodic bounce cadence in `DockRenderer.vala` so urgent windows bounce continuously until focused.
-- **(KWin) HiDPI & Fractional Scaling Output Anchoring (FAT 7.7)**: Replaced volatile coordinate matching with stable model labels and eliminated destructive `hide()` calls in `DockWindow.vala`, preserving monitor anchoring during scale/DPI changes.
-- **(Cross-Compositor / CLI) Process Lifecycle `--replace` Option (FAT 9.5)**: Added `--replace` long option to `AbstractMain.vala` `GOptionEntry` table, aligning `--replace` with `-r`.
-- **(Cross-Compositor) Primary Display Previous Monitor Restoration (FAT 7.2)**: Toggling "On Primary Display" off now restores the dock to the previously active secondary monitor via `last_explicit_monitor` persistence in `DockController.vala`.
-- **(GNOME) Native XDG Desktop Portal Screenshot (FAT 6.5)**: Replaced restricted GNOME Shell D-Bus screenshot calls with the official `org.freedesktop.portal.Screenshot` interface, providing native interactive screenshot UI on modern GNOME Shell.
-- **(Labwc / wlroots) Centered Preferences Window & Packaging Recommends (FAT 7.1)**: Documented Labwc window rule `<action name="AutoPlace" policy="center" />` for dialogs and added `Recommends: grim, slurp, spectacle` in Debian package control.
-- **(GTK) Window Default Button Critical Assertion Fix**: Eliminated `gtk_window_set_default` assertion failure by ensuring `ok_button.set_can_default (true)`.
-- **Release status**: 100% FAT pass rate (159/159 test points verified across GNOME Mutter, KDE Plasma KWin, and Labwc wlroots), see FAT status: [`FAT/2026-10-08 FAT 0.5.1.txt`](FAT/2026-10-08%20FAT%200.5.1.txt)
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.1.md`](Changelogs/CHANGELOG_v0.5.1.md).
-
-## V0.5.0: 2026-10-07
-
-**Phase 6 Hardening, Multi-Monitor Unique Tagging & Cross-Compositor FAT**:
-- **(Cross-Compositor) Cross-Compositor FAT Validation Matrix**: Full Factory Acceptance Testing executed across GNOME/Mutter, KDE/KWin, and Labwc covering 25+ validation scenarios.
-- **(Cross-Compositor) Unique Multi-Monitor Geometry Tagging**: Solved multi-display collisions between identical hardware monitors via `%s (%d) [%dx%d @ %d,%d]` spatial tags in `PositionManager.vala`.
-- **(Cross-Compositor) Dynamic Monitor Hotplugging & Unlocked UI**: Connected `monitors_changed` signal to rebuild display lists in real time; unlocked display dropdown with re-entrancy guards.
-- **(KWin) FIFO Queue & Desktop Traversal**: Solved dropped bulk actions ("Close All") via serialized JSON queue in `KWinBridge.vala`; added automatic virtual desktop switching.
-- **(GNOME / Mutter) Shell Bridge & Drag Safety**: Resolved frame positioning race conditions via explicit monitor assignment and eliminated pointer timer use-after-free crashes.
-- **Release status**: Still some bugs persists but good enough for publishing see fat status: [`FAT/2026-10-07 FAT 0.5.0.txt`](FAT/2026-10-07%20FAT%200.5.0.txt)
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.0.md`](Changelogs/CHANGELOG_v0.5.0.md).
-
-## V0.4.3: 2026-10-05
-
-**Multi-Compositor HAL Release (KWin, Labwc/wlroots & GNOME/Mutter)**:
-- **(Cross-Compositor) Modular Multi-Compositor HAL**: Dynamic runtime auto-probing across KWin, Labwc, and GNOME/Mutter at startup with zero configuration.
-- **(Labwc / wlroots) Native Support**: Integrated asynchronous C protocol bridge implementing `zwlr_foreign_toplevel_manager_v1` with zero-latency Cairo dot indicators.
-- **(GNOME / Mutter) Native D-Bus Bridge**: Monolithic self-deploying GNOME Shell extension via D-Bus (`MutterBackend`) with window state tracking and edge positioning.
-- **(Cross-Compositor) Strict HAL Coordinate Isolation**: Pure relative Layer Shell margins for KWin/Labwc; dedicated absolute screen positioning with real frame anchoring for Mutter.
-- **(Cross-Compositor) Bi-Directional Show Desktop & Dynamic Separators**: Atomic bulk minimize/restore across all backends; dual visual separators (`[Pinned] | [Transient] | [Trash]`).
-- **Release status**: Still some bugs persists but good enough for publishing see fat status: [`FAT/2026-10-06 FAT 0.4.3.txt`](FAT/2026-10-06%20FAT%200.4.3.txt)
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.4.3.md`](Changelogs/CHANGELOG_v0.4.3.md).
-
-## V0.4.2: 2026-10-02
-
-**Wayland Stabilization, Monolithic Docklets & Architecture Polish**:
-- **(Cross-Compositor) Total Independence from X11**: Completely purged X11/XWayland libraries, building with zero warnings and zero errors.
-- **(Cross-Compositor: All Compositors / KWin) Monolithic Built-in Docklets**: Replaced external plugins with 8 static docklets (Trash, Clocks, Battery, CPU/RAM, Show Desktop, MPRIS, Volume).
-- **(KWin) Plasma D-Bus Trash Bridge**: Real-time trash synchronization with Dolphin and KDE Plasma widgets.
-- **(Cross-Compositor) Transient Items & Multi-Window Cycling**: Zero-latency tracking of unpinned windows and scroll-wheel window cycling.
-- **(Cross-Compositor / CLI) Anti-Bounce & Process Takeover (`--replace`)**: Eliminated spurious bounce animations and added `--replace` / `-r` support.
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.4.2.md`](Changelogs/CHANGELOG_v0.4.2.md).
-
-## V0.4.1: 2026-09-25
-
-**KWin Multi-Monitor Stabilization & Core Modernization**:
-- **(KWin) Multi-Monitor Display Tracking**: Fixed dock placement when switching monitors, persisted monitor selection across reboots, and added primary monitor fallback on disconnect.
-- **(KWin) Tooltip Positioning**: Fixed tooltips on secondary screens incorrectly rendering on the primary monitor.
-- **(Cross-Compositor) Zoom & UI Smoothness**: Disabled system config polling during icon zoom to eliminate micro-stutters and adjusted zoom bounds to avoid icon clipping.
-- **(Cross-Compositor) Legacy Code Purge**: Removed leftover X11/XWayland calls, stripped deprecated APIs, and eliminated compiler warnings.
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.4.1.md`](Changelogs/CHANGELOG_v0.4.1.md).
-
-## V0.4.0: 2026-09-24
-
-**KWin Wayland Scripting Bridge & Window Dodge Engine**:
-- **(KWin) Wayland Scripting Bridge**: Integrated Wayland window state tracking via native KWin D-Bus scripting interface.
-- **(KWin) Window Dodge & Intellihide**: Implemented real-time window overlap detection supporting Dodge Active Window and Dodge Maximized Window modes.
-- **(Cross-Compositor) Dynamic Layer-Shell Negotiation**: Handled dynamic layer-shell exclusive zones and input regions to ensure seamless window interaction alongside dock auto-hide.
-- **(Cross-Compositor) Transient Icon Filtering**: Prevented system tray icons from incorrectly spawning as temporary dock items.
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.4.0.md`](Changelogs/CHANGELOG_v0.4.0.md).
-
-## V0.3.0: 2026-09-23
-
-**Wayland Hover Stabilization & Application Management**:
-- **(Cross-Compositor) Icon Pinning & Instance Marking**: Implemented drag-and-drop icon pinning, running application markers, and multi-instance management.
-- **(Cross-Compositor) Hover & Surface Lifecycle**: Fixed dock hover zoom when cursor enters the dock surface, restored show/hide logic, and eliminated unsafe X11 overlap assumptions.
-- **(Cross-Compositor) Compositor-Safe Architecture**: Replaced legacy X11 window queries with Wayland compositor-safe abstractions.
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.3.0.md`](Changelogs/CHANGELOG_v0.3.0.md).
-
-## V0.2.0: 2026-09-22
-
-**Native Wayland & GTK Layer Shell Transition**:
-- **(Cross-Compositor: Wayland / Layer Shell) GTK Layer Shell Integration**: Implemented native Wayland surface layer management (`gtk-layer-shell`) and removed X11 startup blocks.
-- **(Cross-Compositor) Process Scanner & Desktop Matching**: Implemented `/proc`-based process scanner with automatic dead PID cleanup and generic `.desktop` file resolution.
-- **(Cross-Compositor) Context Menus & Pinning**: Redesigned right-click context menu handling and enabled persistent pinned items via custom `.dockitem` configurations.
-- **(Cross-Compositor) Build Pipeline & Packaging**: Modularized build scripts (`BuildBin.sh`, `BuildDeb.sh`), updated dependencies to `libgtk-layer-shell0`, and established cross-distro compatibility.
-- **(Cross-Compositor) Legacy Cleanup**: Purged obsolete X11 backends, environment overrides (`GDK_BACKEND=x11`), and legacy display server restrictions.
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.2.0.md`](Changelogs/CHANGELOG_v0.2.0.md).
-
-## V0.1.0: 2026-09-19
-
-**Phase 1 Architecture Decoupling & Baseline Release**:
-- **(Cross-Compositor) Standalone Fork**: Forked from original Plank codebase to establish clean foundations for Wayland migration.
-- **(Cross-Compositor) Namespace Migration**: Renamed binary and data namespaces to `wayplank` with transparent symlink compatibility.
-- **(Cross-Compositor) XDG Directory Isolation**: Relocated configs to `~/.config/wayplank` and themes to `~/.local/share/wayplank/themes`.
-- **(Cross-Compositor) Packaging Pipeline**: Created universal manual compilation sequence and standalone Debian packaging script.
-
-👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.1.0.md`](Changelogs/CHANGELOG_v0.1.0.md).
+👉 *Read the full detailed commits and milestone notes in [`Changelogs/`](Changelogs/).*
 
 ---
 

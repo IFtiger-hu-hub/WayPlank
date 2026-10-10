@@ -23,6 +23,20 @@ namespace Plank
 	public class DefaultApplicationDockItemProvider : ApplicationDockItemProvider
 	{
 		public DockPreferences Prefs { get; construct; }
+		public bool docklets_expanded { get; protected set; default = false; }
+		uint docklets_collapse_timer_id = 0U;
+
+		public static bool is_docklet_element (DockElement el)
+		{
+			if (el is TrashDockItem || el is SeparatorDockItem)
+				return false;
+			if (el is PlankDockItem)
+				return true;
+			var item = el as DockItem;
+			if (item != null && item.Prefs != null && item.Prefs.Launcher != null)
+				return item.Prefs.Launcher.has_prefix ("docklet://");
+			return false;
+		}
 
 		public DefaultApplicationDockItemProvider (DockPreferences prefs, File launchers_dir)
 		{
@@ -34,17 +48,82 @@ namespace Plank
 			Prefs.notify["CurrentWorkspaceOnly"].connect (handle_setting_changed);
 			Prefs.notify["PinnedOnly"].connect (handle_pinned_only_changed);
 			Prefs.notify["CategorizeItems"].connect (handle_categorize_items_changed);
+			Prefs.notify["AccordionDocklets"].connect (handle_accordion_docklets_changed);
 		}
 
 		~DefaultApplicationDockItemProvider ()
 		{
+			cancel_collapse_timer ();
 			Prefs.notify["CurrentWorkspaceOnly"].disconnect (handle_setting_changed);
 			Prefs.notify["PinnedOnly"].disconnect (handle_pinned_only_changed);
 			Prefs.notify["CategorizeItems"].disconnect (handle_categorize_items_changed);
+			Prefs.notify["AccordionDocklets"].disconnect (handle_accordion_docklets_changed);
+		}
+
+		void handle_accordion_docklets_changed ()
+		{
+			cancel_collapse_timer ();
+			docklets_expanded = false;
+			foreach (var element in internal_elements) {
+				element.RemoveTime = 0;
+			}
+			refresh_separators ();
+		}
+
+		public void expand_docklets ()
+		{
+			cancel_collapse_timer ();
+			if (docklets_expanded)
+				return;
+			if (!Prefs.CategorizeItems || !Prefs.AccordionDocklets)
+				return;
+			docklets_expanded = true;
+			foreach (var item in internal_elements) {
+				if (is_docklet_element (item)) {
+					item.AddTime = 0;
+					item.RemoveTime = 0;
+				}
+			}
+			refresh_separators ();
+		}
+
+		public void cancel_collapse_timer ()
+		{
+			if (docklets_collapse_timer_id != 0U) {
+				Source.remove (docklets_collapse_timer_id);
+				docklets_collapse_timer_id = 0U;
+			}
+		}
+
+		public void schedule_collapse_docklets (uint delay_ms = 300U)
+		{
+			unowned DockController? dock = get_dock ();
+			if (dock != null && (dock.drag_manager.InternalDragActive || dock.drag_manager.ExternalDragActive))
+				return;
+			if (!docklets_expanded)
+				return;
+			if (docklets_collapse_timer_id != 0U)
+				return;
+			docklets_collapse_timer_id = Timeout.add (delay_ms, () => {
+				docklets_collapse_timer_id = 0U;
+				unowned DockController? d = get_dock ();
+				if (d != null && (d.drag_manager.InternalDragActive || d.drag_manager.ExternalDragActive))
+					return Source.REMOVE;
+				if (docklets_expanded) {
+					docklets_expanded = false;
+					refresh_separators ();
+				}
+				return Source.REMOVE;
+			});
 		}
 
 		void handle_categorize_items_changed ()
 		{
+			cancel_collapse_timer ();
+			docklets_expanded = false;
+			foreach (var element in internal_elements) {
+				element.RemoveTime = 0;
+			}
 			if (!Prefs.CategorizeItems) {
 				save_current_order_to (false);
 				restore_order_from (Prefs.FreeDockItems);
@@ -57,8 +136,13 @@ namespace Plank
 			update_visible_elements ();
 
 			unowned DockController? dock = get_dock ();
-			if (dock != null) {
+			// CRITICAL RENDERER READY GUARD:
+			// During initial startup, add_default_provider () runs before renderer.initialize ().
+			// If a category setting triggers this callback early, dock.renderer or its theme may be null.
+			// Guarding against null prevents assertion failures (plank_dock_renderer_reset_buffers: assertion 'self != NULL').
+			if (dock != null && dock.renderer != null && dock.renderer.theme != null) {
 				dock.update_items ();
+				dock.position_manager.update (dock.renderer.theme);
 				dock.renderer.reset_buffers ();
 				dock.renderer.animated_draw ();
 				dock.schedule_serialize_item_positions ();
@@ -140,12 +224,36 @@ namespace Plank
 		{
 			foreach (var item in internal_elements) {
 				item.IsAttached = !(Prefs.PinnedOnly && item is TransientDockItem);
+				if (item.IsAttached)
+					item.RemoveTime = 0;
 			}
 			
 			if (!updating_visible_elements) {
 				updating_visible_elements = true;
 				maintain_separator ();
 				updating_visible_elements = false;
+			}
+
+			unowned DockController? dock = get_dock ();
+			bool drag_active = (dock != null && (dock.drag_manager.InternalDragActive || dock.drag_manager.ExternalDragActive));
+			if (drag_active) {
+				docklets_expanded = true;
+			}
+
+			if (Prefs.CategorizeItems && Prefs.AccordionDocklets && !docklets_expanded && !drag_active) {
+				bool seen_first = false;
+				foreach (var element in internal_elements) {
+					if (is_docklet_element (element)) {
+						if (!seen_first) {
+							seen_first = true;
+							element.IsAttached = true;
+						} else {
+							element.IsAttached = false;
+						}
+						element.AddTime = 0;
+						element.RemoveTime = 0;
+					}
+				}
 			}
 
 			base.update_visible_elements ();
@@ -232,7 +340,7 @@ namespace Plank
 							transients.add (el);
 					} else if (el is FileDockItem) {
 						folders.add (el);
-					} else if (el is PlankDockItem || (el is DockItem && ((DockItem) el).Prefs != null && ((DockItem) el).Prefs.Launcher != null && ((DockItem) el).Prefs.Launcher.has_prefix ("docklet://"))) {
+					} else if (is_docklet_element (el)) {
 						docklets.add (el);
 					} else {
 						pinned_apps.add (el);

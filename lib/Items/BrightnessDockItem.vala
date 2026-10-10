@@ -210,6 +210,8 @@ namespace Plank
 			}
 		}
 
+		private int64 last_user_action_time = 0;
+
 		private void read_max_brightness ()
 		{
 			if (backlight_device == null) return;
@@ -217,8 +219,11 @@ namespace Plank
 			try {
 				string content;
 				GLib.FileUtils.get_contents (path, out content);
-				max_raw_brightness = (uint32) int64.parse (content.strip ());
-				if (max_raw_brightness <= 0) max_raw_brightness = 100;
+				int64 val = int64.parse (content.strip ());
+				if (val > 0)
+					max_raw_brightness = (uint32) val;
+				else
+					max_raw_brightness = 100;
 			} catch (GLib.Error e) {
 				max_raw_brightness = 100;
 			}
@@ -226,6 +231,10 @@ namespace Plank
 
 		private void refresh_brightness ()
 		{
+			// Skip refresh if user recently adjusted brightness via scroll or click (3 second debounce)
+			if (last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) < 3000000)
+				return;
+
 			// 1. Try KDE Solid PowerManagement D-Bus
 			if (session_bus != null) {
 				try {
@@ -280,23 +289,30 @@ namespace Plank
 						null
 					);
 					GLib.Variant val_var = reply.get_child_value (0).get_variant ();
-					int val = val_var.get_int32 ();
-					current_percent = val.clamp (1, 100);
-					gnome_available = true;
-					update_display ();
-					return;
+					int val = 0;
+					if (val_var.is_of_type (GLib.VariantType.INT32)) val = val_var.get_int32 ();
+					else if (val_var.is_of_type (GLib.VariantType.UINT32)) val = (int) val_var.get_uint32 ();
+					else if (val_var.is_of_type (GLib.VariantType.DOUBLE)) val = (int) Math.round (val_var.get_double ());
+					if (val > 0) {
+						current_percent = val.clamp (1, 100);
+						gnome_available = true;
+						update_display ();
+						return;
+					}
 				} catch (GLib.Error e) {
 					gnome_available = false;
 				}
 			}
 
-			// 3. Try /sys/class/backlight/<device>/brightness (DO NOT read actual_brightness!)
+			// 3. Try /sys/class/backlight/<device>/brightness
 			if (backlight_device != null) {
 				string path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
 				try {
 					string content;
 					GLib.FileUtils.get_contents (path, out content);
 					int64 raw = int64.parse (content.strip ());
+					if (raw > max_raw_brightness)
+						max_raw_brightness = (uint32) raw;
 					if (max_raw_brightness > 0) {
 						current_percent = (int) Math.round (((double) raw / (double) max_raw_brightness) * 100.0);
 						current_percent = current_percent.clamp (1, 100);
@@ -361,6 +377,7 @@ namespace Plank
 		{
 			int target = percent.clamp (5, 100);
 			current_percent = target;
+			last_user_action_time = GLib.get_monotonic_time ();
 			update_display ();
 
 			// 1. Try KDE Solid PowerManagement D-Bus
@@ -397,14 +414,7 @@ namespace Plank
 					);
 				}
 
-				// Also invoke kscreen-doctor on KDE to ensure compositor display state syncs
-				if (GLib.Environment.find_program_in_path ("kscreen-doctor") != null) {
-					try {
-						GLib.Process.spawn_command_line_async ("kscreen-doctor output.activeOutput.brightness.%d".printf (target));
-					} catch (GLib.Error e) { }
-				}
-
-				// 2. Try GNOME SettingsDaemon Power D-Bus
+				// 2. Try GNOME SettingsDaemon Power D-Bus (Legacy GNOME)
 				session_bus.call.begin (
 					"org.gnome.SettingsDaemon.Power",
 					"/org/gnome/SettingsDaemon/Power",
@@ -418,7 +428,7 @@ namespace Plank
 				);
 			}
 
-			// 3. Try brightnessctl and light CLI tools
+			// 4. Try brightnessctl and light CLI tools
 			if (GLib.Environment.find_program_in_path ("brightnessctl") != null) {
 				try {
 					GLib.Process.spawn_command_line_async ("brightnessctl set %d%%".printf (target));
@@ -429,7 +439,7 @@ namespace Plank
 				} catch (GLib.Error e) { }
 			}
 
-			// 4. Try systemd-logind system bus SetBrightness
+			// 5. Try systemd-logind system bus SetBrightness
 			if (system_bus != null && backlight_device != null && max_raw_brightness > 0) {
 				uint32 target_raw = (uint32) Math.round (((double) target / 100.0) * (double) max_raw_brightness);
 				if (target_raw < 1) target_raw = 1;
@@ -445,7 +455,7 @@ namespace Plank
 					null
 				);
 
-				// 5. Direct sysfs write fallback (if user has write permission via udev)
+				// 6. Direct sysfs write fallback (if user has write permission via udev)
 				string path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
 				try {
 					GLib.FileUtils.set_contents (path, target_raw.to_string ());

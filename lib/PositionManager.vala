@@ -295,8 +295,9 @@ namespace Plank
 			
 			freeze_notify ();
 			
-			update (controller.renderer.theme);
+			update_dimensions ();
 			controller.window.update_layer_shell_monitor ();
+			update_regions ();
 			if (!GtkLayerShell.is_supported ()) {
 				controller.window.update_size_and_position ();
 			}
@@ -467,12 +468,23 @@ namespace Plank
 				return;
 			}
 			
-			var width = item_count * (ItemPadding + IconSize) + 2 * HorizPadding + 4 * LineWidth;
+			// CRITICAL LAYOUT WIDTH CONSISTENCY:
+			// Must use get_items_total_span () instead of (item_count * slot_size) so that
+			// variable-sized items (such as SeparatorDockItem) reflect true rendered span
+			// matching update_dimensions (), avoiding premature icon shrinking.
+			var width = get_items_total_span () + 2 * HorizPadding + 4 * LineWidth;
 			var step_size = int.max (1, (int) (Math.fabs (width - max_width) / item_count));
 			
 			if (width > max_width && MaxIconSize > DockPreferences.MIN_ICON_SIZE) {
 				MaxIconSize -= step_size;
-			} else if (width < max_width && MaxIconSize < prefs.IconSize) {
+			// CRITICAL HYSTERESIS GUARD (DO NOT REMOVE OR MODIFY):
+			// The condition 'step_size > 1' is strictly required to prevent infinite recursive
+			// oscillation (stack overflow / SIGSEGV). When the dock length overflows by only a few pixels,
+			// step_size collapses to 1. Since modifying an icon's size by 1px scales the total dock width
+			// by (item_count * 1px) (e.g. 22px), removing this check causes an endless ping-pong loop
+			// (+1px / -1px) between width > max_width and width < max_width.
+			// When step_size reaches 1, the algorithm MUST break out to the 'else' termination branch.
+			} else if (width < max_width && MaxIconSize < prefs.IconSize && step_size > 1) {
 				MaxIconSize += step_size;
 			} else {
 				MaxIconSize = int.max (DockPreferences.MIN_ICON_SIZE,
@@ -727,8 +739,12 @@ namespace Plank
 			
 			var draw_value = draw_values[item];
 			if (draw_value == null) {
-				warning ("Without a draw_value there is trouble ahead for '%s'", item.Text);
-				draw_value = new DockItemDrawValue ();
+				update_draw_values (controller.VisibleItems);
+				draw_value = draw_values[item];
+				if (draw_value == null) {
+					warning ("Without a draw_value there is trouble ahead for '%s'", item.Text);
+					draw_value = new DockItemDrawValue ();
+				}
 			}
 			
 			return draw_value;
@@ -1078,20 +1094,20 @@ namespace Plank
 			switch (Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
-				x = rect.x + (rect.width - requisition.width) / 2;
+				x = dock_window_region.x + rect.x + (rect.width - requisition.width) / 2;
 				y = dock_window_region.y - requisition.height;
 				break;
 			case Gtk.PositionType.TOP:
-				x = rect.x + (rect.width - requisition.width) / 2;
+				x = dock_window_region.x + rect.x + (rect.width - requisition.width) / 2;
 				y = dock_window_region.y + dock_window_region.height;
 				break;
 			case Gtk.PositionType.LEFT:
 				x = dock_window_region.x + dock_window_region.width;
-				y = rect.y + (rect.height - requisition.height) / 2;
+				y = dock_window_region.y + rect.y + (rect.height - requisition.height) / 2;
 				break;
 			case Gtk.PositionType.RIGHT:
 				x = dock_window_region.x - requisition.width;
-				y = rect.y + (rect.height - requisition.height) / 2;
+				y = dock_window_region.y + rect.y + (rect.height - requisition.height) / 2;
 				break;
 			}
 		}

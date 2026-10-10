@@ -68,14 +68,14 @@ sudo apt autoremove --purge
 # 3. LABWC (wlroots Standalone Compositor)
 # ------------------------------------------------------------------------------
 
-# Installation:
-sudo apt install --no-install-recommends labwc
+# Installation (includes grim & slurp for native Wayplank screenshot docklet):
+sudo apt install --no-install-recommends labwc grim slurp
 
 # Test Command (Nested window with Wayplank and terminal):
 dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/WayPlank/build/wayplank -d & konsole'"
 
 # Purge:
-sudo apt purge labwc
+sudo apt purge labwc grim slurp
 sudo apt autoremove --purge
 
 
@@ -92,7 +92,9 @@ sudo apt install --no-install-recommends \
     lxqt-wayland-session \
     pcmanfm-qt \
     lxqt-panel \
-    qterminal
+    qterminal \
+    grim \
+    slurp
 
 # Test Command (Runs LXQt session inside a nested Labwc window with Wayplank):
 dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/WayPlank/build/wayplank -d & startlxqt'"
@@ -103,7 +105,9 @@ sudo apt purge \
     lxqt-wayland-session \
     pcmanfm-qt \
     lxqt-panel \
-    qterminal
+    qterminal \
+    grim \
+    slurp
 sudo apt autoremove --purge
 
 
@@ -115,7 +119,9 @@ sudo apt install --no-install-recommends \
     xfce4-panel \
     xfdesktop4 \
     thunar \
-    xfce4-terminal
+    xfce4-terminal \
+    grim \
+    slurp
 
 # Test Command (Runs XFCE desktop inside a nested Labwc window with Wayplank):
 dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/WayPlank/build/wayplank -d & xfce4-session'"
@@ -126,5 +132,7 @@ sudo apt purge \
     xfce4-panel \
     xfdesktop4 \
     thunar \
-    xfce4-terminal
+    xfce4-terminal \
+    grim \
+    slurp
 sudo apt autoremove --purge

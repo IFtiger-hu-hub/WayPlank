@@ -157,6 +157,21 @@ namespace Plank
 			else if ((State & ItemState.URGENT) != 0)
 				set_urgent (false);
 			
+			// CRITICAL ACTIVE STATE & GLOW TRACKING (DO NOT REMOVE):
+			// Keeps ItemState.ACTIVE, LastActive, and needs_redraw () synchronized with the compositor's
+			// active window state. This feeds DockRenderer.theme.draw_active_glow (), restoring the
+			// original Plank active app highlight glow effect.
+			var is_active = window_manager.app_is_active (Launcher);
+			var was_active = (State & ItemState.ACTIVE) != 0;
+			if (is_active != was_active) {
+				LastActive = GLib.get_monotonic_time ();
+				if (is_active)
+					State |= ItemState.ACTIVE;
+				else
+					State &= ~ItemState.ACTIVE;
+				needs_redraw ();
+			}
+
 			// Only bounce if THIS specific app had open windows and its last window was closed
 			if (had_open_windows && window_count == 0) {
 				ClickedAnimation = AnimationType.BOUNCE;

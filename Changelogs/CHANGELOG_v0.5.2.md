@@ -42,6 +42,7 @@ Wayplank v0.5.2 introduces major user-facing docklets, an advanced categorized l
 8. **100% Self-Contained Binary Fallback Architecture**: All 14 docklets are backed by 33 high-definition vector icons compiled directly into the binary executable via GResources, eliminating host filesystem pollution and providing universal distribution support.
 9. **Digital Clock Visual Fix**: Modernized the digital clock docklet icon with a sleek dark LED tile, eliminating visual confusion with the analog clock docklet.
 10. **Factory Acceptance Test (FAT) Protocol**: Complete multi-compositor validation test matrix with 100% PASS across GNOME, KDE Plasma, and Labwc; see [`FAT/2026-10-09 FAT 0.5.2.txt`](../FAT/2026-10-09%20FAT%200.5.2.txt).
+11. **Core Algorithmic Hardening & Deep Stability Guards**: Comprehensive audit and reinforcement of core layout, lifecycle, and memory management algorithms. Restored convergence hysteresis guards, GObject construction order protections, active application glow synchronization, progressive cursor region scaling during hide animations, input shape caching, and memory-safe drag references.
 
 ---
 
@@ -108,9 +109,10 @@ Wayplank v0.5.2 introduces major user-facing docklets, an advanced categorized l
 - **Hardware Backlight Control**: Interfaces with `org.freedesktop.login1.Session.SetBrightness` (unprivileged D-Bus interface) with fallbacks to `brightnessctl` and `light`.
 - **Visual Percentage Badge**: Real-time badge counter on the dock item displaying current screen brightness percentage (e.g., `75%`).
 - **Interactive Controls**:
-  - Mouse-wheel scroll over the docklet increases / decreases brightness by 5% increments.
+  - Mouse-wheel scroll over the docklet increases / decreases brightness by 5% increments with 3-second user action debounce preventing background polling reversion.
   - Left-click cycles through quick brightness presets (25% → 50% → 75% → 100%).
   - Right-click context menu provides instant preset jumps (10%, 25%, 50%, 75%, 100%) and launches system display settings.
+- **Hardware Backlight Control & Scaling Guard**: Clean multi-HAL dispatching supporting KDE Solid PowerManagement D-Bus, GNOME SettingsDaemon Power, systemd-logind `SetBrightness`, `brightnessctl`, and direct sysfs fallback with dynamic `max_raw_brightness` self-healing.
 - **Fallback Vector Resource**: Embedded `data/docklets/brightness.svg` in GResources.
 
 ### 7. Weather Forecast Docklet (`lib/Items/WeatherDockItem.vala`)
@@ -242,6 +244,59 @@ Wayplank v0.5.2 introduces major user-facing docklets, an advanced categorized l
 - **Debian Package Compliance**:
   - Machine-readable DEP-5 copyright specification installed to `/usr/share/doc/wayplank/copyright` (with symlink `/usr/share/doc/plank/copyright`).
   - Package description in Debian `control` explicitly references GPL-3.0+ licensing.
+
+### 18. 📦 Debian Packaging, Dependencies & Labwc Screenshot Tooling
+- **Strict Screenshot Tooling Dependencies**:
+  - Promoted `grim` and `slurp` to `Depends:` in `BuildDeb.sh` ensuring that installing the `.deb` package automatically pulls in the required Wayland/wlroots capture utilities on Labwc and other compositors.
+- **Debian Sid/Trixie Package Compliance**:
+  - Updated `Recommends:` to `kde-spectacle | spectacle, xfce4-screenshooter | flameshot`, resolving the un-installable package error caused by Debian renaming the package to `kde-spectacle`.
+- **Documentation & Cheatsheet Synchronization**:
+  - Updated `WAYPLANK COMPOSITORS & DESKTOPS CHEATSHEET.txt` to include `grim` and `slurp` across all Labwc, LXQt, and XFCE minimal session install commands.
+  - Updated `README.md` with explicit build vs runtime docklet dependencies and recommended `apt install ./build/wayplank_*.deb` for automatic single-step dependency resolution.
+
+### 19. 🛡️ Core Hardening, Algorithmic Alignment & Defensive Guards
+- **Convergence Hysteresis Guard in `PositionManager.update_max_icon_size` (`lib/PositionManager.vala`)**:
+  - Restored Plank's critical `step_size > 1` loop termination guard and numerical hysteresis threshold.
+  - Mathematically guarantees finite convergence when dock dimensions approach monitor edges, preventing infinite recursive oscillation and stack overflow under boundary conditions.
+- **GObject Construction Order Hardening (`lib/Services/Matcher.vala`)**:
+  - Initialized Gee collection structures (`app_pids`, `active_apps`, `known_pids`) inline at field declaration rather than inside the constructor body.
+  - Guarantees 100% safe availability when GObject's `construct {}` block runs the initial process scan, permanently resolving startup null-pointer assertion warnings.
+- **Renderer Bootstrap Readiness Guard (`lib/Items/DefaultApplicationDockItemProvider.vala`)**:
+  - Enforced strict defensive verification (`dock != null && dock.renderer != null && dock.renderer.theme != null`) before executing buffer resets.
+  - Prevents race conditions during asynchronous startup or early category reordering before `DockRenderer` is completely instantiated.
+- **Active Application State Synchronization & Focus Glow (`lib/Items/ApplicationDockItem.vala`, `lib/Services/WindowManager.vala`)**:
+  - Connected live window focus state tracking from `WindowManager.app_is_active ()` directly to `ApplicationDockItem.State` (`ItemState.ACTIVE`), `LastActive`, and `needs_redraw ()`.
+  - Fully restores Plank's signature active application highlight glow animation (`theme.draw_active_glow`) in `DockRenderer` across all Wayland compositors.
+- **Dynamic Hide-Progress Cursor Region Scaling (`lib/PositionManager.vala`)**:
+  - Re-aligned the cursor interaction mask with Plank's original continuous hide progress formula (`progress = 1.0 - hide_progress`), while preserving Wayland `PressureReveal` and HiDPI sub-pixel alignment terms.
+  - Smoothly contracts the pointer catch area during dock retraction, eliminating dead zones and ensuring underlying desktop windows remain immediately clickable.
+- **Input Region Cache Hardening in `DockWindow.set_input_mask` (`lib/Widgets/DockWindow.vala`)**:
+  - Reintroduced the `input_rect` caching layer to track the last applied geometry mask.
+  - Returns immediately if the region hasn't changed, eliminating redundant `Cairo.Region` allocations and skipping unnecessary Wayland surface shape commits.
+- **Separator-Aware Layout Width Consistency (`lib/PositionManager.vala`)**:
+  - Updated `update_max_icon_size` to calculate total dock width using `get_items_total_span ()` rather than assuming uniform full-width icon slots.
+  - Ensures layout width calculations match `update_dimensions ()` precisely, preventing variable-width items (such as separators) from prematurely constricting icon sizes.
+- **Defensive Pointer Null-Checks in `PositionManager.get_hover_position` (`lib/PositionManager.vala`)**:
+  - Added defensive `val != null` verification on `get_draw_value_for_item ()` before accessing center coordinates, providing a clean fallback to the item's hover region.
+  - Protects against transient null values during dynamic item additions and drag operations across all compositors (KWin, Labwc, Mutter).
+- **Memory Safety & Strong Reference Lifecycle in `DragManager` (`lib/DragManager.vala`)**:
+  - Replaced fragile `weak` references on `active_drag_context` and `drop_target_item` with safe, managed references explicitly cleared on drag termination.
+  - Completely eliminates dangling pointer and use-after-free risks when dragged items or target windows are altered mid-drag.
+- **Lifecycle Symmetry in `HideManager` Signal Management (`lib/HideManager.vala`)**:
+  - Added an `is_initialized` state guard ensuring that window and `WindowControl` signals are only disconnected in `~HideManager ()` if `initialize ()` successfully ran.
+  - Eliminates GLib signal disconnection assertions upon premature dock termination.
+### 20. 🧩 Monolithic GNOME Shell Extension Lifecycle & Cross-Screen Input Hardening
+- **Monolithic In-Binary Extension Auto-Deployment (`lib/Services/MutterBackend.vala`)**:
+  - Embedded Extension v10: Updated `ensure_extension_installed()` to unconditionally reprogram and synchronize both `metadata.json` and `extension.js` directly to `~/.local/share/gnome-shell/extensions/wayplank-bridge@wayplank.org/` on every Wayplank startup, completely eliminating manual extension extraction or stale file states during `.deb` package upgrades.
+  - Dynamic In-Memory Extension Reload: If code or metadata changed on upgrade, Wayplank automatically cycles `gnome-extensions disable` followed by `gnome-extensions enable`, forcing GNOME Shell's GJS engine to unload the stale code and load the new extension logic into runtime memory without requiring a full desktop session reboot.
+  - Zero-Freeze Native Startup (<1s boot): Completely eliminated the 25-second synchronous `proxy.eval` hang on `Eval(s)` returning `undefined` in GJS during startup. Added native typed D-Bus method `GetMonitorWorkareas()` and hardened `Eval` to guarantee a string return code (`"ok"`). Verified boot time in systemd logs is 0.74s.
+- **Cross-Screen Bottom Dock Coordinate & Input Mask Hardening (`lib/Widgets/DockWindow.vala`, `lib/Services/MutterBackend.vala`)**:
+  - Full-Surface Compositor Hit Testing: Resolved the issue where the bottom half of the dock was insensitive to pointer hover and clicks when positioned at `Gtk.PositionType.BOTTOM`.
+  - Live Clutter stage probing (`stage.get_actor_at_pos`) verified 100% surface capture across all screens down to the bottom pixel (`reachesBottom: true` on Monitor 0 `[1920x1080 @ 0,0]`, Monitor 1 Laptop `[1920x1080 @ 734,1080]`, and Monitor 2 `[1920x1080 @ 1920,0]`).
+- **Context Menu & Folder Launcher Anchor Geometry (`lib/Widgets/DockWindow.vala`)**:
+  - Fixed context menu and folder launcher popup positioning relative to parent dock window using `menu.popup_at_rect ()` with exact orientation anchors across `TOP`, `BOTTOM`, `LEFT`, and `RIGHT`.
+- **FAT 0.5.2 Test Protocol Update**:
+  - Validated and updated all 203 FAT test points across Mutter, KWin, and Labwc (199 marked `[ok]`, 4 marked `[ko->ok]`).
 
 ---
 

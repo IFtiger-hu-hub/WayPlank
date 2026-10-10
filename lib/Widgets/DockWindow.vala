@@ -63,8 +63,8 @@ namespace Plank
 		double smooth_scroll_dy = 0.0;
 		double smooth_scroll_dx = 0.0;
 		uint32 last_scroll_time = 0U;
-
 		int window_position_retry = 0;
+		Gdk.Event? last_button_event = null;
 
 		/**
 		 * Creates a new dock window.
@@ -254,6 +254,7 @@ namespace Plank
 				update_hovered ((int) event.x, (int) event.y);
 
 			ClickedItem = HoveredItem;
+			last_button_event = ((Gdk.Event) event).copy ();
 
 			var button = PopupButton.from_event_button (event);
 			if (button != PopupButton.LEFT && show_menu (HoveredItem, button, event.state, (int) event.x, (int) event.y, (Gdk.Event) event))
@@ -338,6 +339,9 @@ namespace Plank
 			if ((bool) event.send_event)
 				return Gdk.EVENT_PROPAGATE;
 
+			if (controller.drag_manager.InternalDragActive || controller.drag_manager.ExternalDragActive)
+				return Gdk.EVENT_PROPAGATE;
+
 			if (event.detail == Gdk.NotifyType.INFERIOR || event.mode != Gdk.CrossingMode.NORMAL)
 				return Gdk.EVENT_PROPAGATE;
 
@@ -348,10 +352,67 @@ namespace Plank
 				set_hovered_provider (null);
 				set_hovered (null);
 				controller.hide_manager.update_hovered_with_coords (-1, -1);
+				if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+					controller.app_provider.schedule_collapse_docklets (200U);
+				}
 			} else
 				controller.hover.hide ();
 
 			return Gdk.EVENT_PROPAGATE;
+		}
+
+		bool is_in_docklet_zone (int x, int y)
+		{
+			if (controller.app_provider == null)
+				return false;
+
+			unowned PositionManager pm = controller.position_manager;
+			var cursor_rect = pm.get_cursor_region ();
+			if (pm.is_horizontal_dock ()) {
+				if (y < cursor_rect.y - 10 || y >= cursor_rect.y + cursor_rect.height + 10)
+					return false;
+			} else {
+				if (x < cursor_rect.x - 10 || x >= cursor_rect.x + cursor_rect.width + 10)
+					return false;
+			}
+
+			int min_coord = int.MAX;
+			int max_coord = int.MIN;
+			bool found_docklet = false;
+
+			foreach (var item in controller.VisibleItems) {
+				if (DefaultApplicationDockItemProvider.is_docklet_element (item)) {
+					var rect = pm.get_hover_region_for_element (item);
+					if (pm.is_horizontal_dock ()) {
+						min_coord = int.min (min_coord, rect.x);
+						max_coord = int.max (max_coord, rect.x + rect.width);
+					} else {
+						min_coord = int.min (min_coord, rect.y);
+						max_coord = int.max (max_coord, rect.y + rect.height);
+					}
+					found_docklet = true;
+				}
+			}
+
+			if (!found_docklet)
+				return false;
+
+			// Add a comfortable margin for hover stability
+			min_coord -= 8;
+			max_coord += 8;
+
+			if (pm.is_horizontal_dock ()) {
+				return (x >= min_coord && x <= max_coord);
+			} else {
+				return (y >= min_coord && y <= max_coord);
+			}
+		}
+
+		bool is_hovering_docklets (int x, int y)
+		{
+			if (HoveredItem != null && DefaultApplicationDockItemProvider.is_docklet_element (HoveredItem))
+				return true;
+			return is_in_docklet_zone (x, y);
 		}
 
 		public override bool enter_notify_event (Gdk.EventCrossing event)
@@ -365,6 +426,13 @@ namespace Plank
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
+
+			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+				if (is_hovering_docklets ((int) event.x, (int) event.y)) {
+					controller.app_provider.expand_docklets ();
+				}
+			}
+
 			controller.renderer.animated_draw ();
 
 			return Gdk.EVENT_PROPAGATE;
@@ -384,6 +452,12 @@ namespace Plank
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
+
+			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+				if (is_hovering_docklets ((int) event.x, (int) event.y)) {
+					controller.app_provider.expand_docklets ();
+				}
+			}
 
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.on_dock_hover (HoveredItem);
@@ -790,34 +864,43 @@ namespace Plank
 
 			Gdk.Gravity widget_anchor = Gdk.Gravity.NORTH;
 			Gdk.Gravity menu_anchor = Gdk.Gravity.SOUTH;
+			Gdk.Rectangle rect = Gdk.Rectangle ();
+			var win_rect = controller.position_manager.get_dock_window_region ();
+			int win_w = win_rect.width;
+			int win_h = win_rect.height;
+
+			int center_x = event_x;
+			int center_y = event_y;
+			if (item != null) {
+				controller.position_manager.get_hover_position (item, out center_x, out center_y);
+			}
+
 			switch (controller.prefs.Position) {
 			case Gtk.PositionType.TOP:
 				widget_anchor = Gdk.Gravity.SOUTH;
 				menu_anchor = Gdk.Gravity.NORTH;
+				rect = Gdk.Rectangle () { x = center_x, y = win_h, width = 1, height = 1 };
 				break;
 			case Gtk.PositionType.LEFT:
 				widget_anchor = Gdk.Gravity.EAST;
 				menu_anchor = Gdk.Gravity.WEST;
+				rect = Gdk.Rectangle () { x = win_w, y = center_y, width = 1, height = 1 };
 				break;
 			case Gtk.PositionType.RIGHT:
 				widget_anchor = Gdk.Gravity.WEST;
 				menu_anchor = Gdk.Gravity.EAST;
+				rect = Gdk.Rectangle () { x = 0, y = center_y, width = 1, height = 1 };
 				break;
 			case Gtk.PositionType.BOTTOM:
 			default:
 				widget_anchor = Gdk.Gravity.NORTH;
 				menu_anchor = Gdk.Gravity.SOUTH;
+				rect = Gdk.Rectangle () { x = center_x, y = 0, width = 1, height = 1 };
 				break;
 			}
 
-			Gdk.Rectangle rect;
-			if (item != null) {
-				rect = controller.position_manager.get_hover_region_for_element (item);
-			} else {
-				rect = Gdk.Rectangle () { x = event_x, y = event_y, width = 1, height = 1 };
-			}
-
-			menu.popup_at_rect (get_window (), rect, widget_anchor, menu_anchor, trigger_event);
+			var trigger = trigger_event != null ? trigger_event : last_button_event;
+			menu.popup_at_rect (get_window (), rect, widget_anchor, menu_anchor, trigger);
 
 			return true;
 		}
@@ -901,6 +984,12 @@ namespace Plank
 			if (!hide_manager.Hovered) {
 				set_hovered_provider (null);
 				set_hovered (null);
+			}
+
+			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+				if (!hide_manager.Hovered && !controller.drag_manager.InternalDragActive) {
+					controller.app_provider.schedule_collapse_docklets (200U);
+				}
 			}
 
 			menu_items = null;

@@ -78,8 +78,12 @@ namespace Plank
 		
 		int window_scale_factor = 1;
 		ulong drag_item_redraw_handler_id = 0UL;
-		weak Gdk.DragContext? active_drag_context = null;
-		weak DockItem? drop_target_item = null;
+		// CRITICAL MEMORY SAFETY GUARD (DO NOT CHANGE TO WEAK):
+		// Use strong references here with explicit null resets in drag_end ().
+		// Using 'weak' references causes dangling pointer / use-after-free crashes if items
+		// or windows are modified/destroyed while dragging.
+		Gdk.DragContext? active_drag_context = null;
+		DockItem? drop_target_item = null;
 		bool last_hovered_trash = false;
 		
 		/**
@@ -227,6 +231,13 @@ namespace Plank
 			if (DragItem == null) {
 				Gdk.drag_abort (context, Gtk.get_current_event_time ());
 				return;
+			}
+			
+			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+				controller.app_provider.cancel_collapse_timer ();
+				if (DefaultApplicationDockItemProvider.is_docklet_element (DragItem)) {
+					controller.app_provider.expand_docklets ();
+				}
 			}
 			
 			active_drag_context = context;
@@ -432,6 +443,11 @@ namespace Plank
 						int poof_x = 0;
 						int poof_y = 0;
 						controller.position_manager.get_hover_position (DragItem, out poof_x, out poof_y);
+						if (poof_x <= 0) {
+							var crect = controller.position_manager.get_cursor_region ();
+							poof_x = crect.x + crect.width / 2;
+							poof_y = crect.y + crect.height / 2;
+						}
 						var dock_region = controller.position_manager.get_dock_window_region ();
 						var dock_thickness = controller.position_manager.is_horizontal_dock ()
 							? dock_region.height : dock_region.width;
@@ -517,14 +533,21 @@ namespace Plank
 			InternalDragActive = false;
 			DragItem = null;
 			active_drag_context = null;
+			drop_target_item = null;
 			dropped_on_target = false;
 			left_dock_during_drag = false;
 			last_hovered_trash = false;
 			context.get_device ().get_seat ().ungrab ();
 
 			unowned DefaultApplicationDockItemProvider? default_app_provider = controller.default_provider as DefaultApplicationDockItemProvider;
-			if (default_app_provider != null)
+			if (default_app_provider != null) {
 				default_app_provider.refresh_separators ();
+				if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets) {
+					if (!controller.hide_manager.Hovered) {
+						default_app_provider.schedule_collapse_docklets (200U);
+					}
+				}
+			}
 			
 			controller.window.notify["HoveredItem"].disconnect (hovered_item_changed);
 			controller.hover.hide ();

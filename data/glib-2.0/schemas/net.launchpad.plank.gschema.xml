@@ -169,6 +169,11 @@
 			<summary>Categorize dock items</summary>
 			<description>If true, group items into folders, pinned apps, docklets, unpinned apps, and trash with dynamic separators.</description>
 		</key>
+		<key name="accordion-docklets" type="b">
+			<default>false</default>
+			<summary>Accordion docklets mode</summary>
+			<description>When Categorize Items is enabled, collapse docklets so only the first one on the left is visible at rest, expanding in-line on hover.</description>
+		</key>
 		<key name="zoom-percent" type="i">
 			<range min="100" max="200"/>
 			<default>150</default>

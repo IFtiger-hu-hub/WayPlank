@@ -83,6 +83,43 @@ namespace Plank
 		}
 
 
+		unowned DockItem? find_default_target_for_item (string uri)
+		{
+			bool is_docklet = uri.has_prefix ("docklet://");
+			if (is_docklet) {
+				// DEFENSIVE GUARD: When adding a docklet, always position it at the far right
+				// (the end) of the docklets category, never to the left.
+				// This preserves the user's primary/default docklet (e.g. Preferences or Clock)
+				// as the first item on the left, keeping it always-visible at rest in Accordion mode.
+				bool in_docklets = false;
+				foreach (var el in internal_elements) {
+					if (DefaultApplicationDockItemProvider.is_docklet_element (el)) {
+						in_docklets = true;
+					} else if (in_docklets) {
+						return el as DockItem;
+					}
+				}
+
+				if (in_docklets)
+					return null;
+
+				// No existing docklet; place before pinned apps if any, or before transient/trash
+				foreach (var el in internal_elements) {
+					if (el is ApplicationDockItem && !(el is TransientDockItem)) {
+						return el as DockItem;
+					}
+				}
+			}
+
+			foreach (var el in internal_elements) {
+				if (el is SeparatorDockItem || el is TransientDockItem) {
+					return el as DockItem;
+				}
+			}
+
+			return null;
+		}
+
 		public override bool add_item_with_uri (string uri, DockItem? target = null)
 		{
 			if (uri == null || uri == "")
@@ -92,12 +129,7 @@ namespace Plank
 				target = null;
 
 			if (target == null) {
-				foreach (var el in internal_elements) {
-					if (el is SeparatorDockItem || el is TransientDockItem) {
-						target = el as DockItem;
-						break;
-					}
-				}
+				target = find_default_target_for_item (uri);
 			}
 
 			unowned DockItem? existing = item_for_uri (uri);
@@ -281,11 +313,17 @@ namespace Plank
 
 				var element = Factory.item_factory.make_element (file);
 				unowned DockItem? item = (element as DockItem);
+				if (item == null)
+					continue;
 				DockItem? target = null;
-				foreach (var el in internal_elements) {
-					if (el is SeparatorDockItem || el is TransientDockItem) {
-						target = el as DockItem;
-						break;
+				if (item != null && item.Prefs != null && item.Prefs.Launcher != null) {
+					target = find_default_target_for_item (item.Prefs.Launcher);
+				} else {
+					foreach (var el in internal_elements) {
+						if (el is SeparatorDockItem || el is TransientDockItem) {
+							target = el as DockItem;
+							break;
+						}
 					}
 				}
 
