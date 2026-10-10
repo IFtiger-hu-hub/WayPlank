@@ -217,6 +217,8 @@ namespace Plank
 			init_window_tab ();
 			init_docklets_tab ();
 			connect_signals ();
+			apply_theme_appearance (prefs.Theme);
+			SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
 			
 			notify["controller"].connect (controller_changed);
 			destroy.connect (() => {
@@ -312,12 +314,8 @@ namespace Plank
 				sw_pressure_reveal.set_active (prefs.PressureReveal);
 				break;
 			case "Theme":
-				var pos = 0;
-				foreach (unowned string theme in Plank.Theme.get_theme_list ()) {
-					if (theme == prefs.Theme)
-						cb_theme.set_active (pos);
-					pos++;
-				}
+				cb_theme.set_active_id (prefs.Theme);
+				apply_theme_appearance (prefs.Theme);
 				break;
 			case "HideDelay":
 				adj_hide_delay.value = prefs.HideDelay;
@@ -355,7 +353,39 @@ namespace Plank
 		
 		void theme_changed (Gtk.ComboBox widget)
 		{
-			prefs.Theme = ((Gtk.ComboBoxText) widget).get_active_text ();
+			var id = widget.get_active_id ();
+			if (id != null && id != "") {
+				prefs.Theme = id;
+				apply_theme_appearance (id);
+			}
+		}
+
+		void on_system_theme_changed (bool is_dark)
+		{
+			if (prefs.Theme == Plank.Theme.AUTO_NAME) {
+				apply_theme_appearance (prefs.Theme);
+			}
+		}
+
+		public void apply_theme_appearance (string theme_name)
+		{
+			bool prefer_dark = false;
+			if (theme_name == Plank.Theme.AUTO_NAME) {
+				prefer_dark = Plank.SystemTheme.get_default ().is_dark;
+			} else if (theme_name == Plank.Theme.DEFAULT_NAME) {
+				prefer_dark = true;
+			} else if (theme_name == Plank.Theme.LIGHT_NAME) {
+				prefer_dark = false;
+			} else {
+				var t = new DockTheme (theme_name);
+				t.load ("dock");
+				prefer_dark = !t.is_light ();
+			}
+
+			unowned Gtk.Settings? gtk_settings = Gtk.Settings.get_default ();
+			if (gtk_settings != null) {
+				gtk_settings.gtk_application_prefer_dark_theme = prefer_dark;
+			}
 		}
 		
 		void hidemode_changed (Gtk.ComboBox widget)
@@ -712,6 +742,7 @@ namespace Plank
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
 			get_screen ().monitors_changed.disconnect (rebuild_monitor_list);
+			SystemTheme.get_default ().theme_changed.disconnect (on_system_theme_changed);
 		}
 		
 		void rebuild_monitor_list ()
@@ -763,13 +794,25 @@ namespace Plank
 				previous_monitor = controller.last_explicit_monitor;
 			}
 
-			var pos = 0;
 			cb_theme.remove_all ();
 			foreach (unowned string theme in Plank.Theme.get_theme_list ()) {
-				cb_theme.append ("%i".printf (pos), theme);
-				if (theme == prefs.Theme)
-					cb_theme.set_active (pos);
-				pos++;
+				string label = theme;
+				if (theme == Plank.Theme.AUTO_NAME)
+					label = _("Auto (跟随系统 / Follow System)");
+				else if (theme == Plank.Theme.DEFAULT_NAME)
+					label = _("Default (深色暗夜 / Dark)");
+				else if (theme == Plank.Theme.LIGHT_NAME)
+					label = _("Light (清新亮白 / Light)");
+				else if (theme == Plank.Theme.GTK_THEME_NAME)
+					label = _("Gtk+ (跟随GTK主题)");
+
+				cb_theme.append (theme, label);
+			}
+			cb_theme.set_active_id (prefs.Theme);
+			if (cb_theme.get_active_id () == null) {
+				cb_theme.set_active_id (Plank.Theme.DEFAULT_NAME);
+				if (cb_theme.get_active_id () == null)
+					cb_theme.set_active (0);
 			}
 
 			var effective_mode = (prefs.HideMode != HideType.NONE && !WindowCapabilities.hide_mode_supported (prefs.HideMode))

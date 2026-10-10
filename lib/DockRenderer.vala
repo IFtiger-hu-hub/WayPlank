@@ -103,6 +103,7 @@ namespace Plank
 			benchmark = new Gee.ArrayList<string> ();
 #endif
 			controller.prefs.notify.connect (prefs_changed);
+			SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
 			
 			load_theme ();
 		}
@@ -122,6 +123,8 @@ namespace Plank
 		
 		~DockRenderer ()
 		{
+			SystemTheme.get_default ().theme_changed.disconnect (on_system_theme_changed);
+
 			if (controller != null) {
 				controller.prefs.notify.disconnect (prefs_changed);
 				if (controller.hide_manager != null) {
@@ -134,6 +137,13 @@ namespace Plank
 			}
 			if (theme != null) {
 				theme.notify.disconnect (theme_changed);
+			}
+		}
+
+		void on_system_theme_changed (bool is_dark)
+		{
+			if (controller.prefs.Theme == Theme.AUTO_NAME) {
+				load_theme ();
 			}
 		}
 		
@@ -199,6 +209,11 @@ namespace Plank
 			theme = new DockTheme (name);
 			theme.load ("dock");
 			theme.notify.connect (theme_changed);
+			
+			unowned Gtk.Settings? gtk_settings = Gtk.Settings.get_default ();
+			if (gtk_settings != null) {
+				gtk_settings.gtk_application_prefer_dark_theme = !theme.is_light ();
+			}
 			
 			if (is_reload)
 				theme_changed ();
@@ -1217,9 +1232,13 @@ namespace Plank
 
 			cr.save ();
 			if (is_urgent) {
-				cr.set_source_rgba (1.0, 0.42, 0.21, 0.95);
+				cr.set_source_rgba (1.0, 0.35, 0.18, 0.95);
 			} else {
-				cr.set_source_rgba (0.88, 0.90, 0.94, 0.85);
+				if (theme != null && theme.is_light ()) {
+					cr.set_source_rgba (0.16, 0.18, 0.24, 0.85);
+				} else {
+					cr.set_source_rgba (0.88, 0.90, 0.94, 0.85);
+				}
 			}
 
 			if (position_manager.is_horizontal_dock ()) {

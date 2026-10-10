@@ -26,7 +26,11 @@ namespace Plank
 	public abstract class Theme : Preferences
 	{
 		public const string DEFAULT_NAME = "Default";
+		public const string LIGHT_NAME = "Light";
+		public const string AUTO_NAME = "Auto";
 		public const string GTK_THEME_NAME = "Gtk+";
+		
+		public string theme_name = DEFAULT_NAME;
 		
 		public static Gtk.StyleContext create_style_context (GLib.Type widget_type, Gtk.StyleContext? parent_style,
 			Gtk.CssProvider provider, string? object_name, string first_class, ...)
@@ -85,14 +89,23 @@ namespace Plank
 		
 		File? theme_folder;
 		Gtk.StyleContext style_context;
+
+		public bool is_light ()
+		{
+			double lum_start = 0.299 * FillStartColor.red + 0.587 * FillStartColor.green + 0.114 * FillStartColor.blue;
+			double lum_end = 0.299 * FillEndColor.red + 0.587 * FillEndColor.green + 0.114 * FillEndColor.blue;
+			return ((lum_start + lum_end) / 2.0) > 0.55;
+		}
 		
 		protected Theme ()
 		{
+			theme_name = DEFAULT_NAME;
 			theme_folder = get_theme_folder (DEFAULT_NAME);
 		}
 		
 		protected Theme.with_name (string name)
 		{
+			theme_name = name;
 			theme_folder = get_theme_folder (name);
 		}
 		
@@ -152,10 +165,18 @@ namespace Plank
 			
 			LineWidth = 1;
 			
-			OuterStrokeColor = { 0.16, 0.18, 0.22, 1.0 };
-			FillStartColor   = { 0.094, 0.102, 0.133, 1.0 };
-			FillEndColor     = { 0.063, 0.071, 0.090, 1.0 };
-			InnerStrokeColor = { 1.0, 1.0, 1.0, 0.25 };
+			bool use_light = (theme_name == LIGHT_NAME || (theme_name == AUTO_NAME && !SystemTheme.get_default ().is_dark));
+			if (use_light) {
+				OuterStrokeColor = { 0.0, 0.0, 0.0, 0.14 };
+				FillStartColor   = { 1.0, 1.0, 1.0, 0.92 };
+				FillEndColor     = { 0.933, 0.941, 0.961, 0.92 };
+				InnerStrokeColor = { 1.0, 1.0, 1.0, 0.70 };
+			} else {
+				OuterStrokeColor = { 0.16, 0.18, 0.22, 1.0 };
+				FillStartColor   = { 0.094, 0.102, 0.133, 1.0 };
+				FillEndColor     = { 0.063, 0.071, 0.090, 1.0 };
+				InnerStrokeColor = { 1.0, 1.0, 1.0, 0.25 };
+			}
 		}
 		
 		/**
@@ -513,7 +534,9 @@ namespace Plank
 		{
 			var list = new Gee.HashSet<string> ();
 			
+			list.add (AUTO_NAME);
 			list.add (DEFAULT_NAME);
+			list.add (LIGHT_NAME);
 			list.add (GTK_THEME_NAME);
 			
 			// Look in user's themes-folder
@@ -562,8 +585,14 @@ namespace Plank
 		 */
 		public static File? get_theme_folder (string name)
 		{
+			if (name == AUTO_NAME)
+				return SystemTheme.get_default ().is_dark ? get_default_theme_folder () : get_light_theme_folder ();
+
 			if (name == DEFAULT_NAME)
 				return get_default_theme_folder ();
+			
+			if (name == LIGHT_NAME)
+				return get_light_theme_folder ();
 			
 			if (name == GTK_THEME_NAME)
 				return get_gtk_theme_folder ();
@@ -585,6 +614,25 @@ namespace Plank
 			warning ("%s not found, falling back to %s.", name, DEFAULT_NAME);
 			
 			return get_default_theme_folder ();
+		}
+		
+		static File? get_light_theme_folder ()
+		{
+			File folder;
+			
+			// Look in user's themes-folder first
+			folder = Paths.AppThemeFolder.get_child (LIGHT_NAME);
+			if (folder.query_exists ()
+				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+				return folder;
+
+			// "Light" folder located in system's themes-folder
+			folder = Paths.ThemeFolder.get_child (LIGHT_NAME);
+			if (folder.query_exists ()
+				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+				return folder;
+			
+			return null;
 		}
 		
 		static File? get_default_theme_folder ()
