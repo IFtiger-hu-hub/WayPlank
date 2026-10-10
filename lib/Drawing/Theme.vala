@@ -26,6 +26,7 @@ namespace Plank
 	public abstract class Theme : Preferences
 	{
 		public const string DEFAULT_NAME = "Default";
+		public const string DARK_NAME = "Dark";
 		public const string LIGHT_NAME = "Light";
 		public const string AUTO_NAME = "Auto";
 		public const string GTK_THEME_NAME = "Gtk+";
@@ -70,7 +71,7 @@ namespace Plank
 		public int BottomRoundness { get; set; }
 		
 		[Description(nick = "reverse-roundness", blurb = "The concave flare roundness touching the screen bottom edge.")]
-		public int ReverseRoundness { get; set; default = 26; }
+		public int ReverseRoundness { get; set; default = 0; }
 		
 		[Description(nick = "line-width", blurb = "The thickness (in pixels) of lines drawn.")]
 		public int LineWidth { get; set; }
@@ -159,23 +160,37 @@ namespace Plank
 		 */
 		protected override void reset_properties ()
 		{
-			TopRoundness    = 19;
-			ReverseRoundness = 26;
-			BottomRoundness = 0;
-			
-			LineWidth = 1;
-			
 			bool use_light = (theme_name == LIGHT_NAME || (theme_name == AUTO_NAME && !SystemTheme.get_default ().is_dark));
+			bool use_dark = (theme_name == DARK_NAME || (theme_name == AUTO_NAME && SystemTheme.get_default ().is_dark));
+			
 			if (use_light) {
+				TopRoundness    = 19;
+				ReverseRoundness = 26;
+				BottomRoundness = 0;
+				LineWidth = 1;
 				OuterStrokeColor = { 0.0, 0.0, 0.0, 0.14 };
 				FillStartColor   = { 1.0, 1.0, 1.0, 0.92 };
 				FillEndColor     = { 0.933, 0.941, 0.961, 0.92 };
 				InnerStrokeColor = { 1.0, 1.0, 1.0, 0.70 };
-			} else {
+			} else if (use_dark) {
+				TopRoundness    = 19;
+				ReverseRoundness = 26;
+				BottomRoundness = 0;
+				LineWidth = 1;
 				OuterStrokeColor = { 0.16, 0.18, 0.22, 1.0 };
 				FillStartColor   = { 0.094, 0.102, 0.133, 1.0 };
 				FillEndColor     = { 0.063, 0.071, 0.090, 1.0 };
 				InnerStrokeColor = { 1.0, 1.0, 1.0, 0.25 };
+			} else {
+				// Classic Plank defaults (for "Default" and retro third-party themes)
+				TopRoundness    = 4;
+				ReverseRoundness = 0;
+				BottomRoundness = 0;
+				LineWidth = 1;
+				OuterStrokeColor = { 0.1608, 0.1608, 0.1608, 1.0 };
+				FillStartColor   = { 0.1608, 0.1608, 0.1608, 1.0 };
+				FillEndColor     = { 0.3137, 0.3137, 0.3137, 1.0 };
+				InnerStrokeColor = { 1.0, 1.0, 1.0, 1.0 };
 			}
 		}
 		
@@ -536,6 +551,7 @@ namespace Plank
 			
 			list.add (AUTO_NAME);
 			list.add (DEFAULT_NAME);
+			list.add (DARK_NAME);
 			list.add (LIGHT_NAME);
 			list.add (GTK_THEME_NAME);
 			
@@ -586,10 +602,13 @@ namespace Plank
 		public static File? get_theme_folder (string name)
 		{
 			if (name == AUTO_NAME)
-				return SystemTheme.get_default ().is_dark ? get_default_theme_folder () : get_light_theme_folder ();
+				return SystemTheme.get_default ().is_dark ? get_dark_theme_folder () : get_light_theme_folder ();
 
 			if (name == DEFAULT_NAME)
 				return get_default_theme_folder ();
+
+			if (name == DARK_NAME)
+				return get_dark_theme_folder ();
 			
 			if (name == LIGHT_NAME)
 				return get_light_theme_folder ();
@@ -614,6 +633,25 @@ namespace Plank
 			warning ("%s not found, falling back to %s.", name, DEFAULT_NAME);
 			
 			return get_default_theme_folder ();
+		}
+
+		static File? get_dark_theme_folder ()
+		{
+			File folder;
+			
+			// Look in user's themes-folder first
+			folder = Paths.AppThemeFolder.get_child (DARK_NAME);
+			if (folder.query_exists ()
+				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+				return folder;
+
+			// "Dark" folder located in system's themes-folder
+			folder = Paths.ThemeFolder.get_child (DARK_NAME);
+			if (folder.query_exists ()
+				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+				return folder;
+			
+			return null;
 		}
 		
 		static File? get_light_theme_folder ()

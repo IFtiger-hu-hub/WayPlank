@@ -109,15 +109,33 @@ namespace Plank
 		protected override void reset_properties ()
 		{
 			base.reset_properties ();
-			TopRoundness = 19;
-			ReverseRoundness = 26;
-			BottomRoundness = 0;
-			HorizPadding = 2.5;
-			TopPadding = 1.5;
-			BottomPadding = 1.9;
-			ItemPadding = 2.0;
-			IndicatorSize = 5.0;
-			IconShadowSize = 0.0;
+			bool use_modern = (theme_name == DARK_NAME || theme_name == LIGHT_NAME || theme_name == AUTO_NAME);
+			if (use_modern) {
+				TopRoundness = 19;
+				ReverseRoundness = 26;
+				BottomRoundness = 0;
+				HorizPadding = 2.5;
+				TopPadding = 1.5;
+				BottomPadding = 1.9;
+				ItemPadding = 2.0;
+				IndicatorSize = 5.0;
+				IconShadowSize = 0.0;
+				ItemMoveTime = 280;
+				CascadeHide = false;
+			} else {
+				// Classic Plank default values
+				TopRoundness = 4;
+				ReverseRoundness = 0;
+				BottomRoundness = 0;
+				HorizPadding = 0.0;
+				TopPadding = -11.0;
+				BottomPadding = 2.5;
+				ItemPadding = 2.5;
+				IndicatorSize = 5.0;
+				IconShadowSize = 1.0;
+				ItemMoveTime = 450;
+				CascadeHide = true;
+			}
 			UrgentBounceHeight = 5.0 / 3.0;
 			LaunchBounceHeight = 0.625;
 			FadeOpacity = 1.0;
@@ -132,8 +150,6 @@ namespace Plank
 			GlowTime = 10000;
 			GlowPulseTime = 2000;
 			UrgentHueShift = 150;
-			ItemMoveTime = 450;
-			CascadeHide = true;
 			BadgeColor = { 0.0, 0.0, 0.0, 0.0 };
 		}
 		

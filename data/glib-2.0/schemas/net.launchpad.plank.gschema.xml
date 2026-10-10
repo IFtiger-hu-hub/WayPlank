@@ -136,7 +136,7 @@
 		<key name="theme" type="s">
 			<default>'Auto'</default>
 			<summary>The name of the dock theme for Plank to use</summary>
-			<description>Built-in values include "Auto", "Default", "Light", "Matte", "Transparent", and "Gtk+".</description>
+			<description>Built-in values include "Auto", "Default", "Dark", "Light", "Matte", "Transparent", and "Gtk+".</description>
 		</key>
 		<key name="tooltips-enabled" type="b">
 			<default>true</default>

@@ -371,6 +371,8 @@ namespace Plank
 			bool prefer_dark = false;
 			if (theme_name == Plank.Theme.AUTO_NAME) {
 				prefer_dark = Plank.SystemTheme.get_default ().is_dark;
+			} else if (theme_name == Plank.Theme.DARK_NAME) {
+				prefer_dark = true;
 			} else if (theme_name == Plank.Theme.DEFAULT_NAME) {
 				prefer_dark = true;
 			} else if (theme_name == Plank.Theme.LIGHT_NAME) {
@@ -800,9 +802,11 @@ namespace Plank
 				if (theme == Plank.Theme.AUTO_NAME)
 					label = _("Auto (跟随系统 / Follow System)");
 				else if (theme == Plank.Theme.DEFAULT_NAME)
-					label = _("Default (深色暗夜 / Dark)");
+					label = _("Default (原版经典 / Classic Plank)");
+				else if (theme == Plank.Theme.DARK_NAME)
+					label = _("Dark (现代深色磨砂 / Frosted Dark)");
 				else if (theme == Plank.Theme.LIGHT_NAME)
-					label = _("Light (清新亮白 / Light)");
+					label = _("Light (现代浅色磨砂 / Frosted Light)");
 				else if (theme == Plank.Theme.GTK_THEME_NAME)
 					label = _("Gtk+ (跟随GTK主题)");
 
