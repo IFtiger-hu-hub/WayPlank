@@ -156,6 +156,7 @@ namespace Plank
 			
 			Prefs.deleted.connect (handle_deleted);
 			Prefs.notify["Launcher"].connect (handle_launcher_changed);
+			Prefs.notify["CustomIcon"].connect (handle_custom_icon_changed);
 			
 			DrawingService.get_icon_theme ().changed.connect (icon_theme_changed);
 			notify["Icon"].connect (icon_changed);
@@ -178,6 +179,7 @@ namespace Plank
 			
 			Prefs.deleted.disconnect (handle_deleted);
 			Prefs.notify["Launcher"].disconnect (handle_launcher_changed);
+			Prefs.notify["CustomIcon"].disconnect (handle_custom_icon_changed);
 			
 			DrawingService.get_icon_theme ().changed.disconnect (icon_theme_changed);
 			notify["Icon"].disconnect (icon_changed);
@@ -218,6 +220,91 @@ namespace Plank
 			load_from_launcher ();
 			
 			launcher_file_monitor_start ();
+		}
+
+		void handle_custom_icon_changed ()
+		{
+			if (Prefs.CustomIcon != "") {
+				Icon = Prefs.CustomIcon;
+			} else {
+				load_from_launcher ();
+			}
+			ForcePixbuf = null;
+			reset_icon_buffer ();
+		}
+
+		public void set_custom_icon (string new_icon)
+		{
+			string cleaned = new_icon.strip ();
+			Prefs.CustomIcon = cleaned;
+			if (cleaned != "") {
+				Icon = cleaned;
+			} else {
+				load_from_launcher ();
+			}
+			ForcePixbuf = null;
+			reset_icon_buffer ();
+		}
+
+		public void reset_custom_icon ()
+		{
+			set_custom_icon ("");
+		}
+
+		public void pick_custom_icon ()
+		{
+			if (SessionDockItem.is_kde_session () && Environment.find_program_in_path ("kdialog") != null) {
+				try {
+					var proc = new Subprocess (SubprocessFlags.STDOUT_PIPE, "kdialog", "--title", _("选择图标"), "--geticon", "App");
+					proc.communicate_utf8_async.begin (null, null, (obj, res) => {
+						try {
+							string stdout_buf;
+							proc.communicate_utf8_async.end (res, out stdout_buf, null);
+							if (stdout_buf != null) {
+								var chosen = stdout_buf.strip ();
+								if (chosen != "") {
+									set_custom_icon (chosen);
+								}
+							}
+						} catch (Error e) {
+							warning ("kdialog geticon failed: %s", e.message);
+						}
+					});
+				} catch (Error e) {
+					warning ("Failed to spawn kdialog: %s", e.message);
+				}
+			} else {
+				var dialog = new Gtk.FileChooserDialog (
+					_("选择图标"),
+					null,
+					Gtk.FileChooserAction.OPEN,
+					_("_Cancel"), Gtk.ResponseType.CANCEL,
+					_("_Open"), Gtk.ResponseType.ACCEPT
+				);
+				var filter = new Gtk.FileFilter ();
+				filter.set_name (_("Image files (*.png, *.svg, *.xpm, *.ico)"));
+				filter.add_mime_type ("image/png");
+				filter.add_mime_type ("image/svg+xml");
+				filter.add_mime_type ("image/x-xpixmap");
+				filter.add_mime_type ("image/x-icon");
+				filter.add_pattern ("*.png");
+				filter.add_pattern ("*.svg");
+				filter.add_pattern ("*.xpm");
+				filter.add_pattern ("*.ico");
+				dialog.add_filter (filter);
+
+				dialog.response.connect ((response_id) => {
+					if (response_id == Gtk.ResponseType.ACCEPT) {
+						var path = dialog.get_filename ();
+						if (path != null && path != "") {
+							set_custom_icon (path);
+						}
+					}
+					dialog.destroy ();
+				});
+				dialog.show_all ();
+				dialog.present ();
+			}
 		}
 		
 		/**

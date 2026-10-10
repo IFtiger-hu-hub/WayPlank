@@ -53,10 +53,25 @@ namespace Plank
 			load_cache ();
 		}
 
+		string? get_cache_path ()
+		{
+			var user_cache = Environment.get_user_cache_dir ();
+			var p1 = Path.build_filename (user_cache, "wayplank", "recent_files_cache.json");
+			if (FileUtils.test (p1, FileTest.EXISTS))
+				return p1;
+			var p2 = Path.build_filename (user_cache, "noctalia-qs", "recent_files_cache.json");
+			if (FileUtils.test (p2, FileTest.EXISTS))
+				return p2;
+			return p1;
+		}
+
 		void load_cache ()
 		{
-			var home = Environment.get_home_dir ();
-			var cache_path = Path.build_filename (home, ".cache", "noctalia-qs", "recent_files_cache.json");
+			var cache_path = get_cache_path ();
+			if (cache_path == null) {
+				trigger_update_script ();
+				return;
+			}
 			var file = File.new_for_path (cache_path);
 			if (!file.query_exists ()) {
 				trigger_update_script ();
@@ -129,9 +144,22 @@ namespace Plank
 
 		void trigger_update_script ()
 		{
-			var script_path = "/home/hu-hub/Github/kde-quickshell-dock/recent_files.py";
-			if (!FileUtils.test (script_path, FileTest.EXISTS))
-				return;
+			string? script_path = GLib.Environment.get_variable ("WAYPLANK_RECENT_FILES_SCRIPT");
+			if (script_path == null || !FileUtils.test (script_path, FileTest.EXISTS)) {
+				var home = Environment.get_home_dir ();
+				var candidate1 = Path.build_filename (Environment.get_user_data_dir (), "wayplank", "scripts", "recent_files.py");
+				var candidate2 = "/usr/share/wayplank/scripts/recent_files.py";
+				var candidate3 = Path.build_filename (home, "Github", "kde-quickshell-dock", "recent_files.py");
+				if (FileUtils.test (candidate1, FileTest.EXISTS))
+					script_path = candidate1;
+				else if (FileUtils.test (candidate2, FileTest.EXISTS))
+					script_path = candidate2;
+				else if (FileUtils.test (candidate3, FileTest.EXISTS))
+					script_path = candidate3;
+				else
+					return;
+			}
+
 			try {
 				string[] argv = { "python3", script_path };
 				Pid pid;

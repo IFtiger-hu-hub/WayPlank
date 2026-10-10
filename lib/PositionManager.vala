@@ -842,6 +842,7 @@ namespace Plank
 				} else {
 					scroll_offset = target_scroll_offset;
 				}
+				scroll_offset = scroll_offset.clamp (0.0, max_scroll_offset);
 			}
 
 			double dock_start_coord = 0.0;

@@ -218,7 +218,6 @@ namespace Plank
 			init_docklets_tab ();
 			connect_signals ();
 			apply_theme_appearance (prefs.Theme);
-			SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
 			
 			notify["controller"].connect (controller_changed);
 			destroy.connect (() => {
@@ -695,6 +694,7 @@ namespace Plank
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
 			get_screen ().monitors_changed.connect (rebuild_monitor_list);
+			SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
 		}
 		
 		void disconnect_signals ()

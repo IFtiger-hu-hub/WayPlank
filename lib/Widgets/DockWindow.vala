@@ -455,7 +455,7 @@ namespace Plank
 
 			// Scrollable dock navigation when content overflows
 			if (controller.position_manager.max_scroll_offset > 0.0) {
-				bool is_volume = (HoveredItem != null && HoveredItem.get_type ().name ().contains ("Volume"));
+				bool is_volume = (HoveredItem is VolumeDockItem);
 				if (direction == Gdk.ScrollDirection.LEFT || (!is_volume && direction == Gdk.ScrollDirection.UP)) {
 					controller.position_manager.scroll_by (-80.0);
 					return Gdk.EVENT_STOP;

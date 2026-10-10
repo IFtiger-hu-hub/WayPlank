@@ -86,7 +86,10 @@ namespace Plank
 				return;
 			
 			OwnedFile = File.new_for_uri (Prefs.Launcher);
-			Icon = DrawingService.get_icon_from_file (OwnedFile) ?? DEFAULT_ICONS;
+			if (Prefs.CustomIcon != "")
+				Icon = Prefs.CustomIcon;
+			else
+				Icon = DrawingService.get_icon_from_file (OwnedFile) ?? DEFAULT_ICONS;
 			
 			if (!OwnedFile.is_native ()) {
 				Text = OwnedFile.get_uri ();
@@ -455,6 +458,17 @@ namespace Plank
 
 		void append_dock_menu_items (Gee.ArrayList<Gtk.MenuItem> items)
 		{
+			items.add (new Gtk.SeparatorMenuItem ());
+			var icon_item = create_menu_item ("更改图标 (系统库)...", "preferences-desktop-theme", true);
+			icon_item.activate.connect (() => pick_custom_icon ());
+			items.add (icon_item);
+
+			if (Prefs.CustomIcon != "") {
+				var reset_icon_item = create_menu_item ("恢复默认图标", "edit-undo", true);
+				reset_icon_item.activate.connect (() => reset_custom_icon ());
+				items.add (reset_icon_item);
+			}
+
 			if (items.size > 0)
 				items.add (new Gtk.SeparatorMenuItem ());
 			var dock_item = Factory.item_factory.get_item_for_dock ();

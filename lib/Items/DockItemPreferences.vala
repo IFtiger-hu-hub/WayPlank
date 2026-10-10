@@ -28,6 +28,9 @@ namespace Plank
 		[Description(nick = "launcher", blurb = "The uri for this item.")]
 		public string Launcher { get; set; }
 		
+		[Description(nick = "custom-icon", blurb = "The custom icon or file path for this item.")]
+		public string CustomIcon { get; set; default = ""; }
+		
 		/**
 		 * {@inheritDoc}
 		 */
@@ -59,6 +62,7 @@ namespace Plank
 		public override void reset_properties ()
 		{
 			Launcher = "";
+			CustomIcon = "";
 		}
 		
 		/**

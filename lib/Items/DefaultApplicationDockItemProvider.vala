@@ -307,16 +307,25 @@ namespace Plank
 				if (dockitem_file != null) {
 					var new_item = new ApplicationDockItem.with_dockitem_file (dockitem_file);
 					item.copy_values_to (new_item);
+					if (item.Prefs.CustomIcon != "") {
+						new_item.Prefs.CustomIcon = item.Prefs.CustomIcon;
+						new_item.Icon = item.Prefs.CustomIcon;
+					}
 					replace (new_item, item);
 				}
 			} else {
 				var launcher_uri = item.Launcher;
 				var win_count = WindowManager.get_default ().window_count_for_app (item.Launcher);
+				var saved_custom_icon = item.Prefs.CustomIcon;
 				item.delete ();
 				
 				// Re-add as a temporary item only if the app has active open windows
 				if (win_count > 0) {
 					var new_item = new TransientDockItem.with_launcher (launcher_uri);
+					if (saved_custom_icon != "") {
+						new_item.Prefs.CustomIcon = saved_custom_icon;
+						new_item.Icon = saved_custom_icon;
+					}
 					add (new_item);
 				}
 			}

@@ -463,6 +463,11 @@ namespace Plank
 			}
 		}
 
+		static inline string get_dim_color ()
+		{
+			return SystemTheme.get_default ().is_dark ? "#94a3b8" : "#64748b";
+		}
+
 		Gtk.MenuItem create_header_menu_item (int win_count)
 		{
 			var item = new Gtk.MenuItem ();
@@ -499,7 +504,7 @@ namespace Plank
 				: "未运行";
 
 			var status_lbl = new Gtk.Label (null);
-			status_lbl.set_markup ("<span size='9500' foreground='#94a3b8'>%s</span>".printf (status_str));
+			status_lbl.set_markup ("<span size='9500' foreground='%s'>%s</span>".printf (get_dim_color (), status_str));
 			status_lbl.halign = Gtk.Align.START;
 			vbox.pack_start (status_lbl, false, false, 0);
 
@@ -516,7 +521,7 @@ namespace Plank
 			item.can_focus = false;
 
 			var lbl = new Gtk.Label (null);
-			lbl.set_markup ("<b><span size='8500' foreground='#94a3b8'>%s</span></b>".printf (GLib.Markup.escape_text (label_text)));
+			lbl.set_markup ("<b><span size='8500' foreground='%s'>%s</span></b>".printf (get_dim_color (), GLib.Markup.escape_text (label_text)));
 			lbl.halign = Gtk.Align.START;
 			lbl.margin_start = 10;
 			lbl.margin_top = 4;
@@ -568,7 +573,7 @@ namespace Plank
 			vbox.pack_start (title_lbl, false, false, 0);
 
 			var path_lbl = new Gtk.Label (null);
-			path_lbl.set_markup ("<span size='8500' foreground='#94a3b8'>%s</span>".printf (GLib.Markup.escape_text (rf.display_path)));
+			path_lbl.set_markup ("<span size='8500' foreground='%s'>%s</span>".printf (get_dim_color (), GLib.Markup.escape_text (rf.display_path)));
 			path_lbl.halign = Gtk.Align.START;
 			path_lbl.ellipsize = Pango.EllipsizeMode.MIDDLE;
 			path_lbl.max_width_chars = 38;
@@ -705,6 +710,23 @@ namespace Plank
 				}
 			}
 
+			// 5.1 Custom Icon from system library
+			if (!is_window ()) {
+				bool is_pinned = !(this is TransientDockItem);
+				if (is_pinned) {
+					items.add (new Gtk.SeparatorMenuItem ());
+					var icon_item = create_menu_item ("更改图标 (系统库)...", "preferences-desktop-theme", true);
+					icon_item.activate.connect (() => pick_custom_icon ());
+					items.add (icon_item);
+
+					if (Prefs.CustomIcon != "") {
+						var reset_icon_item = create_menu_item ("恢复默认图标", "edit-undo", true);
+						reset_icon_item.activate.connect (() => reset_custom_icon ());
+						items.add (reset_icon_item);
+					}
+				}
+			}
+
 			// 6. Native clean system preferences & quit
 			items.add (new Gtk.SeparatorMenuItem ());
 			var pref_item = create_menu_item ("首选项 / Preferences...", "preferences-system", true);
@@ -785,7 +807,10 @@ namespace Plank
 			
 			string icon, text;
 			parse_launcher (Prefs.Launcher, out icon, out text, actions, actions_map, supported_mime_types, desktop_action_ids);
-			Icon = icon;
+			if (Prefs.CustomIcon != "")
+				Icon = Prefs.CustomIcon;
+			else
+				Icon = icon;
 			ForcePixbuf = null;
 			Text = text;
 		}
