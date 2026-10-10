@@ -3,7 +3,7 @@
 Release Milestone: **V0.5.4** (Intelligent Drag & Drop Payload Delivery, Spring-Loaded Window Activation, Smart Drop Capsule & Side Dock Viewport Clipping Fix)  
 Release Date: 2026-10-11  
 Author & Maintainer: 史有虎 (2212363803@qq.com) / Sergio Melas  
-Repository: [IFtiger-hu-hub/WayPlank](https://github.com/IFtiger-hu-hub/WayPlank)  
+Repository: [IFtiger-hu-hub/WayPlank](https://github.com/IFtiger-hu-hub/WayPlank)
 
 ---
 
@@ -41,6 +41,7 @@ Wayplank **V0.5.4** systematically resolves these limitations through five core 
 ## 2. 🛠️ Technical Details & Architecture Breakdown
 
 ### 1. Payload Dispatching Pipeline (`lib/Items/ApplicationDockItem.vala`, `lib/System.vala`, `lib/Items/TrashDockItem.vala`)
+
 - **URI Normalization & Argument Parsing**:
   - Implemented `deliver_drag_payload(string text, Gdk.DragContext context)` in `ApplicationDockItem.vala`.
   - Automatically filters `file://` URIs and web URLs (`http://`, `https://`), converting them into clean `GLib.File` object arrays.
@@ -50,6 +51,7 @@ Wayplank **V0.5.4** systematically resolves these limitations through five core 
   - In `TrashDockItem.vala`, implemented `deliver_drag_payload()` to parse dragged local files and invoke `GLib.File.trash_async()` on the main event loop, accompanied by icon state updates.
 
 ### 2. Spring-Loaded Window Timer (`lib/DragManager.vala`)
+
 - **Event-Driven Timer**:
   - Introduced `spring_hover_timer_id` (500ms timeout) in `DragManager.vala`.
   - Timer is primed when `ExternalDragActive` is true and a valid `HoveredItem` is entered.
@@ -58,6 +60,7 @@ Wayplank **V0.5.4** systematically resolves these limitations through five core 
   - When the 500ms threshold expires, dispatches direct window activation (`WindowControl.activate()`) to restore and raise the topmost window belonging to the hovered application.
 
 ### 3. Synchronous Thread-Safe Capsule Pill (`lib/Widgets/HoverWindow.vala`, `lib/Widgets/DockWindow.vala`)
+
 - **Elimination of Async Timer Race Hazards**:
   - Converted hover tooltip and capsule hint dispatching in `DockWindow.vala` from asynchronous `Gdk.threads_add_timeout` closures to synchronous main-thread execution.
   - Completely eliminates null-pointer `SIGSEGV` edge cases caused by rapid pointer movement across dock elements during drag operations.
@@ -65,6 +68,7 @@ Wayplank **V0.5.4** systematically resolves these limitations through five core 
   - The drop hint capsule is rendered directly inside the existing `HoverWindow` singleton, avoiding creation of secondary GTK window surfaces, extra input regions, or redundant layer-shell allocations.
 
 ### 4. Dual-Axis Viewport Clipping Engine (`lib/DockRenderer.vala`)
+
 - **Axis-Aware Clipping**:
   - Prior logic hardcoded `item_cr.rectangle (background_rect.x, 0, background_rect.width, win_rect.height)`. On vertical docks, `background_rect.width` is only ~50px, violently cutting off icons expanding into the screen interior.
   - Refactored clipping to evaluate dock orientation:
@@ -93,13 +97,13 @@ Wayplank **V0.5.4** systematically resolves these limitations through five core 
 
 Detailed profiling conducted on openSUSE Tumbleweed Linux x86_64 under active KDE Plasma 6 Wayland session:
 
-| Profile Metric | Measured Value | Analysis & Verdict |
-| :--- | :--- | :--- |
-| **Idle CPU Usage** | **0.00%** | Zero background polling or busy loops. |
-| **Private Dirty Heap Memory** | **~44.7 MB** | Dedicated WayPlank process heap and icon caches. |
-| **Resident Set Size (RSS)** | **~85.5 MB** | Includes all shared GTK3, Cairo, Wayland, and Mesa graphics libraries. |
-| **Proportional Set Size (PSS)** | **~56.1 MB** | True normalized system memory footprint. |
-| **Native Binary Footprint Delta** | **+456 Bytes** | Binary size increased by less than half a kilobyte (4.45 MB total). |
+| Profile Metric                    | Measured Value | Analysis & Verdict                                                     |
+| :-------------------------------- | :------------- | :--------------------------------------------------------------------- |
+| **Idle CPU Usage**                | **0.00%**      | Zero background polling or busy loops.                                 |
+| **Private Dirty Heap Memory**     | **~44.7 MB**   | Dedicated WayPlank process heap and icon caches.                       |
+| **Resident Set Size (RSS)**       | **~85.5 MB**   | Includes all shared GTK3, Cairo, Wayland, and Mesa graphics libraries. |
+| **Proportional Set Size (PSS)**   | **~56.1 MB**   | True normalized system memory footprint.                               |
+| **Native Binary Footprint Delta** | **+456 Bytes** | Binary size increased by less than half a kilobyte (4.45 MB total).    |
 
 ---
 

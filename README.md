@@ -25,9 +25,9 @@ Important notice: while the core dock rendering and layout inherit the beloved l
 
 Having used KDE with Plank for years, Wayplank provides a true native Wayland successor as X11 phases out. Starting with version 0.4.3, Wayplank features a modular Hardware Abstraction Layer (HAL) with native support for **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)** compositors! Testing and feedback across different Wayland environments are warmly welcome.
 
-👉 *For the complete technical migration report, please refer to [`Documentation/wayplank_x11_to_wayland_report_en.md`](Documentation/wayplank_x11_to_wayland_report_en.md).*  
-👉 *For the complete Factory Acceptance Test (FAT) protocols and test matrix across compositors, see [`FAT/`](FAT/).*  
-👉 *For detailed technical changelogs for each release milestone, see [`Changelogs/`](Changelogs/).*
+👉 _For the complete technical migration report, please refer to [`Documentation/wayplank_x11_to_wayland_report_en.md`](Documentation/wayplank_x11_to_wayland_report_en.md)._  
+👉 _For the complete Factory Acceptance Test (FAT) protocols and test matrix across compositors, see [`FAT/`](FAT/)._  
+👉 _For detailed technical changelogs for each release milestone, see [`Changelogs/`](Changelogs/)._
 
 ### ⚠️ Reality Check: Where Wayplank Stands Today
 
@@ -45,37 +45,49 @@ If you are waiting for a true, lightweight, native Wayland dock experience to re
 Wayplank 深度优化 Linux 原生 Wayland 桌面体验，全方位支持多种形态、自适应主题与手势拖拽交互：
 
 ### 1. 经典底部浅色高斯磨砂形态 (Classic Light Frosted Glass Dock)
+
 支持经典的反向圆角（Reverse Roundness）与通透的高斯模糊底板，配备精确的应用运行状态微点指示器。
+
 <p align="center">
   <img src="screenshots/01_bottom_light_dock.png" alt="经典底部浅色磨砂形态" width="100%">
 </p>
 
 ### 2. 暗黑深度高质感形态 (Dark Mode / Matte Frosted Dock)
+
 专为深色模式设计的黑透磨砂底板，支持平滑悬浮放大（Zoom）与细腻的高动态阴影渲染。
+
 <p align="center">
   <img src="screenshots/02_bottom_dark_dock.png" alt="暗黑深度高质感形态" width="100%">
 </p>
 
 ### 3. 侧边纵向 Dock 贴靠形态 (Vertical Side Dock - Left / Right)
+
 可自由贴靠于屏幕左侧或右侧边缘。图标悬停放大向屏幕内侧自然舒展，与屏幕边缘完美融合，无任何边界裁切截断。
+
 <p align="center">
   <img src="screenshots/03_vertical_side_dock.png" alt="侧边纵向 Dock 形态" height="500">
 </p>
 
 ### 4. 智能文件拖拽投递与落点悬浮胶囊提示 (Drag & Drop Payload Delivery & Capsule Hint)
+
 直接拖动文件、文件夹或 URL 至对应应用图标（如拖拽工程目录至 IDE），实时展示悬浮胶囊操作提示，悬停 500ms 自动置顶唤醒已运行窗口，松手即刻投递打开。
+
 <p align="center">
   <img src="screenshots/04_drag_drop_capsule.png" alt="智能文件拖拽投递与落点悬浮胶囊提示" height="500">
 </p>
 
 ### 5. 多窗口应用平铺卡片展开 (Multi-Window Grouped Cards Inlining)
+
 当某个应用（如终端、Dolphin、浏览器）运行多个窗口时，支持在 Dock 内部平铺展开轻量级独立窗口预览卡片，一键直达目标窗口。
+
 <p align="center">
   <img src="screenshots/05_window_cards_inline.png" alt="多窗口应用平铺卡片展开" width="100%">
 </p>
 
 ### 6. KWin 原生多窗口大图平铺预览 (Present Windows / KWin Overview Integration)
+
 深度联动 KWin 窗口调度接口，点击多任务图标即刻唤起 KWin 原生多窗口平铺预览特效（Window View / Present Windows），掌控桌面工作流。
+
 <p align="center">
   <img src="screenshots/06_kwin_window_previews.png" alt="KWin 原生多窗口大图平铺预览" width="85%">
 </p>
@@ -106,6 +118,7 @@ To compile Wayplank from source, ensure your distribution provides the required 
 - `pkg-config` / `base-devel` / `build-essential`
 
 **Quick Install Commands:**
+
 - **Arch Linux:**
   ```bash
   sudo pacman -S --needed base-devel vala gtk3 gtk-layer-shell wayland json-glib libgee glib2
@@ -252,7 +265,7 @@ wayplank -d
 - [x] Phase 3 (Completed) v0.3.0: Declaration of Independence from X11 & Native Wayland Integration
   - [x] Implementation of Wayland native protocols.
   - [x] Complete phasing out of X11/XWayland dependencies. Support one compositor.
-    This will be Kwin because it is the one I know the best.
+        This will be Kwin because it is the one I know the best.
   - [x] Full fractional scaling and native Wayland compositor window tracking.
 
 - [x] Phase 4 (Completed) v0.4.0, v0.4.1, v0.4.2: KWin Stabilization, Monolithic Docklets & Bug Fixes
@@ -272,7 +285,7 @@ wayplank -d
   - [x] Finalize GNOME Shell extension bridge for window geometry retrieval to support Intellihide & Dodge on Mutter.
 
 - [ ] Phase 6 (Ongoing) v0.5,..,v0.9: Move to Maintenance and Bugfixing
-  - [x] Multi-monitor selection persistence and edge placement fine-tuning across all compositors. 
+  - [x] Multi-monitor selection persistence and edge placement fine-tuning across all compositors.
   - [x] Native Session & Power Management Docklet (v0.5.2): Multi-compositor power controls (Logout, Switch User, Restart, Shutdown, Lock, Suspend) and centered GTK session dialog.
   - [x] Dedicated Preferences Docklet (v0.5.2): One-click docklet launcher for Wayplank Preferences.
   - [x] Finish documentation, packaging, and configuration migration.
@@ -282,6 +295,7 @@ wayplank -d
 - [ ] Phase 7 (Final) v1.0.0: Publish Version 1.0 as first stable
   - [ ] Publish Version 1.0 with a clear list of supported compositors.
   - [ ] After release, focus on bug fixes and compatibility updates.
+
 ---
 
 # Change log
@@ -293,10 +307,11 @@ wayplank -d
 > **From this point forward, Wayplank transitions to a user-driven maintenance phase: all future changes, enhancements, and new features will be developed exclusively upon user requests, bug reports, and community feedback.**
 
 **Native Session & Power Management Docklet, Preferences Docklet & 100% Internal Fallbacks**:
+
 - **(Cross-Compositor) Embedded Session Docklet (`docklet://session`)**: Added native docklet providing instant desktop session and power management (Lock Screen, Switch User, Log Out, Suspend, Restart, Shut Down) with multi-fallback vector icon resolution.
 - **(Cross-Compositor) Centered GTK Session Dialog (`SessionWindow`)**: Interactive centered dialog with current user/host banner, 6 ergonomic action buttons, and smooth in-place `GtkStack` confirmation transitions for Logout, Restart, and Shutdown (Escape to step back/dismiss, Cancel default-focused).
 - **(KDE Plasma 6 / KWin) Modernized Session & DisplayManager IPC**: Solved `UnknownMethod: openSwitchUser in KSMServer` by integrating `org.freedesktop.DisplayManager.Seat.SwitchToGreeter`; stabilized native shutdown/reboot via direct `systemctl` / `loginctl` / `login1` dispatching (bypassing Plasma 6's `KWin failed to complete logout` bug) and `loginctl lock-session`.
-- **(Cross-Compositor) Dedicated Preferences Docklet (`docklet://preferences`)**: Added native one-click docklet styled with the classic Plank anchor icon (`plank` / `wayplank`); right-click context menu provides instant deep-linking into all 4 preferences sections (*Appearance...*, *Behaviour...*, *Applications...*, *Docklets...*), followed by a visual separator.
+- **(Cross-Compositor) Dedicated Preferences Docklet (`docklet://preferences`)**: Added native one-click docklet styled with the classic Plank anchor icon (`plank` / `wayplank`); right-click context menu provides instant deep-linking into all 4 preferences sections (_Appearance..._, _Behaviour..._, _Applications..._, _Docklets..._), followed by a visual separator.
 - **(Preferences) Docklets Tab & Context Menu Integration**: Added "Session / Power" and "Preferences" toggle switches in Preferences Docklets grid, equipped all 11 docklet switches with native 35px vector icons, and added entries to Plank dock item catalog.
 - **(Docklets / UI) Digital Clock Visual Fix**: Resolved visual duplication where Digital Clock showed an analog dial; Digital Clock now renders a crisp, dedicated digital tile icon with numerals (`org.kde.plasma.digitalclock` / `digital-clock.svg`).
 - **(Architecture / Portability) 100% Self-Contained Binary GResources**: Embedded complete vector fallback icons for all 11 docklets directly inside the `wayplank` executable (`/net/launchpad/plank/docklets/`), including full dynamic volume scale (muted, low, medium, high), full battery scale (12 levels & charging states), trash states, and MPRIS controls. Zero host filesystem pollution, ensuring universal standalone operation on any Linux distro.
@@ -308,6 +323,7 @@ wayplank -d
 ## V0.5.1: 2026-10-08
 
 **KWin Resume Event Storm Hotfix & QTimer Debouncing**:
+
 - **(KWin) Event Loop Starvation Hotfix**: Fixed a severe compositor freeze in KDE Plasma 6.x upon system resume from sleep where KWin server-side decorations (title bars, window movement, minimize/maximize buttons) stopped responding while client windows remained interactive.
 - **(KWin) 50ms QTimer Single-Shot Debounce**: Replaced direct, synchronous `sendWindowState()` invocations across rapid window geometry and desktop signals with an asynchronous 50ms debounced queue in `KWinBridge.vala`.
 - **(KWin) Zombie Script & Shortcut Collision Prevention**: Added `isScriptLoaded` check in `KWinBridge.handle_system_resume()`; preserves existing script instances across system sleep instead of re-registering duplicate scripts and colliding with `kglobalaccel`.
@@ -328,6 +344,7 @@ wayplank -d
 ## V0.5.0: 2026-10-07
 
 **Phase 6 Hardening, Multi-Monitor Unique Tagging & Cross-Compositor FAT**:
+
 - **(Cross-Compositor) Cross-Compositor FAT Validation Matrix**: Full Factory Acceptance Testing executed across GNOME/Mutter, KDE/KWin, and Labwc covering 25+ validation scenarios.
 - **(Cross-Compositor) Unique Multi-Monitor Geometry Tagging**: Solved multi-display collisions between identical hardware monitors via `%s (%d) [%dx%d @ %d,%d]` spatial tags in `PositionManager.vala`.
 - **(Cross-Compositor) Dynamic Monitor Hotplugging & Unlocked UI**: Connected `monitors_changed` signal to rebuild display lists in real time; unlocked display dropdown with re-entrancy guards.
@@ -340,6 +357,7 @@ wayplank -d
 ## V0.4.3: 2026-10-05
 
 **Multi-Compositor HAL Release (KWin, Labwc/wlroots & GNOME/Mutter)**:
+
 - **(Cross-Compositor) Modular Multi-Compositor HAL**: Dynamic runtime auto-probing across KWin, Labwc, and GNOME/Mutter at startup with zero configuration.
 - **(Labwc / wlroots) Native Support**: Integrated asynchronous C protocol bridge implementing `zwlr_foreign_toplevel_manager_v1` with zero-latency Cairo dot indicators.
 - **(GNOME / Mutter) Native D-Bus Bridge**: Monolithic self-deploying GNOME Shell extension via D-Bus (`MutterBackend`) with window state tracking and edge positioning.
@@ -352,6 +370,7 @@ wayplank -d
 ## V0.4.2: 2026-10-02
 
 **Wayland Stabilization, Monolithic Docklets & Architecture Polish**:
+
 - **(Cross-Compositor) Total Independence from X11**: Completely purged X11/XWayland libraries, building with zero warnings and zero errors.
 - **(Cross-Compositor: All Compositors / KWin) Monolithic Built-in Docklets**: Replaced external plugins with 8 static docklets (Trash, Clocks, Battery, CPU/RAM, Show Desktop, MPRIS, Volume).
 - **(KWin) Plasma D-Bus Trash Bridge**: Real-time trash synchronization with Dolphin and KDE Plasma widgets.
@@ -363,6 +382,7 @@ wayplank -d
 ## V0.4.1: 2026-09-25
 
 **KWin Multi-Monitor Stabilization & Core Modernization**:
+
 - **(KWin) Multi-Monitor Display Tracking**: Fixed dock placement when switching monitors, persisted monitor selection across reboots, and added primary monitor fallback on disconnect.
 - **(KWin) Tooltip Positioning**: Fixed tooltips on secondary screens incorrectly rendering on the primary monitor.
 - **(Cross-Compositor) Zoom & UI Smoothness**: Disabled system config polling during icon zoom to eliminate micro-stutters and adjusted zoom bounds to avoid icon clipping.
@@ -373,6 +393,7 @@ wayplank -d
 ## V0.4.0: 2026-09-24
 
 **KWin Wayland Scripting Bridge & Window Dodge Engine**:
+
 - **(KWin) Wayland Scripting Bridge**: Integrated Wayland window state tracking via native KWin D-Bus scripting interface.
 - **(KWin) Window Dodge & Intellihide**: Implemented real-time window overlap detection supporting Dodge Active Window and Dodge Maximized Window modes.
 - **(Cross-Compositor) Dynamic Layer-Shell Negotiation**: Handled dynamic layer-shell exclusive zones and input regions to ensure seamless window interaction alongside dock auto-hide.
@@ -383,6 +404,7 @@ wayplank -d
 ## V0.3.0: 2026-09-23
 
 **Wayland Hover Stabilization & Application Management**:
+
 - **(Cross-Compositor) Icon Pinning & Instance Marking**: Implemented drag-and-drop icon pinning, running application markers, and multi-instance management.
 - **(Cross-Compositor) Hover & Surface Lifecycle**: Fixed dock hover zoom when cursor enters the dock surface, restored show/hide logic, and eliminated unsafe X11 overlap assumptions.
 - **(Cross-Compositor) Compositor-Safe Architecture**: Replaced legacy X11 window queries with Wayland compositor-safe abstractions.
@@ -392,6 +414,7 @@ wayplank -d
 ## V0.2.0: 2026-09-22
 
 **Native Wayland & GTK Layer Shell Transition**:
+
 - **(Cross-Compositor: Wayland / Layer Shell) GTK Layer Shell Integration**: Implemented native Wayland surface layer management (`gtk-layer-shell`) and removed X11 startup blocks.
 - **(Cross-Compositor) Process Scanner & Desktop Matching**: Implemented `/proc`-based process scanner with automatic dead PID cleanup and generic `.desktop` file resolution.
 - **(Cross-Compositor) Context Menus & Pinning**: Redesigned right-click context menu handling and enabled persistent pinned items via custom `.dockitem` configurations.
@@ -403,6 +426,7 @@ wayplank -d
 ## V0.1.0: 2026-09-19
 
 **Phase 1 Architecture Decoupling & Baseline Release**:
+
 - **(Cross-Compositor) Standalone Fork**: Forked from original Plank codebase to establish clean foundations for Wayland migration.
 - **(Cross-Compositor) Namespace Migration**: Renamed binary and data namespaces to `wayplank` with transparent symlink compatibility.
 - **(Cross-Compositor) XDG Directory Isolation**: Relocated configs to `~/.config/wayplank` and themes to `~/.local/share/wayplank/themes`.
@@ -417,18 +441,19 @@ wayplank -d
 Wayplank is free software licensed under the **GNU General Public License v3.0 or later** ([GPL-3.0-or-later](LICENSE)).
 
 ### 1. Core Project & Codebase
-* **License**: GNU General Public License v3.0 or later ([GPL-3.0-or-later](LICENSE)).
-* **Original Plank Codebase**: © 2011–2015 Robert Dyer, Michal Hruby, Rico Tzschichholz, and Plank contributors.
-* **Wayplank Fork & Architecture**: © 2026 Sergio Melas (<sergiomelas@gmail.com>).
+
+- **License**: GNU General Public License v3.0 or later ([GPL-3.0-or-later](LICENSE)).
+- **Original Plank Codebase**: © 2011–2015 Robert Dyer, Michal Hruby, Rico Tzschichholz, and Plank contributors.
+- **Wayplank Fork & Architecture**: © 2026 Sergio Melas (<sergiomelas@gmail.com>).
 
 ### 2. Integrated Fallback Assets & Vector Artwork
+
 Wayplank incorporates high-definition vector assets compiled directly into the binary executable via GLib GResources (`/net/launchpad/plank/docklets/`) to provide self-contained, standalone operation on any desktop or minimal distribution:
-* **Docklet Fallback Icons** (`data/docklets/`):
-  * **Volume Scale**: High, Medium, Low, Muted (`volume-*.svg`).
-  * **Battery Scale**: Full, Good, Low, Caution, Empty, Full-Charging, Good-Charging, Low-Charging, Caution-Charging, Empty-Charging, AC-Adapter, Missing (`battery-*.svg`).
-  * **Clock & Time**: Analog Clock (`clock.svg`), Digital LED Clock (`digital-clock.svg`).
-  * **System & Desktop**: Trash empty/full (`trash.svg`, `trash-full.svg`), CPU/RAM Monitor (`cpu.svg`), Show Desktop (`desktop.svg`), MPRIS play/pause (`mpris-*.svg`), Screenshot (`screenshot.svg`), Session/Power (`session.svg`), Wayplank Preferences (`preferences.svg`).
-* **Attribution & Upstream**: Derived from FreeDesktop & KDE Breeze icon specifications © KDE Community / Breeze Icon Artists, licensed under **LGPL-3.0-or-later** / **GPL-3.0-or-later**.
-* **Zero Host Pollution**: All fallback icons are strictly compiled into the internal executable binary; no extra icon files are installed into `/usr/share/icons/hicolor/`, ensuring pure standalone behavior and complete distribution independence.
 
-
+- **Docklet Fallback Icons** (`data/docklets/`):
+  - **Volume Scale**: High, Medium, Low, Muted (`volume-*.svg`).
+  - **Battery Scale**: Full, Good, Low, Caution, Empty, Full-Charging, Good-Charging, Low-Charging, Caution-Charging, Empty-Charging, AC-Adapter, Missing (`battery-*.svg`).
+  - **Clock & Time**: Analog Clock (`clock.svg`), Digital LED Clock (`digital-clock.svg`).
+  - **System & Desktop**: Trash empty/full (`trash.svg`, `trash-full.svg`), CPU/RAM Monitor (`cpu.svg`), Show Desktop (`desktop.svg`), MPRIS play/pause (`mpris-*.svg`), Screenshot (`screenshot.svg`), Session/Power (`session.svg`), Wayplank Preferences (`preferences.svg`).
+- **Attribution & Upstream**: Derived from FreeDesktop & KDE Breeze icon specifications © KDE Community / Breeze Icon Artists, licensed under **LGPL-3.0-or-later** / **GPL-3.0-or-later**.
+- **Zero Host Pollution**: All fallback icons are strictly compiled into the internal executable binary; no extra icon files are installed into `/usr/share/icons/hicolor/`, ensuring pure standalone behavior and complete distribution independence.
