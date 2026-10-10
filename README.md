@@ -7,13 +7,13 @@
 > Developed by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Release: v0.5.3](https://img.shields.io/badge/Release-v0.5.3-orange.svg)](Changelogs/CHANGELOG_v0.5.3.md)
+> [![Release: v0.5.4](https://img.shields.io/badge/Release-v0.5.4-orange.svg)](Changelogs/CHANGELOG_v0.5.4.md)
 
-![Wayplank v0.5.3 Release Banner](Release%20Pic.png)
+![Wayplank v0.5.4 Release Banner](Release%20Pic.png)
 
 ---
 
-🚀 CURRENT RUNTIME: Full Wayland with KWin, Labwc (wlroots) & GNOME (Mutter) support | 🎯 MILESTONE: Release v0.5.3 (Overflow Viewport Scroll & Width Clamping)
+🚀 CURRENT RUNTIME: Full Wayland with KWin, Labwc (wlroots) & GNOME (Mutter) support | 🎯 MILESTONE: Release v0.5.4 (Drag & Drop Delivery, Spring-Loaded Hover & Side Dock Fix)
 
 ---
 
@@ -150,7 +150,7 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 ```bash
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
-sudo dpkg -i build/wayplank_0.5.3_amd64.deb
+sudo dpkg -i build/wayplank_0.5.4_amd64.deb
 ```
 
 ---
@@ -162,9 +162,9 @@ If running openSUSE (Tumbleweed/Leap), Fedora, or RPM-based distributions, run t
 ```bash
 chmod +x BuildRpm.sh
 ./BuildRpm.sh
-sudo zypper install build/wayplank-0.5.3-1.x86_64.rpm
+sudo zypper install build/wayplank-0.5.4-1.x86_64.rpm
 # Or on Fedora/RHEL:
-# sudo dnf install build/wayplank-0.5.3-1.x86_64.rpm
+# sudo dnf install build/wayplank-0.5.4-1.x86_64.rpm
 ```
 
 ---
