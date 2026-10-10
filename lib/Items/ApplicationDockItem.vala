@@ -55,6 +55,12 @@ namespace Plank
 		Gee.ArrayList<string> actions = new Gee.ArrayList<string> ();
 		Gee.HashMap<string, string> actions_map = new Gee.HashMap<string, string> ();
 		Gee.HashMap<string, string> desktop_action_ids = new Gee.HashMap<string, string> ();
+		public bool accepts_payload { get; private set; default = false; }
+		
+		public bool can_accept_any_drop ()
+		{
+			return (accepts_payload || (supported_mime_types != null && supported_mime_types.size > 0));
+		}
 		
 		string? unity_dbusname = null;
 		int prev_window_count = 0;
@@ -753,23 +759,33 @@ namespace Plank
 		 */
 		public override bool can_accept_drop (Gee.ArrayList<string> uris)
 		{
-			if (uris == null || is_window ())
+			if (uris == null || uris.size == 0 || is_window ())
 				return false;
 			
-			// if they dont specify mimes but have '%F' etc in their Exec, assume any file allowed
-			// FIXME also check if the Exec key has %F/%f/%U/%u in it
-			if (supported_mime_types.size == 0 /* && .. */)
+			// 1. If application declares file or URI payload support in its Exec line (%f, %F, %u, %U)
+			if (accepts_payload)
 				return true;
 			
-			try {
-				foreach (var uri in uris) {
-					var info = File.new_for_uri (uri).query_info (FileAttribute.STANDARD_CONTENT_TYPE, FileQueryInfoFlags.NONE);
-					unowned string uri_content_type = info.get_content_type ();
-					foreach (var content_type in supported_mime_types)
-						if (ContentType.is_a (uri_content_type, content_type) || ContentType.equals (uri_content_type, content_type))
-							return true;
-				}
-			} catch {}
+			// 2. Check if URIs match supported MIME types or web schemes
+			if (supported_mime_types != null && supported_mime_types.size > 0) {
+				try {
+					foreach (var uri in uris) {
+						if (uri.has_prefix ("http://") || uri.has_prefix ("https://")) {
+							foreach (var content_type in supported_mime_types) {
+								if (content_type.contains ("html") || content_type.contains ("http") || content_type.contains ("url"))
+									return true;
+							}
+						} else {
+							var info = File.new_for_uri (uri).query_info (FileAttribute.STANDARD_CONTENT_TYPE, FileQueryInfoFlags.NONE);
+							unowned string uri_content_type = info.get_content_type ();
+							foreach (var content_type in supported_mime_types) {
+								if (ContentType.is_a (uri_content_type, content_type) || ContentType.equals (uri_content_type, content_type))
+									return true;
+							}
+						}
+					}
+				} catch {}
+			}
 			
 			return false;
 		}
@@ -779,12 +795,21 @@ namespace Plank
 		 */
 		public override bool accept_drop (Gee.ArrayList<string> uris)
 		{
-			var files = new Gee.ArrayList<File> ();
-			foreach (var uri in uris)
-				files.add (File.new_for_uri (uri));
-			
-			System.get_default ().launch_with_files (File.new_for_uri (Prefs.Launcher), files.to_array ());
-			
+			if (uris == null || uris.size == 0)
+				return false;
+
+			// Visual bounce feedback on the dropped dock icon
+			trigger_bounce ();
+
+			// Launch application with files/URIs
+			System.get_default ().launch_with_uris (File.new_for_uri (Prefs.Launcher), uris.to_array ());
+
+			// If the application already has a running window, bring it forward
+			var windows = WindowManager.get_default ().matching_windows (Launcher);
+			if (windows.size > 0) {
+				WindowControl.queue_command (windows[0].Id, "activate");
+			}
+
 			return true;
 		}
 		
@@ -813,6 +838,25 @@ namespace Plank
 				Icon = icon;
 			ForcePixbuf = null;
 			Text = text;
+
+			accepts_payload = false;
+			try {
+				var launcher_path = Filename.from_uri (Prefs.Launcher);
+				var app_info = new DesktopAppInfo.from_filename (launcher_path);
+				if (app_info != null && (app_info.supports_files () || app_info.supports_uris ())) {
+					accepts_payload = true;
+				} else {
+					var kf = new KeyFile ();
+					kf.load_from_file (launcher_path, KeyFileFlags.NONE);
+					if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
+						var exec_str = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC);
+						if (exec_str.contains ("%f") || exec_str.contains ("%F") || 
+						    exec_str.contains ("%u") || exec_str.contains ("%U")) {
+							accepts_payload = true;
+						}
+					}
+				}
+			} catch {}
 		}
 		
 		/**
