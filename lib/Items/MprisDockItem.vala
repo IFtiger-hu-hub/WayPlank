@@ -79,99 +79,130 @@ namespace Plank
 			base.@delete ();
 		}
 		
+		bool is_refreshing = false;
+
 		void refresh_player_state ()
 		{
-			try {
-				var bus = Bus.get_sync (BusType.SESSION, null);
-				var names_variant = bus.call_sync (
-					"org.freedesktop.DBus",
-					"/org/freedesktop/DBus",
-					"org.freedesktop.DBus",
-					"ListNames",
-					null,
-					null,
-					DBusCallFlags.NONE,
-					50,
-					null
-				);
-				
-				active_player_bus = null;
-				string[] names = names_variant.get_child_value (0).get_strv ();
-				foreach (unowned string name in names) {
-					if (name.has_prefix ("org.mpris.MediaPlayer2.")) {
-						active_player_bus = name;
-						break;
-					}
-				}
-				
-				if (active_player_bus != null) {
-					// Query All Player Properties in a single round-trip with tight 50ms timeout
-					var all_props_var = bus.call_sync (
-						active_player_bus,
-						"/org/mpris/MediaPlayer2",
-						"org.freedesktop.DBus.Properties",
-						"GetAll",
-						new Variant ("(s)", "org.mpris.MediaPlayer2.Player"),
+			if (is_refreshing)
+				return;
+			is_refreshing = true;
+
+			new Thread<void*> (null, () => {
+				string new_status = "Stopped";
+				string new_title = "";
+				string new_artist = "";
+				string? new_active_bus = null;
+
+				try {
+					var bus = Bus.get_sync (BusType.SESSION, null);
+					var names_variant = bus.call_sync (
+						"org.freedesktop.DBus",
+						"/org/freedesktop/DBus",
+						"org.freedesktop.DBus",
+						"ListNames",
+						null,
 						null,
 						DBusCallFlags.NONE,
 						50,
 						null
 					);
-					var props_dict = all_props_var.get_child_value (0);
-					
-					var status_val = props_dict.lookup_value ("PlaybackStatus", VariantType.ANY);
-					if (status_val != null) {
-						playback_status = status_val.get_variant ().get_string ();
-					}
-					
-					track_title = "";
-					track_artist = "";
-					var meta_val = props_dict.lookup_value ("Metadata", VariantType.ANY);
-					if (meta_val != null) {
-						var meta_dict = meta_val.get_variant ();
-						var title_val = meta_dict.lookup_value ("xesam:title", VariantType.ANY);
-						if (title_val != null)
-							track_title = title_val.get_variant ().get_string ();
-						
-						var artist_val = meta_dict.lookup_value ("xesam:artist", VariantType.ANY);
-						if (artist_val != null) {
-							var artist_variant = artist_val.get_variant ();
-							if (artist_variant.is_of_type (VariantType.STRING_ARRAY)) {
-								string[] artists = artist_variant.get_strv ();
-								if (artists.length > 0) track_artist = artists[0];
-							} else if (artist_variant.is_of_type (VariantType.STRING)) {
-								track_artist = artist_variant.get_string ();
+
+					if (names_variant != null && names_variant.n_children () > 0) {
+						var child = names_variant.get_child_value (0);
+						if (child.is_of_type (VariantType.STRING_ARRAY)) {
+							string[] names = child.get_strv ();
+							foreach (unowned string name in names) {
+								if (name.has_prefix ("org.mpris.MediaPlayer2.")) {
+									new_active_bus = name;
+									break;
+								}
 							}
 						}
 					}
-					
-					if (track_title != "") {
-						if (track_artist != "")
-							Text = "%s - %s (%s)".printf (track_artist, track_title, playback_status);
-						else
-							Text = "%s (%s)".printf (track_title, playback_status);
-					} else {
-						Text = _("Media Player (%s)").printf (playback_status);
+
+					if (new_active_bus != null) {
+						var all_props_var = bus.call_sync (
+							new_active_bus,
+							"/org/mpris/MediaPlayer2",
+							"org.freedesktop.DBus.Properties",
+							"GetAll",
+							new Variant ("(s)", "org.mpris.MediaPlayer2.Player"),
+							null,
+							DBusCallFlags.NONE,
+							50,
+							null
+						);
+
+						if (all_props_var != null && all_props_var.n_children () > 0) {
+							var props_dict = all_props_var.get_child_value (0);
+							if (props_dict.is_of_type (new VariantType ("a{sv}")) || props_dict.is_of_type (new VariantType ("a{s*}"))) {
+								var status_val = props_dict.lookup_value ("PlaybackStatus", VariantType.ANY);
+								if (status_val != null) {
+									var v = status_val.is_of_type (VariantType.VARIANT) ? status_val.get_variant () : status_val;
+									if (v.is_of_type (VariantType.STRING))
+										new_status = v.get_string ();
+								}
+
+								var meta_val = props_dict.lookup_value ("Metadata", VariantType.ANY);
+								if (meta_val != null) {
+									var meta_dict = meta_val.is_of_type (VariantType.VARIANT) ? meta_val.get_variant () : meta_val;
+									if (meta_dict.is_of_type (new VariantType ("a{sv}")) || meta_dict.is_of_type (new VariantType ("a{s*}"))) {
+										var title_val = meta_dict.lookup_value ("xesam:title", VariantType.ANY);
+										if (title_val != null) {
+											var tv = title_val.is_of_type (VariantType.VARIANT) ? title_val.get_variant () : title_val;
+											if (tv.is_of_type (VariantType.STRING))
+												new_title = tv.get_string ();
+										}
+
+										var artist_val = meta_dict.lookup_value ("xesam:artist", VariantType.ANY);
+										if (artist_val != null) {
+											var av = artist_val.is_of_type (VariantType.VARIANT) ? artist_val.get_variant () : artist_val;
+											if (av.is_of_type (VariantType.STRING_ARRAY)) {
+												string[] artists = av.get_strv ();
+												if (artists.length > 0) new_artist = artists[0];
+											} else if (av.is_of_type (VariantType.STRING)) {
+												new_artist = av.get_string ();
+											}
+										}
+									}
+								}
+							}
+						}
 					}
-					
-					if (playback_status == "Playing")
-						Icon = "media-playback-start;;multimedia-player;;audio-player";
-					else if (playback_status == "Paused")
-						Icon = "media-playback-pause;;multimedia-player;;audio-player";
-					else
+				} catch { }
+
+				GLib.Idle.add (() => {
+					is_refreshing = false;
+					active_player_bus = new_active_bus;
+					playback_status = new_status;
+					track_title = new_title;
+					track_artist = new_artist;
+
+					if (active_player_bus != null) {
+						if (track_title != "") {
+							if (track_artist != "")
+								Text = "%s - %s (%s)".printf (track_artist, track_title, playback_status);
+							else
+								Text = "%s (%s)".printf (track_title, playback_status);
+						} else {
+							Text = _("Media Player (%s)").printf (playback_status);
+						}
+
+						if (playback_status == "Playing")
+							Icon = "media-playback-start;;multimedia-player;;audio-player";
+						else if (playback_status == "Paused")
+							Icon = "media-playback-pause;;multimedia-player;;audio-player";
+						else
+							Icon = "multimedia-player;;audio-player;;applications-multimedia";
+					} else {
+						Text = _("Media Player (Inactive)");
 						Icon = "multimedia-player;;audio-player;;applications-multimedia";
-				} else {
-					playback_status = "Stopped";
-					track_title = "";
-					track_artist = "";
-					Text = _("Media Player (Inactive)");
-					Icon = "multimedia-player;;audio-player;;applications-multimedia";
-				}
-			} catch (Error e) {
-				playback_status = "Stopped";
-				Text = _("Media Player");
-				Icon = "multimedia-player;;audio-player";
-			}
+					}
+					return GLib.Source.REMOVE;
+				});
+
+				return null;
+			});
 		}
 		
 		bool on_timer_tick ()

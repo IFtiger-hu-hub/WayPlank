@@ -34,7 +34,7 @@ namespace Plank
 		[Description(nick = "current-workspace-only", blurb = "Whether to show only windows of the current workspace.")]
 		public bool CurrentWorkspaceOnly { get; set; }
 
-		[Description(nick = "window-click-behavior", blurb = "How clicking a running application selects its windows: 0 smart, 1 focus, 2 cycle.")]
+		[Description(nick = "window-click-behavior", blurb = "How clicking a multi-window application behaves: 0 default indicators & cycle, 1 present windows (large previews), 2 expand window cards.")]
 		public int WindowClickBehavior { get; set; }
 
 		[Description(nick = "restore-minimized-windows", blurb = "Whether window cycling restores minimized windows when needed.")]
@@ -162,6 +162,12 @@ namespace Plank
 					ZoomPercent = (uint) MIN_ICON_ZOOM;
 				else if (ZoomPercent > (uint) MAX_ICON_ZOOM)
 					ZoomPercent = (uint) MAX_ICON_ZOOM;
+				break;
+			case "WindowClickBehavior":
+				if (WindowClickBehavior < 0)
+					WindowClickBehavior = 0;
+				else if (WindowClickBehavior > 2)
+					WindowClickBehavior = 2;
 				break;
 			
 			case "Theme":

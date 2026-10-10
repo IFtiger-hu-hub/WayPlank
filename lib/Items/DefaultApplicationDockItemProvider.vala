@@ -49,7 +49,7 @@ namespace Plank
 				item.IsAttached = !(Prefs.PinnedOnly && item is TransientDockItem);
 			}
 			
-			if (!updating_visible_elements) {
+			if (!updating_visible_elements && !ApplicationDockItem.is_animating_cards ()) {
 				updating_visible_elements = true;
 				maintain_separator ();
 				updating_visible_elements = false;
@@ -60,7 +60,12 @@ namespace Plank
 
 		public void refresh_separators ()
 		{
-			update_visible_elements ();
+			if (!updating_visible_elements) {
+				updating_visible_elements = true;
+				maintain_separator ();
+				updating_visible_elements = false;
+				base.update_visible_elements ();
+			}
 		}
 		
 		/**
@@ -119,6 +124,8 @@ namespace Plank
 				int first_transient = -1;
 				for (int i = 0; i < internal_elements.size; i++) {
 					var el = internal_elements.get (i);
+					if (el is WindowCardDockItem)
+						continue;
 					if (el is TransientDockItem) {
 						if (first_transient < 0)
 							first_transient = i;
@@ -138,6 +145,8 @@ namespace Plank
 			var orphan_transients = new Gee.ArrayList<TransientDockItem> ();
 			for (int i = 0; i < internal_elements.size; i++) {
 				var el = internal_elements.get (i);
+				if (el is WindowCardDockItem)
+					continue;
 				if (el is TrashDockItem) {
 					trash_idx = i;
 				} else if (el is TransientDockItem) {

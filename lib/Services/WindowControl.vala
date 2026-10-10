@@ -174,6 +174,15 @@ namespace Plank
 				get_default ().backend.queue_command (target, action);
 		}
 
+		/**
+		 * Triggers a compositor-native window presentation/overview for the specified targets.
+		 * Returns true if supported and triggered by the backend.
+		 */
+		public static bool present_windows (Gee.List<string> targets)
+		{
+			return get_default ().backend != null && get_default ().backend.present_windows (targets);
+		}
+
 		public static void handle_system_resume ()
 		{
 			if (get_default ().backend != null)

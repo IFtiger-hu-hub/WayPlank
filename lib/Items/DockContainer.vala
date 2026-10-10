@@ -143,6 +143,99 @@ namespace Plank
 			
 			return true;
 		}
+
+		/**
+		 * Inserts a dock-element directly after a specified target element.
+		 *
+		 * @param element the dock-element to insert
+		 * @param target the existing element to insert after
+		 * @return whether inserting the element was successful
+		 */
+		public bool insert_after (DockElement element, DockElement target)
+		{
+			if (internal_elements.contains (element)) {
+				critical ("Element '%s' already exists in this DockContainer.", element.Text);
+				return false;
+			}
+
+			if (element.Container != null) {
+				critical ("Element '%s' should be removed from its old DockContainer first.", element.Text);
+				return false;
+			}
+
+			int target_idx = internal_elements.index_of (target);
+			if (target_idx < 0) {
+				return add (element);
+			}
+
+			add_without_signaling (element);
+
+			int added_idx = internal_elements.size - 1;
+			int destination_idx = target_idx + 1;
+			if (added_idx != destination_idx) {
+				move_element (internal_elements, added_idx, destination_idx);
+			}
+
+			update_visible_elements ();
+			return true;
+		}
+
+		/**
+		 * Inserts a batch of dock-elements directly after a specified target element.
+		 * Performs an atomic update of visible elements only once after all items are added.
+		 *
+		 * @param elements the dock-elements to insert
+		 * @param target the existing element to insert after
+		 * @return whether inserting was successful
+		 */
+		public bool insert_batch_after (Gee.List<DockElement> elements, DockElement target)
+		{
+			if (elements.size == 0)
+				return true;
+
+			int target_idx = internal_elements.index_of (target);
+			if (target_idx < 0)
+				return false;
+
+			int current_dest = target_idx + 1;
+			foreach (var element in elements) {
+				if (internal_elements.contains (element) || element.Container != null)
+					continue;
+
+				add_without_signaling (element);
+				int added_idx = internal_elements.size - 1;
+				if (added_idx != current_dest) {
+					move_element (internal_elements, added_idx, current_dest);
+				}
+				current_dest++;
+			}
+
+			update_visible_elements ();
+			return true;
+		}
+
+		/**
+		 * Removes a batch of dock-elements from the container atomically.
+		 * Updates visible elements only once after all items are removed.
+		 *
+		 * @param elements the dock-elements to remove
+		 */
+		public void remove_batch (Gee.List<DockElement> elements)
+		{
+			if (elements.size == 0)
+				return;
+
+			foreach (var element in elements) {
+				if (!internal_elements.contains (element))
+					continue;
+
+				disconnect_element (element);
+				internal_elements.remove (element);
+				element.Container = null;
+			}
+
+			update_visible_elements ();
+		}
 		
 		/**
 		 * Prepends a dock-element to the collection.

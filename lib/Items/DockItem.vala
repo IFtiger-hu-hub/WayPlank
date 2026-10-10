@@ -74,8 +74,8 @@ namespace Plank
 				
 				position = value;
 				
-				// Only trigger animation if this isn't the initial position set
-				if (LastPosition > -1) {
+				// Only trigger animation if this isn't the initial position set and not animating cards
+				if (LastPosition > -1 && !ApplicationDockItem.is_animating_cards ()) {
 					LastMove = GLib.get_monotonic_time ();
 					State |= ItemState.MOVE;
 				}
@@ -123,7 +123,7 @@ namespace Plank
 		 * The launcher associated with this item.
 		 */
 		public string Launcher {
-			get { return Prefs.Launcher; }
+			get { return (Prefs != null ? Prefs.Launcher : ""); }
 		}
 		
 		/**

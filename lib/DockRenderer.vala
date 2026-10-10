@@ -76,6 +76,7 @@ namespace Plank
 		ulong gtk_theme_name_changed_handler_id = 0UL;
 		
 		double dynamic_animation_offset = 0.0;
+		public int64 current_frame_time { get; private set; default = 0LL; }
 		
 		Gee.ArrayList<unowned DockItem> current_items;
 		Gee.HashSet<DockItem> transient_items;
@@ -240,6 +241,7 @@ namespace Plank
 		 */
 		protected override void initialize_frame (int64 frame_time)
 		{
+			current_frame_time = frame_time;
 			return_if_fail (theme != null);
 			
 			unowned Gee.ArrayList<unowned DockItem> new_items = controller.VisibleItems;
@@ -345,6 +347,8 @@ namespace Plank
 		 */
 		public override void draw (Cairo.Context cr, int64 frame_time)
 		{
+			current_frame_time = frame_time;
+
 			// FIXME This should never happen
 			if (current_items.size <= 0) {
 				critical ("No items available to draw frame");
@@ -523,7 +527,7 @@ namespace Plank
 		
 		void update_separator_colors ()
 		{
-			var reference = (background_buffer != null ? background_buffer.average_color () : theme.FillEndColor);
+			var reference = theme.FillEndColor;
 			var luminance = 0.299 * reference.red + 0.587 * reference.green + 0.114 * reference.blue;
 			var is_light = (reference.alpha < 0.35 || luminance > 0.5);
 			var alpha = (is_light ? 0.42 : 0.58);
@@ -557,17 +561,24 @@ namespace Plank
 				return;
 			}
 			
-			if (background_buffer == null || background_buffer.Width != background_rect.width
-				|| background_buffer.Height != background_rect.height)
-				background_buffer = theme.create_background (background_rect.width, background_rect.height,
-					position_manager.Position, main_buffer);
-			
 			if (hide_progress > 0.0 && theme.CascadeHide) {
 				int x, y;
 				position_manager.get_background_padding (out x, out y);
 				x_offset -= (int) (x * hide_progress);
 				y_offset -= (int) (y * hide_progress);
 			}
+
+			if (ApplicationDockItem.is_animating_cards ()) {
+				// Zero-allocation direct vector drawing during card animation
+				theme.draw_dock_background_direct (cr, background_rect.x + x_offset, background_rect.y + y_offset,
+					background_rect.width, background_rect.height, position_manager.Position);
+				return;
+			}
+			
+			if (background_buffer == null || background_buffer.Width != background_rect.width
+				|| background_buffer.Height != background_rect.height)
+				background_buffer = theme.create_background (background_rect.width, background_rect.height,
+					position_manager.Position, main_buffer);
 			
 			cr.set_source_surface (background_buffer.Internal, background_rect.x + x_offset, background_rect.y + y_offset);
 			cr.paint ();
@@ -668,7 +679,14 @@ namespace Plank
 			
 			// animate addition/removal
 			unowned DockContainer? container = item.Container;
-			var allow_animation = (screen_is_composited && !(item is SeparatorDockItem) && (container == null || container.AddTime < item.AddTime));
+			if (item is WindowCardDockItem) {
+				var card = (WindowCardDockItem) item;
+				double progress = card.get_animation_progress (frame_time, theme.ItemMoveTime);
+				draw_value.opacity = progress;
+				draw_value.show_indicator = false;
+			}
+
+			var allow_animation = (screen_is_composited && !(item is SeparatorDockItem) && !(item is WindowCardDockItem) && (container == null || container.AddTime < item.AddTime));
 			if (allow_animation && item.AddTime > item.RemoveTime) {
 				var move_duration = theme.ItemMoveTime * 1000;
 				var move_time = int64.max (0LL, frame_time - item.AddTime);
@@ -701,22 +719,26 @@ namespace Plank
 			
 			// animate icon movement on move state
 			if ((item.State & ItemState.MOVE) != 0) {
-				var move_duration = theme.ItemMoveTime * 1000;
-				var move_time = int64.max (0LL, frame_time - item.LastMove);
-				if (move_time < move_duration) {
-					var move_animation_progress = 0.0;
-					if (transient_items.size > 0) {
-						if (dynamic_animation_offset > 0)
-							move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_IN_QUINT, move_time, move_duration);
-						else
-							move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_QUINT, move_time, move_duration);
-					} else {
-						move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_CIRC, move_time, move_duration);
-					}
-					var change = move_animation_progress * (icon_size + position_manager.ItemPadding);
-					x_offset += (item.Position < item.LastPosition ? change : -change);
-				} else {
+				if (ApplicationDockItem.is_animating_cards ()) {
 					item.unset_move_state ();
+				} else {
+					var move_duration = theme.ItemMoveTime * 1000;
+					var move_time = int64.max (0LL, frame_time - item.LastMove);
+					if (move_time < move_duration) {
+						var move_animation_progress = 0.0;
+						if (transient_items.size > 0) {
+							if (dynamic_animation_offset > 0)
+								move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_IN_QUINT, move_time, move_duration);
+							else
+								move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_QUINT, move_time, move_duration);
+						} else {
+							move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_CIRC, move_time, move_duration);
+						}
+						var change = move_animation_progress * (icon_size + position_manager.ItemPadding);
+						x_offset += (item.Position < item.LastPosition ? change : -change);
+					} else {
+						item.unset_move_state ();
+					}
 				}
 			}
 			
@@ -806,6 +828,12 @@ namespace Plank
 		
 		void draw_item (Cairo.Context cr, DockItem item, DockItemDrawValue draw_value, int64 frame_time)
 		{
+			unowned WindowCardDockItem? card = (item as WindowCardDockItem);
+			if (card != null) {
+				draw_window_card (cr, card, draw_value, frame_time);
+				return;
+			}
+
 			unowned PositionManager position_manager = controller.position_manager;
 			unowned SeparatorDockItem? separator = (item as SeparatorDockItem);
 			if (separator != null)
@@ -877,9 +905,199 @@ namespace Plank
 			if (draw_value.show_indicator && item.Indicator != IndicatorState.NONE)
 				draw_indicator_state (cr, draw_value.hover_region, item.Indicator, item.State);
 		}
+
+		static Pango.FontDescription? cached_font_title = null;
+		static Pango.FontDescription? cached_font_sub = null;
+
+		void draw_window_card (Cairo.Context cr, WindowCardDockItem card, DockItemDrawValue draw_value, int64 frame_time)
+		{
+			var rect = draw_value.draw_region;
+			if (rect.width <= 0 || rect.height <= 0)
+				return;
+
+			bool is_horizontal = controller.position_manager.is_horizontal_dock ();
+			double card_x = rect.x + 2.0;
+			double card_y = rect.y + 4.0;
+			double card_w = rect.width - 4.0;
+			double card_h = rect.height - 8.0;
+			if (card_w < 6.0 || card_h <= 0)
+				return;
+
+			bool is_hovered = (controller.window != null && controller.window.HoveredItem == card);
+			double card_opacity = draw_value.opacity.clamp (0.0, 1.0);
+
+			if (!is_horizontal) {
+				// Vertical Dock Mode: Compact Rounded Square Tile (Centered Icon + Accent Dot)
+				card_x = rect.x + 3.0;
+				card_y = rect.y + 3.0;
+				card_w = rect.width - 6.0;
+				card_h = rect.height - 6.0;
+				double card_r = 8.0;
+				card_r = card_r.clamp (0.0, double.min (card_w / 2.0, card_h / 2.0));
+
+				cr.save ();
+				Theme.draw_rounded_rect (cr, card_x, card_y, card_w, card_h, card_r, card_r, 0.0);
+
+				if (is_hovered) {
+					cr.set_source_rgba (36.0 / 255.0, 42.0 / 255.0, 56.0 / 255.0, 0.98 * card_opacity);
+				} else {
+					cr.set_source_rgba (28.0 / 255.0, 32.0 / 255.0, 42.0 / 255.0, 0.95 * card_opacity);
+				}
+				cr.fill_preserve ();
+
+				if (is_hovered) {
+					cr.set_source_rgba (249.0 / 255.0, 115.0 / 255.0, 22.0 / 255.0, 0.50 * card_opacity);
+				} else {
+					cr.set_source_rgba (1.0, 1.0, 1.0, 0.12 * card_opacity);
+				}
+				cr.set_line_width (1.0);
+				cr.stroke ();
+
+				// Draw crisp centered application icon
+				if (card.OwnerItem != null) {
+					int vert_icon_size = (int) double.min (26.0, card_w - 10.0);
+					var icon_surface = get_item_surface (card.OwnerItem, vert_icon_size * window_scale_factor);
+					if (icon_surface != null) {
+						cr.save ();
+						double ic_x = card_x + (card_w - vert_icon_size) / 2.0;
+						double ic_y = card_y + (card_h - vert_icon_size) / 2.0;
+						if (window_scale_factor > 1) {
+							cr.scale (1.0 / window_scale_factor, 1.0 / window_scale_factor);
+							cr.set_source_surface (icon_surface.Internal,
+								ic_x * window_scale_factor,
+								ic_y * window_scale_factor);
+						} else {
+							cr.set_source_surface (icon_surface.Internal, ic_x, ic_y);
+						}
+						if (card_opacity < 1.0)
+							cr.paint_with_alpha (card_opacity);
+						else
+							cr.paint ();
+						cr.restore ();
+					}
+				}
+
+				if (is_hovered) {
+					double dot_r = 2.0;
+					cr.arc (card_x + card_w / 2.0, card_y + card_h - 4.0, dot_r, 0, 2 * Math.PI);
+					cr.set_source_rgba (249.0 / 255.0, 115.0 / 255.0, 22.0 / 255.0, 0.90 * card_opacity);
+					cr.fill ();
+				}
+
+				cr.restore ();
+				return;
+			}
+
+			// Horizontal Dock Mode (Standard Elegant Capsule Card)
+			double card_r = 7.0;
+			card_r = card_r.clamp (0.0, double.min (card_w / 2.0, card_h / 2.0));
+
+			cr.save ();
+
+			// 1. Draw 7px rounded rectangle base
+			Theme.draw_rounded_rect (cr, card_x, card_y, card_w, card_h, card_r, card_r, 0.0);
+
+			if (is_hovered) {
+				cr.set_source_rgba (36.0 / 255.0, 42.0 / 255.0, 56.0 / 255.0, 0.98 * card_opacity);
+			} else {
+				cr.set_source_rgba (28.0 / 255.0, 32.0 / 255.0, 42.0 / 255.0, 0.95 * card_opacity);
+			}
+			cr.fill_preserve ();
+
+			// 2. Delicate hairline border: subtle light border, or warm amber/orange highlight on hover
+			if (is_hovered) {
+				cr.set_source_rgba (249.0 / 255.0, 115.0 / 255.0, 22.0 / 255.0, 0.50 * card_opacity);
+			} else {
+				cr.set_source_rgba (1.0, 1.0, 1.0, 0.12 * card_opacity);
+			}
+			cr.set_line_width (1.0);
+			cr.stroke ();
+
+			// Clip contents to card bounds
+			Theme.draw_rounded_rect (cr, card_x, card_y, card_w, card_h, card_r, card_r, 0.0);
+			cr.clip ();
+
+			// 3. Draw left circular backdrop
+			double circle_r = 14.0;
+			double circle_cx = card_x + 8.0 + circle_r;
+			double circle_cy = card_y + card_h / 2.0;
+
+			cr.arc (circle_cx, circle_cy, circle_r, 0, 2 * Math.PI);
+			cr.set_source_rgba (1.0, 1.0, 1.0, 0.10 * card_opacity);
+			cr.fill ();
+
+			// 4. Draw application icon centered in the circle
+			if (card.OwnerItem != null) {
+				int small_icon_size = 18;
+				var icon_surface = get_item_surface (card.OwnerItem, small_icon_size * window_scale_factor);
+				if (icon_surface != null) {
+					cr.save ();
+					if (window_scale_factor > 1) {
+						cr.scale (1.0 / window_scale_factor, 1.0 / window_scale_factor);
+						cr.set_source_surface (icon_surface.Internal,
+							(circle_cx - small_icon_size / 2.0) * window_scale_factor,
+							(circle_cy - small_icon_size / 2.0) * window_scale_factor);
+					} else {
+						cr.set_source_surface (icon_surface.Internal,
+							circle_cx - small_icon_size / 2.0,
+							circle_cy - small_icon_size / 2.0);
+					}
+					if (card_opacity < 1.0)
+						cr.paint_with_alpha (card_opacity);
+					else
+						cr.paint ();
+					cr.restore ();
+				}
+			}
+
+			// 5. Two lines of typography (slate muted title + bold crisp caption)
+			double text_x = circle_cx + circle_r + 8.0;
+			double text_w = (card_x + card_w - 10.0) - text_x;
+			if (text_w > 20) {
+				if (cached_font_title == null)
+					cached_font_title = Pango.FontDescription.from_string ("Sans 8.5");
+				if (cached_font_sub == null)
+					cached_font_sub = Pango.FontDescription.from_string ("Sans Bold 9.5");
+
+				// Line 1: Primary title (#94a3b8)
+				var main_title = card.AppTitle;
+				if (card.OutputName.length > 0)
+					main_title = "%s · %s".printf (card.AppTitle, card.OutputName);
+
+				var layout_title = Pango.cairo_create_layout (cr);
+				layout_title.set_font_description (cached_font_title);
+				layout_title.set_text (main_title, -1);
+				layout_title.set_width ((int) (text_w * Pango.SCALE));
+				layout_title.set_ellipsize (Pango.EllipsizeMode.END);
+
+				cr.set_source_rgba (148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, 0.92 * card_opacity);
+				cr.move_to (text_x, card_y + card_h * 0.16);
+				Pango.cairo_show_layout (cr, layout_title);
+
+				// Line 2: Caption in bold bright white (#f8fafc)
+				var sub_title = card.WindowCaption;
+				if (sub_title.length == 0)
+					sub_title = card.AppTitle;
+
+				var layout_sub = Pango.cairo_create_layout (cr);
+				layout_sub.set_font_description (cached_font_sub);
+				layout_sub.set_text (sub_title, -1);
+				layout_sub.set_width ((int) (text_w * Pango.SCALE));
+				layout_sub.set_ellipsize (Pango.EllipsizeMode.END);
+
+				cr.set_source_rgba (248.0 / 255.0, 250.0 / 255.0, 252.0 / 255.0, 0.98 * card_opacity);
+				cr.move_to (text_x, card_y + card_h * 0.50);
+				Pango.cairo_show_layout (cr, layout_sub);
+			}
+
+			cr.restore ();
+		}
 		
 		void draw_item_shadow (Cairo.Context cr, DockItem item, DockItemDrawValue draw_value)
 		{
+			if (item is WindowCardDockItem)
+				return;
+
 			unowned PositionManager position_manager = controller.position_manager;
 			var shadow_size = position_manager.IconShadowSize;
 			// Inflate size to fit shadow
@@ -972,58 +1190,61 @@ namespace Plank
 		
 		void draw_indicator_state (Cairo.Context cr, Gdk.Rectangle item_rect, IndicatorState indicator, ItemState item_state)
 		{
+			if (indicator == IndicatorState.NONE)
+				return;
+
 			unowned PositionManager position_manager = controller.position_manager;
-			
-			if (indicator_buffer == null) {
-				var indicator_color = get_styled_color ();
-				indicator_color.set_min_sat (0.4);
-				indicator_buffer = theme.create_indicator (position_manager.IndicatorSize, indicator_color, item_buffer);
-			}
-			if (urgent_indicator_buffer == null) {
-				var urgent_indicator_color = get_styled_color ();
-				urgent_indicator_color.add_hue (theme.UrgentHueShift);
-				urgent_indicator_color.set_sat (1.0);
-				urgent_indicator_buffer = theme.create_indicator (position_manager.IndicatorSize, urgent_indicator_color, item_buffer);
-			}
-			
-			unowned Surface indicator_surface = (item_state & ItemState.URGENT) != 0 ? urgent_indicator_buffer : indicator_buffer;
-			
-			var x = 0.0, y = 0.0;
-			switch (position_manager.Position) {
-			default:
-			case Gtk.PositionType.BOTTOM:
-				x = item_rect.x + item_rect.width / 2.0 - indicator_surface.Width / 2.0;
-				y = item_buffer.Height - indicator_surface.Height / 2.0 - 2.0 * theme.get_bottom_offset () - indicator_surface.Height / 24.0;
-				break;
-			case Gtk.PositionType.TOP:
-				x = item_rect.x + item_rect.width / 2.0 - indicator_surface.Width / 2.0;
-				y = - indicator_surface.Height / 2.0 + 2.0 * theme.get_bottom_offset () + indicator_surface.Height / 24.0;
-				break;
-			case Gtk.PositionType.LEFT:
-				x = - indicator_surface.Width / 2.0 + 2.0 * theme.get_bottom_offset () + indicator_surface.Width / 24.0;
-				y = item_rect.y + item_rect.height / 2.0 - indicator_surface.Height / 2.0;
-				break;
-			case Gtk.PositionType.RIGHT:
-				x = item_buffer.Width - indicator_surface.Width / 2.0 - 2.0 * theme.get_bottom_offset () - indicator_surface.Width / 24.0;
-				y = item_rect.y + item_rect.height / 2.0 - indicator_surface.Height / 2.0;
-				break;
-			}
-			
-			if (indicator == IndicatorState.SINGLE) {
-				cr.set_source_surface (indicator_surface.Internal, x, y);
-				cr.paint ();
+			bool is_urgent = (item_state & ItemState.URGENT) != 0;
+			double pill_h = 3.0;
+			double pill_r = 1.5;
+
+			cr.save ();
+			if (is_urgent) {
+				cr.set_source_rgba (1.0, 0.42, 0.21, 0.95);
 			} else {
-				var x_offset = 0.0, y_offset = 0.0;
-				if (position_manager.is_horizontal_dock ())
-					x_offset = position_manager.IconSize / 16.0;
-				else
-					y_offset = position_manager.IconSize / 16.0;
-				
-				cr.set_source_surface (indicator_surface.Internal, x - x_offset, y - y_offset);
-				cr.paint ();
-				cr.set_source_surface (indicator_surface.Internal, x + x_offset, y + y_offset);
-				cr.paint ();
+				cr.set_source_rgba (0.88, 0.90, 0.94, 0.85);
 			}
+
+			if (position_manager.is_horizontal_dock ()) {
+				double item_cx = item_rect.x + item_rect.width / 2.0;
+				double pill_y = (position_manager.Position == Gtk.PositionType.BOTTOM) ? (item_buffer.Height - 5.5) : 2.5;
+
+				if (indicator == IndicatorState.SINGLE) {
+					double pill_w = 11.0;
+					double pill_x = item_cx - pill_w / 2.0;
+					Theme.draw_rounded_rect (cr, pill_x, pill_y, pill_w, pill_h, pill_r, pill_r, 0.0);
+					cr.fill ();
+				} else {
+					double seg_w = 5.0;
+					double gap = 2.5;
+					double total_w = seg_w * 2.0 + gap;
+					double left_x = item_cx - total_w / 2.0;
+					Theme.draw_rounded_rect (cr, left_x, pill_y, seg_w, pill_h, pill_r, pill_r, 0.0);
+					cr.fill ();
+					Theme.draw_rounded_rect (cr, left_x + seg_w + gap, pill_y, seg_w, pill_h, pill_r, pill_r, 0.0);
+					cr.fill ();
+				}
+			} else {
+				double item_cy = item_rect.y + item_rect.height / 2.0;
+				double pill_x = (position_manager.Position == Gtk.PositionType.RIGHT) ? (item_buffer.Width - 5.5) : 2.5;
+
+				if (indicator == IndicatorState.SINGLE) {
+					double pill_w = 11.0;
+					double py = item_cy - pill_w / 2.0;
+					Theme.draw_rounded_rect (cr, pill_x, py, pill_h, pill_w, pill_r, pill_r, 0.0);
+					cr.fill ();
+				} else {
+					double seg_w = 5.0;
+					double gap = 2.5;
+					double total_w = seg_w * 2.0 + gap;
+					double top_y = item_cy - total_w / 2.0;
+					Theme.draw_rounded_rect (cr, pill_x, top_y, pill_h, seg_w, pill_r, pill_r, 0.0);
+					cr.fill ();
+					Theme.draw_rounded_rect (cr, pill_x, top_y + seg_w + gap, pill_h, seg_w, pill_r, pill_r, 0.0);
+					cr.fill ();
+				}
+			}
+			cr.restore ();
 		}
 		
 		void draw_urgent_glow (DockItem item, Cairo.Context cr, int64 frame_time)
@@ -1118,7 +1339,7 @@ namespace Plank
 			
 			foreach (var element in elements) {
 				DockItem? item = (element as DockItem);
-				if (item != null && !(item is SeparatorDockItem))
+				if (item != null && !(item is SeparatorDockItem) && !(item is WindowCardDockItem))
 					transient_items.add (item);
 			}
 			
@@ -1131,6 +1352,9 @@ namespace Plank
 		 */
 		protected override bool animation_needed (int64 frame_time)
 		{
+			if (ApplicationDockItem.is_animating_cards ())
+				return true;
+
 			if (zoom_changed) {
 				//FIXME reset at a better place
 				zoom_changed = false;
@@ -1180,10 +1404,14 @@ namespace Plank
 				return true;
 			if (render_time - item.LastMove <= theme.ItemMoveTime * 1000)
 				return true;
-			if (render_time - item.AddTime <= theme.ItemMoveTime * 1000)
-				return true;
-			if (render_time - item.RemoveTime <= theme.ItemMoveTime * 1000)
-				return true;
+			if (item is WindowCardDockItem) {
+				var card = (WindowCardDockItem) item;
+				int64 dur = (int64) WindowCardDockItem.CARD_ANIM_TIME_MS * 1000;
+				if (card.RemoveTime > 0 && render_time - card.RemoveTime <= dur)
+					return true;
+				if (card.AddTime > 0 && render_time - card.AddTime <= dur)
+					return true;
+			}
 			if (render_time - item.LastValid <= ITEM_INVALID_DURATION * 1000)
 				return true;
 			
@@ -1192,6 +1420,9 @@ namespace Plank
 		
 		static int compare_dock_item_position (DockItem i1, DockItem i2)
 		{
+			if (i1 == i2)
+				return 0;
+
 			var p_i1 = i1.Position;
 			var p_i2 = i2.Position;
 			
@@ -1203,8 +1434,10 @@ namespace Plank
 			
 			if (i1.RemoveTime > i2.RemoveTime)
 				return -1;
+			if (i1.RemoveTime < i2.RemoveTime)
+				return 1;
 			
-			return 1;
+			return 0;
 		}
 		
 		static double easing_bounce (double t, double d, double n)

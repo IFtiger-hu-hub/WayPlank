@@ -330,6 +330,8 @@ namespace Plank
 		public int ItemPadding   { get; private set; }
 		public int UrgentBounceHeight { get; private set; }
 		public int LaunchBounceHeight { get; private set; }
+		public int ReverseRoundness { get; private set; }
+		public int TopRoundness { get; private set; }
 		
 		int items_width;
 		int items_offset;
@@ -417,6 +419,8 @@ namespace Plank
 			UrgentBounceHeight = (int) (theme.UrgentBounceHeight * IconSize);
 			LaunchBounceHeight = (int) (theme.LaunchBounceHeight * IconSize);
 			LineWidth     = theme.LineWidth;
+			ReverseRoundness = theme.ReverseRoundness;
+			TopRoundness  = theme.TopRoundness;
 			
 			if (!screen_is_composited) {
 				if (HorizPadding < 0)
@@ -425,7 +429,8 @@ namespace Plank
 					TopPadding = (int) scaled_icon_size;
 			}
 			
-			items_offset  = (int) (2 * LineWidth + (HorizPadding > 0 ? HorizPadding : 0));
+			var rev_padding = (ReverseRoundness > 0 && theme.BottomRoundness == 0) ? ReverseRoundness : 0;
+			items_offset  = (int) (2 * LineWidth + (HorizPadding > 0 ? HorizPadding : 0) + rev_padding);
 			
 			top_offset = theme.get_top_offset () + TopPadding;
 			bottom_offset = theme.get_bottom_offset () + BottomPadding;
@@ -471,14 +476,23 @@ namespace Plank
 			update_max_icon_size (theme);
 		}
 		
-		int get_items_total_span ()
+		int get_items_total_span (bool target_final = false)
 		{
 			var sep_slot = (int) Math.round ((ItemPadding + IconSize) / 2.0);
 			var total = 0;
+			int64 frame_time = (controller != null && controller.renderer != null) ? controller.renderer.current_frame_time : 0LL;
+			uint move_time = (controller != null && controller.renderer != null) ? controller.renderer.theme.ItemMoveTime : 250U;
 			foreach (var item in controller.VisibleItems) {
 				if (item is SeparatorDockItem)
 					total += sep_slot;
-				else
+				else if (item is WindowCardDockItem) {
+					if (target_final) {
+						if (item.RemoveTime == 0)
+							total += (int) Math.round (((WindowCardDockItem) item).get_card_slot_width (IconSize, ItemPadding, is_horizontal_dock ()));
+					} else {
+						total += (int) Math.round (((WindowCardDockItem) item).get_effective_slot_width (IconSize, ItemPadding, frame_time, move_time, is_horizontal_dock ()));
+					}
+				} else
 					total += (ItemPadding + IconSize);
 			}
 			return total;
@@ -488,6 +502,11 @@ namespace Plank
 		{
 			if (item is SeparatorDockItem)
 				return Math.round ((ItemPadding + IconSize) / 2.0);
+			if (item is WindowCardDockItem) {
+				int64 frame_time = (controller != null && controller.renderer != null) ? controller.renderer.current_frame_time : 0LL;
+				uint move_time = (controller != null && controller.renderer != null) ? controller.renderer.theme.ItemMoveTime : 250U;
+				return ((WindowCardDockItem) item).get_effective_slot_width (IconSize, ItemPadding, frame_time, move_time, is_horizontal_dock ());
+			}
 			return (double) (ItemPadding + IconSize);
 		}
 
@@ -509,7 +528,8 @@ namespace Plank
 			case Gtk.Align.START:
 			case Gtk.Align.END:
 			case Gtk.Align.CENTER:
-				width = get_items_total_span () + 2 * HorizPadding + 4 * LineWidth;
+				var rev_extra = (ReverseRoundness > 0) ? (2 * ReverseRoundness) : 0;
+				width = get_items_total_span (true) + 2 * HorizPadding + 4 * LineWidth + rev_extra;
 				break;
 			case Gtk.Align.FILL:
 				if (is_horizontal_dock ())
@@ -756,9 +776,38 @@ namespace Plank
 			
 			double center_y = (is_horizontal_dock () ? static_dock_region.height / 2.0 : static_dock_region.width / 2.0);
 			
+			double current_items_span = 0.0;
+			for (int j = 0; j < items.size; j++) {
+				current_items_span += get_item_slot (items[j]);
+			}
+
+			double current_dock_width = current_items_span + 2 * items_offset;
+			double dock_start_coord = 0.0;
+			if (screen_is_composited) {
+				double base_span = (double) width - current_dock_width;
+				switch (Alignment) {
+				default:
+				case Gtk.Align.CENTER:
+					dock_start_coord = (base_span / 2.0) * (1.0 + Offset / 100.0);
+					break;
+				case Gtk.Align.START:
+					dock_start_coord = 0.0;
+					break;
+				case Gtk.Align.END:
+					dock_start_coord = base_span;
+					break;
+				case Gtk.Align.FILL:
+					dock_start_coord = is_horizontal_dock () ? static_dock_region.x : static_dock_region.y;
+					break;
+				}
+			} else {
+				dock_start_coord = is_horizontal_dock () ? static_dock_region.x : static_dock_region.y;
+			}
+
 			double first_slot = (items.size > 0) ? get_item_slot (items.first ()) : (icon_size + ItemPadding);
-			double center_x = first_slot / 2.0 + items_offset;
+			double center_x;
 			if (Alignment == Gtk.Align.FILL) {
+				center_x = first_slot / 2.0 + items_offset;
 				switch (ItemsAlignment) {
 				default:
 				case Gtk.Align.FILL:
@@ -778,13 +827,10 @@ namespace Plank
 					break;
 				}
 			} else {
-				if (is_horizontal_dock ())
-					center_x += static_dock_region.x;
-				else
-					center_x += static_dock_region.y;
+				center_x = dock_start_coord + items_offset + first_slot / 2.0;
 			}
 			
-			PointD center = { Math.floor (center_x), Math.floor (center_y) };
+			PointD center = { center_x, Math.floor (center_y) };
 			
 			bool expand_for_drop = (controller.drag_manager.ExternalDragActive && !prefs.LockItems);
 			bool zoom_enabled = prefs.ZoomEnabled;
@@ -848,6 +894,19 @@ namespace Plank
 					val.center.y = icon_size / 2.0;
 					val.zoom = 1.0;
 					val.icon_size = icon_size;
+				} else if (item is WindowCardDockItem) {
+					val.center.y = icon_size / 2.0;
+					val.zoom = 1.0;
+					val.icon_size = icon_size;
+					int64 frame_time = (controller != null && controller.renderer != null) ? controller.renderer.current_frame_time : 0LL;
+					uint move_time = (controller != null && controller.renderer != null) ? controller.renderer.theme.ItemMoveTime : 250U;
+					if (is_horizontal_dock ()) {
+						val.custom_width = ((WindowCardDockItem) item).get_effective_card_width (frame_time, move_time);
+						val.custom_height = icon_size;
+					} else {
+						val.custom_width = icon_size;
+						val.custom_height = ((WindowCardDockItem) item).get_effective_card_height (icon_size, frame_time, move_time);
+					}
 				}
 				
 				if (!is_horizontal_dock ()) {
@@ -880,7 +939,7 @@ namespace Plank
 				
 				draw_values[item] = val;
 				
-				if (item.RemoveTime == 0 && i + 1 < items.size) {
+				if ((item is WindowCardDockItem || item.RemoveTime == 0) && i + 1 < items.size) {
 					unowned DockItem next_item = items[i + 1];
 					center.x += (get_item_slot (item) + get_item_slot (next_item)) / 2.0;
 				}
@@ -901,7 +960,8 @@ namespace Plank
 
 		Gdk.Rectangle get_item_draw_region (DockItemDrawValue val)
 		{
-			var width = val.icon_size, height = val.icon_size;
+			var width = (val.custom_width > 0 ? val.custom_width : val.icon_size);
+			var height = (val.custom_height > 0 ? val.custom_height : val.icon_size);
 			
 			return { (int) Math.round (val.center.x - width / 2.0),
 				(int) Math.round (val.center.y - height / 2.0),
@@ -945,7 +1005,8 @@ namespace Plank
 			var item_padding = ItemPadding;
 			var top_padding = (top_offset < 0 ? 0 : top_offset);
 			var bottom_padding = bottom_offset;
-			var width = val.icon_size, height = val.icon_size;
+			var width = (val.custom_width > 0 ? val.custom_width : val.icon_size);
+			var height = (val.custom_height > 0 ? val.custom_height : val.icon_size);
 			
 			switch (Position) {
 			default:
@@ -1366,22 +1427,29 @@ namespace Plank
 			
 			var center_first = val_first.center;
 			var center_last = val_last.center;
+			var span_first = is_horizontal_dock ()
+				? (val_first.custom_width > 0 ? val_first.custom_width : val_first.icon_size)
+				: (val_first.custom_height > 0 ? val_first.custom_height : val_first.icon_size);
+			var span_last = is_horizontal_dock ()
+				? (val_last.custom_width > 0 ? val_last.custom_width : val_last.icon_size)
+				: (val_last.custom_height > 0 ? val_last.custom_height : val_last.icon_size);
 			var padding = ItemPadding + 2 * HorizPadding + 4 * LineWidth;
-			var padding_first = (val_first.icon_size + padding) / 2.0;
-			var padding_last = (val_last.icon_size + padding) / 2.0;
+			var padding_first = (span_first + padding) / 2.0;
+			var padding_last = (span_last + padding) / 2.0;
+			var rev_round = (ReverseRoundness > 0) ? ReverseRoundness : 0;
 			
 			switch (Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
-				x = (int) Math.round (center_first.x - padding_first);
+				x = (int) Math.round (center_first.x - padding_first - rev_round);
 				y += height - DockBackgroundHeight;
-				width = (int) Math.round (center_last.x - center_first.x + padding_first + padding_last);
+				width = (int) Math.round (center_last.x - center_first.x + padding_first + padding_last + 2 * rev_round);
 				height = DockBackgroundHeight;
 				break;
 			case Gtk.PositionType.TOP:
-				x = (int) Math.round (center_first.x - padding_first);
+				x = (int) Math.round (center_first.x - padding_first - rev_round);
 				y = 0;
-				width = (int) Math.round (center_last.x - center_first.x + padding_first + padding_last);
+				width = (int) Math.round (center_last.x - center_first.x + padding_first + padding_last + 2 * rev_round);
 				height = DockBackgroundHeight;
 				break;
 			case Gtk.PositionType.LEFT:

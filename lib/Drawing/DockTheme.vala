@@ -109,14 +109,15 @@ namespace Plank
 		protected override void reset_properties ()
 		{
 			base.reset_properties ();
-			TopRoundness = 4;
+			TopRoundness = 19;
+			ReverseRoundness = 26;
 			BottomRoundness = 0;
-			HorizPadding = 0.0;
-			TopPadding = -11.0;
-			BottomPadding = 2.5;
-			ItemPadding = 2.5;
+			HorizPadding = 2.5;
+			TopPadding = 1.5;
+			BottomPadding = 1.9;
+			ItemPadding = 2.0;
 			IndicatorSize = 5.0;
-			IconShadowSize = 1.0;
+			IconShadowSize = 0.0;
 			UrgentBounceHeight = 5.0 / 3.0;
 			LaunchBounceHeight = 0.625;
 			FadeOpacity = 1.0;
@@ -155,50 +156,45 @@ namespace Plank
 			if (width <= 0 || height <= 0)
 				return surface;
 			
-			if (position == Gtk.PositionType.BOTTOM) {
-				draw_background (surface);
-				return surface;
-			}
-			
-			Surface temp;
-			if (position == Gtk.PositionType.TOP)
-				temp = new Surface.with_surface (width, height, surface);
-			else
-				temp = new Surface.with_surface (height, width, surface);
-			
-			draw_background (temp);
-			
-			unowned Cairo.Context cr = surface.Context;
-			
-			var rotate = 0.0;
-			var x_offset = 0.0, y_offset = 0.0;
-			
+			draw_dock_background_direct (surface.Context, 0, 0, width, height, position);
+			return surface;
+		}
+
+		/**
+		 * Draws the dock background directly onto any Cairo context with proper orientation transforms.
+		 * Eliminates temporary surface allocations, bitmap blitting, and CPU-GPU sync stalls.
+		 */
+		public void draw_dock_background_direct (Cairo.Context cr, double x, double y, int width, int height, Gtk.PositionType position)
+		{
+			if (width <= 0 || height <= 0)
+				return;
+
+			cr.save ();
+			cr.translate (x, y);
+
 			switch (position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
+				draw_background_cr (cr, width, height);
 				break;
 			case Gtk.PositionType.TOP:
-				rotate = Math.PI;
-				x_offset = -width;
-				y_offset = -height;
+				cr.translate (width, height);
+				cr.rotate (Math.PI);
+				draw_background_cr (cr, width, height);
 				break;
 			case Gtk.PositionType.LEFT:
-				rotate = Math.PI_2;
-				y_offset = -width;
+				cr.translate (width, 0);
+				cr.rotate (Math.PI_2);
+				draw_background_cr (cr, height, width);
 				break;
 			case Gtk.PositionType.RIGHT:
-				rotate = -Math.PI_2;
-				x_offset = -height;
+				cr.translate (0, height);
+				cr.rotate (-Math.PI_2);
+				draw_background_cr (cr, height, width);
 				break;
 			}
-			
-			cr.save ();
-			cr.rotate (rotate);
-			cr.set_source_surface (temp.Internal, x_offset, y_offset);
-			cr.paint ();
+
 			cr.restore ();
-			
-			return surface;
 		}
 		
 		/**

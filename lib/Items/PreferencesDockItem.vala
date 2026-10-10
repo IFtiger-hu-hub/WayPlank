@@ -64,39 +64,31 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 
-			var appearance_item = create_menu_item (_("_Appearance..."), "preferences-desktop-theme", true);
+			var appearance_item = create_menu_item ("外观 / Appearance...", "preferences-desktop-theme", true);
 			appearance_item.activate.connect (() => Application.get_default ().activate_action ("preferences-appearance", null));
 			items.add (appearance_item);
 
-			var behaviour_item = create_menu_item (_("_Behaviour..."), "preferences-desktop", true);
+			var behaviour_item = create_menu_item ("行为 / Behaviour...", "preferences-desktop", true);
 			behaviour_item.activate.connect (() => Application.get_default ().activate_action ("preferences-behaviour", null));
 			items.add (behaviour_item);
 
-			var apps_item = create_menu_item (_("A_pplications..."), "applications-other", true);
+			var apps_item = create_menu_item ("窗口与应用 / Applications...", "applications-other", true);
 			apps_item.activate.connect (() => Application.get_default ().activate_action ("preferences-applications", null));
 			items.add (apps_item);
 
-			var docklets_item = create_menu_item (_("_Docklets..."), "preferences-plugin", true);
+			var docklets_item = create_menu_item ("插件 / Docklets...", "preferences-plugin", true);
 			docklets_item.activate.connect (() => Application.get_default ().activate_action ("preferences-docklets", null));
 			items.add (docklets_item);
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var shortcuts_item = create_menu_item (_("_Shortcuts & Gestures..."), "help-browser", true);
-			shortcuts_item.activate.connect (() => Application.get_default ().activate_action ("shortcuts", null));
-			items.add (shortcuts_item);
-
-			var bug_item = create_menu_item (_("Report a _Bug Online..."), "tools-report-bug", true);
-			bug_item.activate.connect (() => Application.get_default ().activate_action ("help", null));
-			items.add (bug_item);
-
-			var about_item = create_menu_item (_("_About Wayplank..."), "help-about", true);
+			var about_item = create_menu_item ("关于 WayPlank / About...", "help-about", true);
 			about_item.activate.connect (() => Application.get_default ().activate_action ("about", null));
 			items.add (about_item);
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 移除", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

@@ -156,7 +156,7 @@ namespace Plank
 		
 		construct
 		{
-			set_title (_("Wayplank Preferences"));
+			set_title ("WayPlank 设置 / Preferences");
 			set_role ("preferences");
 			configure_hide_mode_rows ();
 			set_decorated (true);

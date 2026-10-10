@@ -27,6 +27,12 @@ namespace Plank
         Intl.bind_textdomain_codeset (Build.GETTEXT_PACKAGE, "UTF-8");
         Intl.textdomain (Build.GETTEXT_PACKAGE);
 
+        var data_dirs = GLib.Environment.get_variable ("XDG_DATA_DIRS") ?? "/usr/local/share:/usr/share";
+        var user_data_dir = GLib.Environment.get_user_data_dir ();
+        if (!data_dirs.contains (user_data_dir)) {
+            GLib.Environment.set_variable ("XDG_DATA_DIRS", "%s:%s".printf (user_data_dir, data_dirs), true);
+        }
+
         bool replace_requested = false;
         for (int i = 1; i < argv.length; i++) {
             if (argv[i] == "--help" || argv[i] == "-h" || argv[i] == "-?") {

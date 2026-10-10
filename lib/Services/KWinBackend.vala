@@ -71,6 +71,11 @@ namespace Plank
 			KWinBridge.queue_command (target, action);
 			return true;
 		}
+
+		public bool present_windows (Gee.List<string> targets)
+		{
+			return KWinBridge.present_windows (targets);
+		}
 		
 		public bool any_window_intersects (Gdk.Rectangle rect)
 		{

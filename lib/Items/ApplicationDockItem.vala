@@ -51,13 +51,165 @@ namespace Plank
 		DbusmenuGtk.Client? Quicklist { get; set; default = null; }
 #endif
 		
-		Gee.ArrayList<string> supported_mime_types;
-		Gee.ArrayList<string> actions;
-		Gee.HashMap<string, string> actions_map;
-		Gee.HashMap<string, string> desktop_action_ids;
+		Gee.ArrayList<string> supported_mime_types = new Gee.ArrayList<string> ();
+		Gee.ArrayList<string> actions = new Gee.ArrayList<string> ();
+		Gee.HashMap<string, string> actions_map = new Gee.HashMap<string, string> ();
+		Gee.HashMap<string, string> desktop_action_ids = new Gee.HashMap<string, string> ();
 		
 		string? unity_dbusname = null;
 		int prev_window_count = 0;
+
+		public static unowned ApplicationDockItem? current_expanded_item = null;
+		public static int64 cards_animating_until = 0LL;
+		public static int total_collapsing_cards = 0;
+		Gee.ArrayList<WindowCardDockItem> expanded_cards = new Gee.ArrayList<WindowCardDockItem> ();
+		Gee.ArrayList<WindowCardDockItem> collapsing_cards = new Gee.ArrayList<WindowCardDockItem> ();
+		uint collapse_timer_id = 0;
+		bool is_expanded = false;
+
+		public static bool is_animating_cards ()
+		{
+			var now = GLib.get_monotonic_time ();
+			if (now < cards_animating_until)
+				return true;
+			if (total_collapsing_cards > 0)
+				return true;
+			return false;
+		}
+
+		public static void collapse_all_cards ()
+		{
+			if (current_expanded_item != null) {
+				current_expanded_item.collapse_cards ();
+			}
+		}
+
+		public void collapse_cards ()
+		{
+			if (!is_expanded && expanded_cards.size == 0)
+				return;
+
+			is_expanded = false;
+			if (current_expanded_item == this)
+				current_expanded_item = null;
+
+			var now = GLib.get_monotonic_time ();
+			cards_animating_until = now + 300 * 1000;
+
+			foreach (var card in expanded_cards) {
+				card.RemoveTime = now;
+				collapsing_cards.add (card);
+				total_collapsing_cards++;
+			}
+			expanded_cards.clear ();
+			get_dock ()?.renderer.animated_draw ();
+
+			// After the smoothstep shrink animation finishes (250ms), remove cards cleanly from container in a single batch
+			if (collapse_timer_id == 0) {
+				collapse_timer_id = GLib.Timeout.add (270, () => {
+					collapse_timer_id = 0;
+					unowned DockContainer? container = Container;
+					if (container != null && collapsing_cards.size > 0) {
+						var finished = new Gee.ArrayList<DockElement> ();
+						foreach (var card in collapsing_cards) {
+							finished.add (card);
+						}
+						container.remove_batch (finished);
+						total_collapsing_cards -= finished.size;
+						if (total_collapsing_cards < 0)
+							total_collapsing_cards = 0;
+						collapsing_cards.clear ();
+						(container as DefaultApplicationDockItemProvider)?.refresh_separators ();
+					} else {
+						total_collapsing_cards -= collapsing_cards.size;
+						if (total_collapsing_cards < 0)
+							total_collapsing_cards = 0;
+						collapsing_cards.clear ();
+					}
+					return GLib.Source.REMOVE;
+				});
+			}
+		}
+
+		public void expand_cards ()
+		{
+			if (is_expanded)
+				return;
+
+			collapse_all_cards ();
+
+			if (collapse_timer_id > 0) {
+				GLib.Source.remove (collapse_timer_id);
+				collapse_timer_id = 0;
+				unowned DockContainer? c = Container;
+				if (c != null && collapsing_cards.size > 0) {
+					var to_remove = new Gee.ArrayList<DockElement> ();
+					foreach (var card in collapsing_cards)
+						to_remove.add (card);
+					c.remove_batch (to_remove);
+				}
+				total_collapsing_cards -= collapsing_cards.size;
+				if (total_collapsing_cards < 0)
+					total_collapsing_cards = 0;
+				collapsing_cards.clear ();
+			}
+
+			unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
+			if (provider == null)
+				return;
+
+			var windows = WindowManager.get_default ().matching_windows (Launcher);
+			var current_desktop_only = provider.Prefs.CurrentWorkspaceOnly;
+			var candidates = new Gee.ArrayList<WindowInfo> ();
+			foreach (var win in windows) {
+				if (!current_desktop_only || win.CurrentDesktop) {
+					candidates.add (win);
+				}
+			}
+
+			if (candidates.size <= 1)
+				return;
+
+			current_expanded_item = this;
+			is_expanded = true;
+
+			var now = GLib.get_monotonic_time ();
+			cards_animating_until = now + 300 * 1000;
+
+			var new_cards = new Gee.ArrayList<DockElement> ();
+			foreach (var win in candidates) {
+				var sub_caption = clean_window_caption (win.Caption, Text);
+				var card = new WindowCardDockItem (win.Id, Text, win.Output, sub_caption, Icon, this);
+				card.AddTime = now;
+				new_cards.add (card);
+				expanded_cards.add (card);
+			}
+
+			provider.insert_batch_after (new_cards, this);
+			get_dock ()?.renderer.animated_draw ();
+		}
+
+		static string clean_window_caption (string caption, string app_text)
+		{
+			var trimmed = caption.strip ();
+			if (trimmed.length == 0)
+				return app_text;
+
+			var suffixes = new string[] {
+				" — " + app_text,
+				" - " + app_text,
+				" — " + app_text.down (),
+				" - " + app_text.down ()
+			};
+			foreach (var suffix in suffixes) {
+				if (trimmed.has_suffix (suffix)) {
+					var sub = trimmed.substring (0, trimmed.length - suffix.length).strip ();
+					if (sub.length > 0)
+						return sub;
+				}
+			}
+			return trimmed;
+		}
 		
 		/**
 		 * {@inheritDoc}
@@ -91,6 +243,25 @@ namespace Plank
 		
 		~ApplicationDockItem ()
 		{
+			if (collapse_timer_id > 0) {
+				GLib.Source.remove (collapse_timer_id);
+				collapse_timer_id = 0;
+			}
+			unowned DockContainer? c = Container;
+			if (c != null) {
+				var to_remove = new Gee.ArrayList<DockElement> ();
+				foreach (var card in expanded_cards)
+					to_remove.add (card);
+				foreach (var card in collapsing_cards)
+					to_remove.add (card);
+				if (to_remove.size > 0)
+					c.remove_batch (to_remove);
+			}
+			total_collapsing_cards -= collapsing_cards.size;
+			if (total_collapsing_cards < 0)
+				total_collapsing_cards = 0;
+			expanded_cards.clear ();
+			collapsing_cards.clear ();
 			supported_mime_types = null;
 			actions = null;
 			actions_map = null;
@@ -121,6 +292,12 @@ namespace Plank
 		void handle_window_state_changed ()
 		{
 			update_indicator (false);
+			if (is_expanded) {
+				var windows = WindowManager.get_default ().matching_windows (Launcher);
+				if (windows.size <= 1) {
+					collapse_cards ();
+				}
+			}
 		}
 
 		public void set_urgent (bool is_urgent)
@@ -186,9 +363,50 @@ namespace Plank
 				unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
 				var click_behavior = (provider != null ? provider.Prefs.WindowClickBehavior : 0);
 				var restore_minimized = (provider == null || provider.Prefs.RestoreMinimizedWindows);
+
+				// If this application is already expanded, clicking it toggles collapse
+				if (is_expanded) {
+					collapse_cards ();
+					return AnimationType.NONE;
+				}
+
+				// If any other application was expanded, collapse it first
+				collapse_all_cards ();
+
+				var windows = WindowManager.get_default ().matching_windows (Launcher);
+				var current_desktop_only = (provider != null && provider.Prefs.CurrentWorkspaceOnly);
+				var candidates = new Gee.ArrayList<WindowInfo> ();
+				foreach (var win in windows) {
+					if (!current_desktop_only || win.CurrentDesktop) {
+						candidates.add (win);
+					}
+				}
+
+				// Mode 2: Expand/collapse window cards beside dock icon
+				if (click_behavior == 2 && candidates.size > 1) {
+					if (is_expanded)
+						collapse_cards ();
+					else
+						expand_cards ();
+					return AnimationType.NONE;
+				}
+
+				// Mode 1: Present Windows (KWin large previews)
+				if (click_behavior == 1 && candidates.size > 1) {
+					var uuids = new Gee.ArrayList<string> ();
+					foreach (var win in candidates) {
+						uuids.add (win.Id);
+					}
+					if (WindowControl.present_windows (uuids)) {
+						message ("Wayplank: click on '%s' -> present windows (%d)", Text, uuids.size);
+						return AnimationType.BOUNCE;
+					}
+				}
+
+				// Mode 0 (Default): Indicators & Cycle / Activate window
 				string? uuid;
 				string action;
-				if (WindowManager.get_default ().resolve_click_command (Launcher, click_behavior, restore_minimized, out uuid, out action)) {
+				if (WindowManager.get_default ().resolve_click_command (Launcher, 0, restore_minimized, out uuid, out action)) {
 					message ("Wayplank: click on '%s' (app_id=%s) -> uuid=%s action=%s", Text, app_id, uuid, action);
 					WindowControl.queue_command (uuid, action);
 					return AnimationType.BOUNCE;
@@ -219,73 +437,187 @@ namespace Plank
 		/**
 		 * {@inheritDoc}
 		 */
+		void launch_target_path (string path)
+		{
+			try {
+				var file = File.new_for_path (path);
+				var uri = file.get_uri ();
+				List<string> uris = new List<string> ();
+				uris.append (uri);
+
+				var desktop_path = File.new_for_uri (Launcher).get_path ();
+				if (desktop_path != null) {
+					var app_info = new DesktopAppInfo.from_filename (desktop_path);
+					if (app_info != null) {
+						app_info.launch_uris (uris, System.get_default ().context);
+						return;
+					}
+				}
+
+				AppInfo.launch_default_for_uri (uri, null);
+			} catch (Error e) {
+				Logger.notification ("Failed to launch recent path: %s", e.message);
+			}
+		}
+
+		Gtk.MenuItem create_header_menu_item (int win_count)
+		{
+			var item = new Gtk.MenuItem ();
+			item.sensitive = false;
+			item.can_focus = false;
+
+			var hbox = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 12);
+			hbox.margin_top = 8;
+			hbox.margin_bottom = 8;
+			hbox.margin_start = 10;
+			hbox.margin_end = 10;
+
+			// Icon (36x36)
+			var pixbuf = DrawingService.load_icon (Icon, 36, 36);
+			if (pixbuf != null) {
+				var img = new Gtk.Image.from_pixbuf (pixbuf);
+				hbox.pack_start (img, false, false, 0);
+			} else {
+				var img = new Gtk.Image.from_icon_name ("application-x-executable", Gtk.IconSize.DND);
+				hbox.pack_start (img, false, false, 0);
+			}
+
+			var vbox = new Gtk.Box (Gtk.Orientation.VERTICAL, 3);
+			vbox.valign = Gtk.Align.CENTER;
+
+			var title_lbl = new Gtk.Label (null);
+			title_lbl.set_markup ("<b><span size='11500'>%s</span></b>".printf (GLib.Markup.escape_text (Text)));
+			title_lbl.halign = Gtk.Align.START;
+			title_lbl.ellipsize = Pango.EllipsizeMode.END;
+			vbox.pack_start (title_lbl, false, false, 0);
+
+			var status_str = (win_count > 0)
+				? (win_count > 1 ? ("运行中 · %d 个窗口".printf (win_count)) : "正在运行")
+				: "未运行";
+
+			var status_lbl = new Gtk.Label (null);
+			status_lbl.set_markup ("<span size='9500' foreground='#94a3b8'>%s</span>".printf (status_str));
+			status_lbl.halign = Gtk.Align.START;
+			vbox.pack_start (status_lbl, false, false, 0);
+
+			hbox.pack_start (vbox, true, true, 0);
+			item.add (hbox);
+			item.show_all ();
+			return item;
+		}
+
+		Gtk.MenuItem create_section_header_item (string label_text)
+		{
+			var item = new Gtk.MenuItem ();
+			item.sensitive = false;
+			item.can_focus = false;
+
+			var lbl = new Gtk.Label (null);
+			lbl.set_markup ("<b><span size='8500' foreground='#94a3b8'>%s</span></b>".printf (GLib.Markup.escape_text (label_text)));
+			lbl.halign = Gtk.Align.START;
+			lbl.margin_start = 10;
+			lbl.margin_top = 4;
+			lbl.margin_bottom = 2;
+
+			item.add (lbl);
+			item.show_all ();
+			return item;
+		}
+
+		Gtk.MenuItem create_recent_file_menu_item (RecentFileInfo rf)
+		{
+			var item = new Gtk.MenuItem ();
+
+			var hbox = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10);
+			hbox.margin_start = 10;
+			hbox.margin_end = 10;
+			hbox.margin_top = 4;
+			hbox.margin_bottom = 4;
+
+			string icon_name = "text-x-generic";
+			if (rf.is_dir) {
+				icon_name = "folder";
+			} else {
+				var p = rf.path.down ();
+				if (p.has_suffix (".pdf")) icon_name = "application-pdf";
+				else if (p.has_suffix (".png") || p.has_suffix (".jpg") || p.has_suffix (".jpeg") || p.has_suffix (".svg") || p.has_suffix (".webp")) icon_name = "image-x-generic";
+				else if (p.has_suffix (".md") || p.has_suffix (".txt")) icon_name = "text-plain";
+				else if (p.has_suffix (".ts") || p.has_suffix (".js") || p.has_suffix (".json") || p.has_suffix (".qml") || p.has_suffix (".py") || p.has_suffix (".cpp") || p.has_suffix (".c") || p.has_suffix (".h")) icon_name = "text-x-script";
+			}
+
+			var pixbuf = DrawingService.load_icon (icon_name, 20, 20);
+			if (pixbuf != null) {
+				var img = new Gtk.Image.from_pixbuf (pixbuf);
+				hbox.pack_start (img, false, false, 0);
+			} else {
+				var img = new Gtk.Image.from_icon_name (icon_name, Gtk.IconSize.MENU);
+				hbox.pack_start (img, false, false, 0);
+			}
+
+			var vbox = new Gtk.Box (Gtk.Orientation.VERTICAL, 2);
+			vbox.valign = Gtk.Align.CENTER;
+
+			var title_lbl = new Gtk.Label (null);
+			title_lbl.set_markup ("<span size='9800'>%s</span>".printf (GLib.Markup.escape_text (rf.title)));
+			title_lbl.halign = Gtk.Align.START;
+			title_lbl.ellipsize = Pango.EllipsizeMode.MIDDLE;
+			title_lbl.max_width_chars = 34;
+			vbox.pack_start (title_lbl, false, false, 0);
+
+			var path_lbl = new Gtk.Label (null);
+			path_lbl.set_markup ("<span size='8500' foreground='#94a3b8'>%s</span>".printf (GLib.Markup.escape_text (rf.display_path)));
+			path_lbl.halign = Gtk.Align.START;
+			path_lbl.ellipsize = Pango.EllipsizeMode.MIDDLE;
+			path_lbl.max_width_chars = 38;
+			vbox.pack_start (path_lbl, false, false, 0);
+
+			hbox.pack_start (vbox, true, true, 0);
+			item.add (hbox);
+
+			string target_path = rf.path;
+			item.activate.connect (() => {
+				launch_target_path (target_path);
+			});
+
+			item.show_all ();
+			return item;
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
 		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
-			
 			var windows = WindowManager.get_default ().matching_windows (Launcher);
-			if (windows.size > 0) {
-				if (windows.size > 1) {
-					foreach (var win in windows) {
-						var cap = (win.Caption != null && win.Caption != "") ? win.Caption : Text;
-						var win_item = create_literal_menu_item (cap, null, false);
-						string target_id = win.Id;
-						win_item.activate.connect (() => {
-							WindowControl.queue_command (target_id, "activate");
-						});
-						items.add (win_item);
-					}
-					var close_all_item = create_menu_item (_("Close _All"), "window-close", true);
-					close_all_item.activate.connect (() => {
-						foreach (var win in windows) {
-							WindowControl.queue_command (win.Id, "close");
-						}
-					});
-					items.add (close_all_item);
-				} else {
-					var win = windows[0];
-					var close_item = create_menu_item (_("_Close"), "window-close", true);
-					string target_id = win.Id;
-					close_item.activate.connect (() => {
-						WindowControl.queue_command (target_id, "close");
-					});
-					items.add (close_item);
-				}
+
+			// 1. App Header (Icon + Name + Status)
+			items.add (create_header_menu_item (windows.size));
+
+			// 2. Recent Files / Projects Section
+			var recent_files = RecentFilesService.get_default ().get_recent_files (null, Launcher, Text);
+			if (recent_files.size > 0) {
 				items.add (new Gtk.SeparatorMenuItem ());
-			}
-			
-			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
-			if (default_provider != null
-				&& !default_provider.Prefs.LockItems
-				&& !is_window ()) {
-				var item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
-				item.active = !(this is TransientDockItem);
-				item.activate.connect (() => pin_launcher ());
-				items.add (item);
-			}
-			
-#if HAVE_DBUSMENU
-			if (Quicklist != null) {
-				if (items.size > 0)
-					items.add (new Gtk.SeparatorMenuItem ());
-				
-				var dm_root = Quicklist.get_root ();
-				if (dm_root != null) {
-					Logger.verbose ("%i quicklist menuitems for %s", dm_root.get_children ().length (), Text);
-					foreach (var menuitem in dm_root.get_children ())
-						items.add (Quicklist.menuitem_get (menuitem));
+				items.add (create_section_header_item ("最近打开"));
+
+				int count = 0;
+				foreach (var rf in recent_files) {
+					items.add (create_recent_file_menu_item (rf));
+					count++;
+					if (count >= 8)
+						break;
 				}
 			}
-#endif
-			
+
+			// 3. Desktop Actions Section
 			if (!is_window () && actions.size > 0) {
-				if (items.size > 0)
-					items.add (new Gtk.SeparatorMenuItem ());
-				
+				items.add (new Gtk.SeparatorMenuItem ());
+				items.add (create_section_header_item ("快捷操作"));
+
 				foreach (var s in actions) {
 					var values = actions_map.get (s).split (";;");
 					var action_id = desktop_action_ids.get (s);
-					
+
 					var item = create_menu_item (s, values[1], true);
 					item.activate.connect (() => {
 						if (action_id != null) {
@@ -304,19 +636,83 @@ namespace Plank
 					items.add (item);
 				}
 			}
-			
-			if (items.size > 0)
-							items.add (new Gtk.SeparatorMenuItem ());
 
-						// Append native dock menu items (Preferences, About)
-						var dock_item = Factory.item_factory.get_item_for_dock ();
-						if (dock_item != null) {
-							foreach (var mi in dock_item.get_menu_items ()) {
-								items.add (mi);
-							}
+			// 4. Window & App Controls Section
+			items.add (new Gtk.SeparatorMenuItem ());
+			if (windows.size > 0) {
+				var new_win_item = create_menu_item ("新建窗口", "window-new", true);
+				new_win_item.activate.connect (() => {
+					launch ();
+				});
+				items.add (new_win_item);
+
+				var top_item = create_menu_item (windows.size > 1 ? "切换下一个窗口" : "置顶应用窗口", "go-top", true);
+				top_item.activate.connect (() => {
+					WindowControl.queue_command (windows[0].Id, "activate");
+				});
+				items.add (top_item);
+
+				if (windows.size > 1) {
+					var expand_item = create_menu_item (is_expanded ? "折叠窗口卡片" : "展开窗口卡片", "view-list-details", true);
+					expand_item.activate.connect (() => {
+						if (is_expanded)
+							collapse_cards ();
+						else
+							expand_cards ();
+					});
+					items.add (expand_item);
+
+					var close_all_item = create_menu_item ("关闭全部窗口", "window-close", true);
+					close_all_item.activate.connect (() => {
+						foreach (var win in windows) {
+							WindowControl.queue_command (win.Id, "close");
 						}
+					});
+					items.add (close_all_item);
+				} else {
+					var close_item = create_menu_item ("关闭窗口", "window-close", true);
+					string target_id = windows[0].Id;
+					close_item.activate.connect (() => {
+						WindowControl.queue_command (target_id, "close");
+					});
+					items.add (close_item);
+				}
+			} else {
+				var launch_item = create_menu_item ("启动应用", "media-playback-start", true);
+				launch_item.activate.connect (() => {
+					launch ();
+				});
+				items.add (launch_item);
+			}
 
-						return items;
+			// 5. Pin / Unpin from Dock
+			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
+			if (default_provider != null
+				&& !default_provider.Prefs.LockItems
+				&& !is_window ()) {
+				bool is_pinned = !(this is TransientDockItem);
+				if (is_pinned) {
+					var unpin_item = create_menu_item ("从 Dock 移除", "list-remove", true);
+					unpin_item.activate.connect (() => pin_launcher ());
+					items.add (unpin_item);
+				} else {
+					var pin_item = create_menu_item ("固定到 Dock", "bookmark-new", true);
+					pin_item.activate.connect (() => pin_launcher ());
+					items.add (pin_item);
+				}
+			}
+
+			// 6. Native clean system preferences & quit
+			items.add (new Gtk.SeparatorMenuItem ());
+			var pref_item = create_menu_item ("首选项 / Preferences...", "preferences-system", true);
+			pref_item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));
+			items.add (pref_item);
+
+			var quit_item = create_menu_item ("退出 WayPlank / Quit", "application-exit", true);
+			quit_item.activate.connect (() => Application.get_default ().activate_action ("quit", null));
+			items.add (quit_item);
+
+			return items;
 		}
 		
 		/**
@@ -372,8 +768,17 @@ namespace Plank
 		 */
 		protected override void load_from_launcher ()
 		{
-			if (Prefs.Launcher == "")
+			if (Prefs == null || Prefs.Launcher == "")
 				return;
+			
+			if (actions == null)
+				actions = new Gee.ArrayList<string> ();
+			if (actions_map == null)
+				actions_map = new Gee.HashMap<string, string> ();
+			if (supported_mime_types == null)
+				supported_mime_types = new Gee.ArrayList<string> ();
+			if (desktop_action_ids == null)
+				desktop_action_ids = new Gee.HashMap<string, string> ();
 			
 			string icon, text;
 			parse_launcher (Prefs.Launcher, out icon, out text, actions, actions_map, supported_mime_types, desktop_action_ids);

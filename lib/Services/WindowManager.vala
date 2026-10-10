@@ -38,7 +38,6 @@ namespace Plank
 		
 		WindowManager ()
 		{
-			matches_cache = new Gee.HashMap<string, Gee.ArrayList<WindowInfo>> ();
 			cached_windows = WindowControl.get_windows ();
 			WindowControl.get_default ().state_changed.connect (refresh_windows);
 		}
@@ -48,8 +47,8 @@ namespace Plank
 			WindowControl.get_default ().state_changed.disconnect (refresh_windows);
 		}
 
-		Gee.ArrayList<WindowInfo> cached_windows;
-		Gee.HashMap<string, Gee.ArrayList<WindowInfo>> matches_cache;
+		Gee.ArrayList<WindowInfo> cached_windows = new Gee.ArrayList<WindowInfo> ();
+		Gee.HashMap<string, Gee.ArrayList<WindowInfo>> matches_cache = new Gee.HashMap<string, Gee.ArrayList<WindowInfo>> ();
 
 		void refresh_windows ()
 		{

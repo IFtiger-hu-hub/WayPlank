@@ -93,6 +93,12 @@ namespace Plank
 			+ "            onCurr = true;\n"
 			+ "        }\n"
 			+ "\n"
+			+ "        var outName = \"\";\n"
+			+ "        try {\n"
+			+ "            if (client.output && client.output.name)\n"
+			+ "                outName = String(client.output.name);\n"
+			+ "        } catch (e) { }\n"
+			+ "\n"
 			+ "        windows.push({\n"
 			+ "            uuid: uuid,\n"
 			+ "            caption: client.caption,\n"
@@ -100,6 +106,7 @@ namespace Plank
 			+ "            resourceName: client.resourceName,\n"
 			+ "            desktopFileName: client.desktopFileName,\n"
 			+ "            pid: client.pid,\n"
+			+ "            output: outName,\n"
 			+ "            x: client.frameGeometry.x,\n"
 			+ "            y: client.frameGeometry.y,\n"
 			+ "            width: client.frameGeometry.width,\n"
@@ -391,6 +398,7 @@ namespace Plank
 					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
 					info.MinimizedSequence = json.has_member ("minimizedSequence") ? json.get_int_member ("minimizedSequence") : 0;
 					info.Caption = json.has_member ("caption") ? json.get_string_member ("caption") : "";
+					info.Output = json.has_member ("output") ? json.get_string_member ("output") : "";
 					info.Pid = json.has_member ("pid") ? (int) json.get_int_member ("pid") : 0;
 					if (info.Pid > 0) {
 						string cmd = "";
@@ -435,6 +443,48 @@ namespace Plank
 			message ("Wayplank: queued KWin command uuid=%s action=%s", uuid, action);
 			pending_commands.add (new CommandEntry (uuid, action));
 			invoke_apply_shortcut ();
+		}
+
+		/**
+		 * Triggers KWin's native WindowView (Present Windows) effect for the specified window UUIDs.
+		 */
+		public static bool present_windows (Gee.List<string> uuids)
+		{
+			if (uuids.size == 0)
+				return false;
+
+			try {
+				var connection = Bus.get_sync (BusType.SESSION, null);
+				var builder = new VariantBuilder (new VariantType ("as"));
+				foreach (var uuid in uuids) {
+					builder.add ("s", uuid);
+				}
+				var args = new Variant ("(as)", builder);
+				try {
+					connection.call_sync ("org.kde.KWin", "/org/kde/KWin/Effect/WindowView1",
+						"org.kde.KWin.Effect.WindowView1", "activate",
+						args, null, DBusCallFlags.NONE, 1000, null);
+					message ("Wayplank: activated KWin WindowView with %d windows", uuids.size);
+					return true;
+				} catch (Error err) {
+					try {
+						connection.call_sync ("org.kde.KWin", "/Effects",
+							"org.kde.kwin.Effects", "loadEffect",
+							new Variant ("(s)", "windowview"), null, DBusCallFlags.NONE, 1000, null);
+						connection.call_sync ("org.kde.KWin", "/org/kde/KWin/Effect/WindowView1",
+							"org.kde.KWin.Effect.WindowView1", "activate",
+							args, null, DBusCallFlags.NONE, 1000, null);
+						message ("Wayplank: activated KWin WindowView after loading effect with %d windows", uuids.size);
+						return true;
+					} catch (Error load_err) {
+						warning ("Wayplank: unable to load/activate KWin WindowView: %s", load_err.message);
+						return false;
+					}
+				}
+			} catch (Error e) {
+				warning ("Wayplank: unable to connect to D-Bus for WindowView (%s)", e.message);
+				return false;
+			}
 		}
 		
 		/**

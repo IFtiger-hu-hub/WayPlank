@@ -106,7 +106,7 @@
 			<range min="0" max="2"/>
 			<default>0</default>
 			<summary>Window click behavior</summary>
-			<description>0 smart, 1 focus, 2 cycle.</description>
+			<description>0: Default (Indicators &amp; Cycle/Activate), 1: Present Windows (KWin Large Previews), 2: Expand Window Cards.</description>
 		</key>
 		<key name="restore-minimized-windows" type="b">
 			<default>true</default>

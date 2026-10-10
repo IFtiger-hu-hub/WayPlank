@@ -65,6 +65,9 @@ namespace Plank
 		[Description(nick = "bottom-roundness", blurb = "The roundness of the bottom corners.")]
 		public int BottomRoundness { get; set; }
 		
+		[Description(nick = "reverse-roundness", blurb = "The concave flare roundness touching the screen bottom edge.")]
+		public int ReverseRoundness { get; set; default = 26; }
+		
 		[Description(nick = "line-width", blurb = "The thickness (in pixels) of lines drawn.")]
 		public int LineWidth { get; set; }
 		
@@ -143,15 +146,16 @@ namespace Plank
 		 */
 		protected override void reset_properties ()
 		{
-			TopRoundness    = 6;
-			BottomRoundness = 6;
+			TopRoundness    = 19;
+			ReverseRoundness = 26;
+			BottomRoundness = 0;
 			
 			LineWidth = 1;
 			
-			OuterStrokeColor = { 0.1647, 0.1647, 0.1647, 1.0 };
-			FillStartColor   = { 0.1647, 0.1647, 0.1647, 1.0 };
-			FillEndColor     = { 0.3176, 0.3176, 0.3176, 1.0 };
-			InnerStrokeColor = { 1.0, 1.0, 1.0, 1.0 };
+			OuterStrokeColor = { 0.16, 0.18, 0.22, 1.0 };
+			FillStartColor   = { 0.094, 0.102, 0.133, 1.0 };
+			FillEndColor     = { 0.063, 0.071, 0.090, 1.0 };
+			InnerStrokeColor = { 1.0, 1.0, 1.0, 0.25 };
 		}
 		
 		/**
@@ -197,11 +201,12 @@ namespace Plank
 		 */
 		public void draw_background (Surface surface)
 		{
-			unowned Cairo.Context cr = surface.Context;
+			draw_background_cr (surface.Context, surface.Width, surface.Height);
+		}
+
+		public void draw_background_cr (Cairo.Context cr, int width, int height)
+		{
 			Cairo.Pattern gradient;
-			var width = surface.Width;
-			var height = surface.Height;
-			var bottom_offset = BottomRoundness > 0 ? LineWidth : -LineWidth;
 			
 			cr.save ();
 			
@@ -210,31 +215,148 @@ namespace Plank
 			gradient.add_color_stop_rgba (1, FillEndColor.red, FillEndColor.green, FillEndColor.blue, FillEndColor.alpha);
 			
 			cr.set_source (gradient);
-			draw_rounded_rect (cr,
-				LineWidth / 2.0,
-				LineWidth / 2.0,
-				width - LineWidth,
-				height - LineWidth / 2.0 - bottom_offset / 2.0,
-				TopRoundness,
-				BottomRoundness,
-				LineWidth);
-			cr.fill_preserve ();
-			
-			cr.set_source_rgba (OuterStrokeColor.red, OuterStrokeColor.green, OuterStrokeColor.blue, OuterStrokeColor.alpha);
-			cr.set_line_width (LineWidth);
-			cr.stroke ();
-			
-			gradient = new Cairo.Pattern.linear (0, 2 * LineWidth, 0, height - 2 * LineWidth - bottom_offset);
-			gradient.add_color_stop_rgba (0, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.5);
-			gradient.add_color_stop_rgba ((TopRoundness > 0 ? TopRoundness : LineWidth) / (double) height, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.12);
-			gradient.add_color_stop_rgba (1 - (BottomRoundness > 0 ? BottomRoundness : LineWidth) / (double) height, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.08);
-			gradient.add_color_stop_rgba (1, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.19);
-			
-			cr.set_source (gradient);
-			draw_inner_rect (cr, width, height);
-			cr.stroke ();
+
+			if (ReverseRoundness > 0 && BottomRoundness == 0) {
+				draw_reverse_fillet_dock (cr,
+					LineWidth / 2.0,
+					LineWidth / 2.0,
+					width - LineWidth,
+					height - LineWidth / 2.0,
+					TopRoundness,
+					ReverseRoundness,
+					LineWidth);
+				cr.fill_preserve ();
+				
+				cr.set_source_rgba (OuterStrokeColor.red, OuterStrokeColor.green, OuterStrokeColor.blue, OuterStrokeColor.alpha);
+				cr.set_line_width (LineWidth);
+				cr.stroke ();
+				
+				var bevel_gradient = new Cairo.Pattern.linear (0, 0, 0, height);
+				bevel_gradient.add_color_stop_rgba (0.0, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.35);
+				bevel_gradient.add_color_stop_rgba (0.4, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.10);
+				bevel_gradient.add_color_stop_rgba (1.0, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.0);
+				cr.set_source (bevel_gradient);
+				draw_reverse_fillet_bevel (cr,
+					LineWidth * 1.5,
+					LineWidth * 1.5,
+					width - LineWidth * 3.0,
+					height - LineWidth * 1.5,
+					TopRoundness - LineWidth,
+					ReverseRoundness,
+					LineWidth);
+			} else {
+				var bottom_offset = BottomRoundness > 0 ? LineWidth : -LineWidth;
+				draw_rounded_rect (cr,
+					LineWidth / 2.0,
+					LineWidth / 2.0,
+					width - LineWidth,
+					height - LineWidth / 2.0 - bottom_offset / 2.0,
+					TopRoundness,
+					BottomRoundness,
+					LineWidth);
+				cr.fill_preserve ();
+				
+				cr.set_source_rgba (OuterStrokeColor.red, OuterStrokeColor.green, OuterStrokeColor.blue, OuterStrokeColor.alpha);
+				cr.set_line_width (LineWidth);
+				cr.stroke ();
+				
+				gradient = new Cairo.Pattern.linear (0, 2 * LineWidth, 0, height - 2 * LineWidth - bottom_offset);
+				gradient.add_color_stop_rgba (0, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.5);
+				gradient.add_color_stop_rgba ((TopRoundness > 0 ? TopRoundness : LineWidth) / (double) height, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.12);
+				gradient.add_color_stop_rgba (1 - (BottomRoundness > 0 ? BottomRoundness : LineWidth) / (double) height, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.08);
+				gradient.add_color_stop_rgba (1, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.19);
+				
+				cr.set_source (gradient);
+				draw_inner_rect (cr, width, height);
+				cr.stroke ();
+			}
 			
 			cr.restore ();
+		}
+		
+		public static void draw_reverse_fillet_dock (Cairo.Context cr, double x, double y, double width, double height, double top_radius = 19.0, double rev_radius = 26.0, double line_width = 1.0)
+		{
+			var min_size = double.min (width, height);
+			top_radius = top_radius.clamp (0.0, min_size / 2.0);
+			rev_radius = rev_radius.clamp (0.0, double.min (width / 3.0, double.max (0.0, height - top_radius)));
+
+			if (!Gdk.Screen.get_default ().is_composited ()) {
+				draw_rounded_rect (cr, x, y, width, height, 0.0, 0.0, line_width);
+				return;
+			}
+
+			// 1. Bottom-left flared tip touching the screen bottom
+			cr.move_to (x, y + height);
+
+			// 2. Concave arc: from (x, y+height) flaring up-right to meet vertical wall at (x+rev_radius, y+height-rev_radius)
+			if (rev_radius > 0.0) {
+				cr.arc_negative (x, y + height - rev_radius, rev_radius, Math.PI_2, 0.0);
+			} else {
+				cr.line_to (x, y + height);
+			}
+
+			// 3. Vertical left wall up to top-left corner
+			cr.line_to (x + rev_radius, y + top_radius);
+
+			// 4. Convex top-left corner
+			if (top_radius > 0.0) {
+				cr.arc (x + rev_radius + top_radius, y + top_radius, top_radius, Math.PI, Math.PI + Math.PI_2);
+			}
+
+			// 5. Horizontal top wall across to top-right corner
+			cr.line_to (x + width - rev_radius - top_radius, y);
+
+			// 6. Convex top-right corner
+			if (top_radius > 0.0) {
+				cr.arc (x + width - rev_radius - top_radius, y + top_radius, top_radius, -Math.PI_2, 0.0);
+			}
+
+			// 7. Vertical right wall down to bottom-right flare
+			cr.line_to (x + width - rev_radius, y + height - rev_radius);
+
+			// 8. Concave arc: from (x+width-rev_radius, y+height-rev_radius) flaring down-right to (x+width, y+height)
+			if (rev_radius > 0.0) {
+				cr.arc_negative (x + width, y + height - rev_radius, rev_radius, Math.PI, Math.PI_2);
+			} else {
+				cr.line_to (x + width, y + height);
+			}
+
+			// 9. Close along bottom edge touching the screen
+			cr.line_to (x, y + height);
+			cr.close_path ();
+		}
+
+		public static void draw_reverse_fillet_bevel (Cairo.Context cr, double x, double y, double width, double height, double top_radius = 18.0, double rev_radius = 26.0, double line_width = 1.0)
+		{
+			var min_size = double.min (width, height);
+			top_radius = top_radius.clamp (0.0, min_size / 2.0);
+			rev_radius = rev_radius.clamp (0.0, double.min (width / 3.0, double.max (0.0, height - top_radius)));
+
+			if (!Gdk.Screen.get_default ().is_composited ())
+				return;
+
+			cr.move_to (x, y + height);
+
+			if (rev_radius > 0.0)
+				cr.arc_negative (x, y + height - rev_radius, rev_radius, Math.PI_2, 0.0);
+
+			cr.line_to (x + rev_radius, y + top_radius);
+
+			if (top_radius > 0.0)
+				cr.arc (x + rev_radius + top_radius, y + top_radius, top_radius, Math.PI, Math.PI + Math.PI_2);
+
+			cr.line_to (x + width - rev_radius - top_radius, y);
+
+			if (top_radius > 0.0)
+				cr.arc (x + width - rev_radius - top_radius, y + top_radius, top_radius, -Math.PI_2, 0.0);
+
+			cr.line_to (x + width - rev_radius, y + height - rev_radius);
+
+			if (rev_radius > 0.0)
+				cr.arc_negative (x + width, y + height - rev_radius, rev_radius, Math.PI, Math.PI_2);
+
+			cr.set_line_width (line_width);
+			cr.stroke ();
 		}
 		
 		/**
@@ -358,6 +480,11 @@ namespace Plank
 					BottomRoundness = 0;
 				break;
 			
+			case "ReverseRoundness":
+				if (ReverseRoundness < 0)
+					ReverseRoundness = 0;
+				break;
+			
 			case "LineWidth":
 				if (LineWidth < 0)
 					LineWidth = 0;
@@ -464,13 +591,17 @@ namespace Plank
 		{
 			File folder;
 			
+			// Look in user's themes-folder first
+			folder = Paths.AppThemeFolder.get_child (DEFAULT_NAME);
+			if (folder.query_exists ()
+				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+				return folder;
+
 			// "Default" folder located in system's themes-folder
 			folder = Paths.ThemeFolder.get_child (DEFAULT_NAME);
 			if (folder.query_exists ()
 				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
 				return folder;
-			
-			warning ("%s is not a folder fallback to the built-in defaults!", folder.get_path ());
 			
 			return null;
 		}

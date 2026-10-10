@@ -40,6 +40,7 @@ namespace Plank
 		public bool DemandsAttention { get; set; default = false; }
 		public bool CurrentDesktop { get; set; default = true; }
 		public int64 MinimizedSequence { get; set; default = 0; }
+		public string Output { get; set; default = ""; }
 		public Gdk.Rectangle Geometry { get; set; default = {}; }
 	}
 }

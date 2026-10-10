@@ -102,6 +102,11 @@ namespace Plank
 			// Track position setting changes
 			controller.prefs.notify["Position"].connect (on_position_changed);
 			controller.prefs.notify["HideMode"].connect (update_exclusive_zone);
+			controller.hide_manager.notify["Hidden"].connect (() => {
+				if (controller.hide_manager.Hidden) {
+					ApplicationDockItem.collapse_all_cards ();
+				}
+			});
 
 			// Native RGBA visual setup for Wayland transparency
 			var visual = get_screen ().get_rgba_visual ();
@@ -245,8 +250,11 @@ namespace Plank
 			if (controller.drag_manager.InternalDragActive)
 				return Gdk.EVENT_STOP;
 
-			if (HoveredItem == null)
+			if (HoveredItem == null) {
 				update_hovered ((int) event.x, (int) event.y);
+				if (HoveredItem == null)
+					ApplicationDockItem.collapse_all_cards ();
+			}
 
 			ClickedItem = HoveredItem;
 
@@ -823,7 +831,7 @@ namespace Plank
 
 			Gtk.MenuItem menu_item;
 
-			var dock_item_file = item.Prefs.get_backing_file ();
+			var dock_item_file = (item.Prefs != null ? item.Prefs.get_backing_file () : null);
 			menu_item = new Gtk.MenuItem.with_mnemonic (_("Print info to stdout"));
 			menu_item.activate.connect (() => {
 				print ("DockItemFile: '%s'\nText = '%s'\nIcon = '%s'\nLauncher = '%s'\n",

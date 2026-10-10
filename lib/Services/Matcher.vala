@@ -44,16 +44,13 @@ namespace Plank
 			return matcher;
 		}
 
-		Gee.HashMap<string, Gee.HashSet<int>> app_pids;
-		Gee.HashSet<string> active_apps;
-		Gee.HashSet<int> known_pids;
+		Gee.HashMap<string, Gee.HashSet<int>> app_pids = new Gee.HashMap<string, Gee.HashSet<int>> ();
+		Gee.HashSet<string> active_apps = new Gee.HashSet<string> ();
+		Gee.HashSet<int> known_pids = new Gee.HashSet<int> ();
 		bool initial_scan_done = false;
 
 		private Matcher ()
 		{
-			app_pids = new Gee.HashMap<string, Gee.HashSet<int>> ();
-			active_apps = new Gee.HashSet<string> ();
-			known_pids = new Gee.HashSet<int> ();
 		}
 
 		uint scan_timer_id = 0U;

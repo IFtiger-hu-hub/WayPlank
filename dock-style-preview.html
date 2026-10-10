@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WayPlank 质感探索 · 图1质感 + 图2反向圆角</title>
+  <style>
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+      --top-radius: 16px;
+      --rev-radius: 16px;
+      --dock-opacity: 0.96;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #07080b;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Control Bar */
+    header {
+      padding: 12px 28px;
+      background: rgba(11, 13, 17, 0.98);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      z-index: 100;
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(16px);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-tag {
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      padding: 3px 9px;
+      border-radius: 6px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Style Switcher */
+    .style-nav {
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 7px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .nav-btn:hover {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    /* Right Controls */
+    .right-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .wp-select {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      color: #64748b;
+    }
+
+    .wp-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .wp-dot.active {
+      border-color: #ffffff;
+      transform: scale(1.15);
+    }
+
+    /* ========================================================
+       MAIN DISPLAY
+       ======================================================== */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Single Focus Stage */
+    .focus-stage {
+      flex: 1;
+      min-height: 540px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding-bottom: 0px; /* 贴紧屏幕底部 */
+      background-size: cover;
+      background-position: center;
+      transition: background 0.4s ease;
+      overflow: hidden;
+    }
+
+    /* Top Concept Banner */
+    .concept-banner {
+      position: absolute;
+      top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(11, 13, 17, 0.90);
+      backdrop-filter: blur(20px);
+      padding: 9px 20px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      max-width: 90%;
+      z-index: 10;
+    }
+
+    .concept-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      padding: 2px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+
+    .concept-text {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #e2e8f0;
+      line-height: 1.4;
+    }
+
+    /* Interactive Geometry Parameter Controller */
+    .param-tuner {
+      position: absolute;
+      top: 76px;
+      background: rgba(15, 18, 26, 0.88);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 10px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      z-index: 10;
+    }
+
+    .tuner-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    .tuner-item label {
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .tuner-item input[type=range] {
+      width: 90px;
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+
+    .tuner-val {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #38bdf8;
+      min-width: 32px;
+    }
+
+    /* Corner Macro Loupe (Zoom Inset) */
+    .corner-loupe {
+      position: absolute;
+      right: 28px;
+      bottom: 24px;
+      width: 170px;
+      height: 130px;
+      background: rgba(15, 18, 26, 0.94);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+      z-index: 15;
+    }
+
+    .loupe-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+
+    .loupe-svg-box {
+      flex: 1;
+      background: #090b10;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      position: relative;
+    }
+
+
+    /* ========================================================
+       REVERSE-FILLET ANCHORED DOCK CONTAINER
+       ======================================================== */
+    .anchored-dock-container {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      margin-bottom: 0px; /* 贴紧屏幕底边 */
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Vector SVG Background behind icons */
+    .dock-fillet-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      filter: drop-shadow(0 -4px 18px rgba(0, 0, 0, 0.45));
+    }
+
+    /* Content Row with icons */
+    .dock-content-row {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      padding: 6px 14px 7px;
+      height: 60px;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Shared Icon & Base Elements */
+    .dock-unit {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 52px;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .dock-unit:hover {
+      transform: translateY(-3px);
+    }
+
+    .app-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .app-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Indicators matching Image 1: subtle glowing pill lines */
+    .ind-bar {
+      margin-top: 4px;
+      height: 2px;
+      transition: all 0.2s;
+    }
+
+    .ind-bar.single {
+      width: 10px;
+      background: #cbd5e1;
+      border-radius: 1px;
+      box-shadow: 0 1px 4px rgba(255, 255, 255, 0.3);
+    }
+
+    .dock-unit:hover .ind-bar.single {
+      background: #ffffff;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+    }
+
+    .ind-bar.multi {
+      display: flex;
+      gap: 3px;
+      background: transparent;
+    }
+
+    .ind-bar.multi span {
+      width: 5px;
+      height: 2px;
+      background: #f97316; /* VLC 橙光双短柱 */
+      border-radius: 1px;
+      box-shadow: 0 0 6px rgba(249, 115, 22, 0.7);
+    }
+
+    .ind-bar.multi-cyan span {
+      background: #38bdf8; /* Edge 蓝光双短柱 */
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.7);
+    }
+
+    .dock-sep {
+      width: 1px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.12);
+      margin: 0 6px;
+    }
+
+    /* Tooltip */
+    .dock-tip {
+      position: absolute;
+      top: -34px;
+      background: rgba(15, 18, 26, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(3px);
+      transition: opacity 0.15s, transform 0.15s;
+      z-index: 20;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .dock-unit:hover .dock-tip {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Multi-window drawer */
+    .card-drawer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      max-width: 0;
+      opacity: 0;
+      transition: max-width 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease, margin 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .card-drawer.open {
+      max-width: 540px;
+      opacity: 1;
+      margin: 0 8px;
+    }
+
+    .win-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 12px 5px 8px;
+      height: 44px;
+      cursor: pointer;
+      flex-shrink: 0;
+      background: rgba(28, 32, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 7px;
+      transition: transform 0.15s, background 0.2s, border-color 0.2s;
+    }
+
+    .win-pill:hover {
+      transform: translateY(-2px);
+      background: rgba(36, 42, 56, 0.98);
+      border-color: rgba(249, 115, 22, 0.4);
+    }
+
+    .win-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .win-circle svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .win-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .win-title {
+      font-size: 10px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .win-sub {
+      font-size: 12px;
+      color: #f8fafc;
+      font-weight: 600;
+      max-width: 130px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+
+    /* ========================================================
+       FLOATING COMPARISON MODE (To contrast anchored vs floating)
+       ======================================================== */
+    body.style-floating .focus-stage {
+      padding-bottom: 40px;
+    }
+
+    body.style-floating .param-tuner {
+      display: none;
+    }
+
+    body.style-floating .corner-loupe {
+      display: none;
+    }
+
+    /* ========================================================
+       BOTTOM DESIGN RATIONALE SECTION
+       ======================================================== */
+    .bottom-section {
+      background: #0b0d12;
+      padding: 36px 32px 54px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 4px;
+    }
+
+    .section-sub {
+      font-size: 13px;
+      color: #8892b0;
+      margin-bottom: 24px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+    .guide-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 20px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .guide-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-2px);
+    }
+
+    .guide-card.chosen {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.04);
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.08);
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .card-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .cb-1 { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .cb-2 { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; }
+    .cb-3 { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+
+    .card-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .card-desc {
+      font-size: 12.5px;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .core-traits {
+      list-style: none;
+      font-size: 12px;
+      color: #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 16px;
+    }
+
+    .core-traits li {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      line-height: 1.4;
+    }
+
+    .core-traits li::before {
+      content: '•';
+      color: #38bdf8;
+      font-weight: bold;
+    }
+
+    .btn-select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .guide-card.chosen .btn-select {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+  </style>
+</head>
+<body class="style-reverse">
+
+  <!-- Header -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-title">
+        <span>WayPlank 质感升级</span>
+        <span class="pill-tag">图1质感 · 图2反向圆角</span>
+      </div>
+    </div>
+
+    <!-- Switcher -->
+    <div class="style-nav">
+      <button class="nav-btn active" data-style="style-reverse" onclick="setMode('style-reverse')">
+        <span>⭐ 贴地反向圆角 (用户指定方案)</span>
+      </button>
+      <button class="nav-btn" data-style="style-floating" onclick="setMode('style-floating')">
+        <span>悬浮全圆角长条 (图1原版对比)</span>
+      </button>
+    </div>
+
+    <!-- Right Controls: Wallpapers -->
+    <div class="right-controls">
+      <div class="wp-select">
+        <span>桌面壁纸:</span>
+        <button class="wp-dot active" style="background: linear-gradient(135deg, #1e285a 0%, #4a287a 40%, #db7b99 100%);" title="紫蓝流动绸缎" onclick="setWp('ribbon')"></button>
+        <button class="wp-dot" style="background: linear-gradient(135deg, #07090e 0%, #141a26 100%);" title="深邃暗夜" onclick="setWp('dark')"></button>
+        <button class="wp-dot" style="background: linear-gradient(135deg, #334155 0%, #0f172a 100%);" title="冷调石墨" onclick="setWp('slate')"></button>
+        <button class="wp-dot" style="background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);" title="浅色雅灰 (验证浅色壁纸表现)" onclick="setWp('light')"></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Showcase -->
+  <main>
+
+    <!-- SINGLE FOCUS INTERACTIVE STAGE -->
+    <div class="focus-stage" id="focusStage" style="background: linear-gradient(135deg, #1e285a 0%, #4a287a 40%, #8b457e 75%, #db7b99 100%);">
+      
+      <!-- Banner info -->
+      <div class="concept-banner">
+        <span class="concept-tag" id="bannerTag">用户建议方案</span>
+        <span class="concept-text" id="bannerText">图1克制深墨石板质感 + 贴近屏幕底边 + 左右底角反向圆角平滑过渡（图2效果）。</span>
+      </div>
+
+      <!-- Realtime Interactive Geometry Parameter Controller -->
+      <div class="param-tuner" id="paramTuner">
+        <div class="tuner-item">
+          <label>上方圆角 (Top R):</label>
+          <input type="range" id="sliderTopR" min="6" max="24" value="16" oninput="updateGeometry()">
+          <span class="tuner-val" id="valTopR">16px</span>
+        </div>
+        <div class="tuner-item">
+          <label>反向圆角 (Reverse R):</label>
+          <input type="range" id="sliderRevR" min="6" max="26" value="16" oninput="updateGeometry()">
+          <span class="tuner-val" id="valRevR">16px</span>
+        </div>
+        <div class="tuner-item">
+          <label>底板不透明度:</label>
+          <input type="range" id="sliderOpacity" min="70" max="100" value="96" oninput="updateGeometry()">
+          <span class="tuner-val" id="valOpacity">96%</span>
+        </div>
+      </div>
+
+      <!-- Corner Macro Loupe (300% Zoom in of Reverse Fillet) -->
+      <div class="corner-loupe" id="cornerLoupe">
+        <div class="loupe-head">
+          <span>反向圆角切点特写</span>
+          <span style="font-size: 9.5px; color: #94a3b8;">300% 宏观视角</span>
+        </div>
+        <div class="loupe-svg-box">
+          <svg viewBox="0 0 160 80" width="100%" height="100%" fill="none">
+            <!-- Screen baseline -->
+            <line x1="0" y1="70" x2="160" y2="70" stroke="#475569" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <text x="10" y="77" fill="#64748b" font-size="8" font-family="monospace">SCREEN BOTTOM EDGE</text>
+            <!-- Zoomed Fillet Curve -->
+            <path id="loupeCurve" d="M 10 70 A 36 36 0 0 0 46 34 L 46 0 L 160 0 L 160 70 Z" fill="#14171f" stroke="#38bdf8" stroke-width="2"/>
+            <!-- Tangent indicator -->
+            <circle cx="10" cy="70" r="3" fill="#38bdf8"/>
+            <line x1="10" y1="70" x2="60" y2="70" stroke="#38bdf8" stroke-width="1"/>
+            <text x="65" y="66" fill="#38bdf8" font-size="8" font-family="sans-serif">水平相切无折角</text>
+          </svg>
+        </div>
+      </div>
+
+
+      <!-- ========================================================
+           ANCHORED DOCK COMPONENT
+           ======================================================== -->
+      <div class="anchored-dock-container" id="dockContainer">
+        
+        <!-- Vector Path SVG for exact Reverse Fillets -->
+        <svg class="dock-fillet-bg" id="dockSvg" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="dockGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#181a22" stop-opacity="0.98"/>
+              <stop offset="100%" stop-color="#101217" stop-opacity="0.98"/>
+            </linearGradient>
+            <linearGradient id="bevelLight" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.06)"/>
+              <stop offset="30%" stop-color="rgba(255,255,255,0.22)"/>
+              <stop offset="70%" stop-color="rgba(255,255,255,0.22)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0.06)"/>
+            </linearGradient>
+          </defs>
+          <path id="filletPath" fill="url(#dockGradient)" stroke="url(#bevelLight)" stroke-width="1.2" />
+        </svg>
+
+        <!-- Content Row with icons -->
+        <div class="dock-content-row" id="dockContentRow">
+          
+          <!-- App 1: Notes -->
+          <div class="dock-unit" title="待办清单">
+            <div class="dock-tip">待办清单</div>
+            <div class="app-icon" style="background: #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.25);">
+              <svg viewBox="0 0 40 40" fill="none"><rect x="8" y="6" width="24" height="28" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/><rect x="14" y="4" width="12" height="4" rx="2" fill="#ef4444"/><path d="M12 14L15 17L20 12" stroke="#10b981" stroke-width="2" stroke-linecap="round"/><line x1="23" y1="14" x2="28" y2="14" stroke="#94a3b8" stroke-width="2"/><path d="M12 21L15 24L20 19" stroke="#10b981" stroke-width="2" stroke-linecap="round"/><line x1="23" y1="21" x2="28" y2="21" stroke="#94a3b8" stroke-width="2"/></svg>
+            </div>
+            <div class="ind-bar single"></div>
+          </div>
+
+          <!-- App 2: Mail -->
+          <div class="dock-unit" title="邮件">
+            <div class="dock-tip">雷鸟邮件</div>
+            <div class="app-icon" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);">
+              <svg viewBox="0 0 40 40" fill="none"><rect x="8" y="11" width="24" height="18" rx="3" fill="#ffffff"/><path d="M8 13L20 22L32 13" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="ind-bar single"></div>
+          </div>
+
+          <!-- App 3: Konsole -->
+          <div class="dock-unit" title="Konsole 终端">
+            <div class="dock-tip">Konsole 终端</div>
+            <div class="app-icon" style="background: #1a1e28; border: 1px solid #334155; box-shadow: 0 4px 10px rgba(0,0,0,0.35);">
+              <svg viewBox="0 0 40 40" fill="none"><path d="M12 15L18 20L12 25" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/><line x1="21" y1="25" x2="28" y2="25" stroke="#f1f5f9" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="ind-bar single"></div>
+          </div>
+
+          <!-- App 4: Photos -->
+          <div class="dock-unit" title="图库">
+            <div class="dock-tip">Gwenview 图库</div>
+            <div class="app-icon" style="background: #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+              <svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="14" r="5" fill="#ef4444"/><circle cx="25" cy="17" r="5" fill="#f59e0b"/><circle cx="25" cy="23" r="5" fill="#10b981"/><circle cx="20" cy="26" r="5" fill="#06b6d4"/><circle cx="15" cy="23" r="5" fill="#3b82f6"/><circle cx="15" cy="17" r="5" fill="#8b5cf6"/></svg>
+            </div>
+            <div class="ind-bar single"></div>
+          </div>
+
+          <!-- App 5: VLC (Interactive Multi-Window Toggle!) -->
+          <div class="dock-unit" id="liveVlc" onclick="toggleDrawer()" title="VLC 播放器 (点击平滑展开 2 个窗口)">
+            <div class="dock-tip">VLC 播放器 · 点击平滑展开</div>
+            <div class="app-icon" style="background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 4px 14px rgba(234, 88, 12, 0.45);">
+              <svg viewBox="0 0 40 40" fill="none"><path d="M20 7L13 27H27L20 7Z" fill="#ffffff"/><path d="M11 29L9 33H31L29 29H11Z" fill="#ffedd5"/><path d="M15 21H25L23.5 17H16.5L15 21Z" fill="#ea580c"/></svg>
+            </div>
+            <div class="ind-bar multi">
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- Smooth Multi-Window Drawer -->
+          <div class="card-drawer" id="liveDrawer">
+            <div class="win-pill" onclick="alert('已切换至窗口: 4K 流浪地球2.mkv'); toggleDrawer();">
+              <div class="win-circle">
+                <svg viewBox="0 0 24 24" fill="#f97316"><path d="M12 2L4 20h16L12 2zm0 6l4.5 10h-9L12 8z"/></svg>
+              </div>
+              <div class="win-info">
+                <span class="win-title">VLC · DP-1</span>
+                <span class="win-sub">4K 流浪地球2.mkv</span>
+              </div>
+            </div>
+            <div class="win-pill" onclick="alert('已切换至窗口: 周杰伦 - 晴天.flac'); toggleDrawer();">
+              <div class="win-circle">
+                <svg viewBox="0 0 24 24" fill="#f97316"><path d="M12 2L4 20h16L12 2zm0 6l4.5 10h-9L12 8z"/></svg>
+              </div>
+              <div class="win-info">
+                <span class="win-title">VLC · HDMI-1</span>
+                <span class="win-sub">周杰伦 - 晴天.flac</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- App 6: Edge Browser (Multi-Window) -->
+          <div class="dock-unit" title="Edge 浏览器">
+            <div class="dock-tip">Microsoft Edge (2 窗口)</div>
+            <div class="app-icon" style="background: #ffffff; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+              <svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="14" fill="#0284c7"/><path d="M20 8C14 8 10 13 10 18C10 24 15 28 20 28C26 28 30 23 30 18C28 22 23 24 19 22C15 20 15 15 18 12C19 10 21 9 20 8Z" fill="#34d399"/></svg>
+            </div>
+            <div class="ind-bar multi multi-cyan">
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- App 7: Dolphin File Manager -->
+          <div class="dock-unit" title="Dolphin 文件管理器">
+            <div class="dock-tip">Dolphin</div>
+            <div class="app-icon" style="background: linear-gradient(135deg, #60a5fa, #3b82f6); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);">
+              <svg viewBox="0 0 40 40" fill="none"><path d="M8 12C8 10.9 8.9 10 10 10H16L19 13H30C31.1 13 32 13.9 32 15V26C32 27.1 31.1 28 30 28H10C8.9 28 8 27.1 8 26V12Z" fill="#93c5fd"/><path d="M8 16H32V26C32 27.1 31.1 28 30 28H10C8.9 28 8 27.1 8 26V16Z" fill="#3b82f6"/></svg>
+            </div>
+            <div class="ind-bar single"></div>
+          </div>
+
+          <!-- Separator -->
+          <div class="dock-sep"></div>
+
+          <!-- App 8: Settings -->
+          <div class="dock-unit" title="系统设置">
+            <div class="dock-tip">系统设置</div>
+            <div class="app-icon" style="background: #1e293b; border: 1px solid #475569;">
+              <svg viewBox="0 0 40 40" fill="none"><rect x="9" y="10" width="22" height="15" rx="2" stroke="#94a3b8" stroke-width="2"/><circle cx="20" cy="17" r="4" fill="#ef4444"/><line x1="20" y1="26" x2="20" y2="29" stroke="#94a3b8" stroke-width="2"/><line x1="15" y1="29" x2="25" y2="29" stroke="#94a3b8" stroke-width="2"/></svg>
+            </div>
+          </div>
+
+          <!-- App 9: AI Assistant -->
+          <div class="dock-unit" title="AI Assistant">
+            <div class="dock-tip">本地模型</div>
+            <div class="app-icon" style="background: #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+              <svg viewBox="0 0 40 40" fill="none"><path d="M14 14C14 12 17 9 20 9C23 9 26 12 26 14V27C26 29 23 31 20 31C17 31 14 29 14 27V14Z" fill="#1e293b"/><circle cx="18" cy="15" r="1.5" fill="#ffffff"/><circle cx="22" cy="15" r="1.5" fill="#ffffff"/><path d="M26 13C29 12 31 14 31 16C31 19 28 20 26 19" stroke="#1e293b" stroke-width="1.5"/></svg>
+            </div>
+            <div class="ind-bar single"></div>
+          </div>
+
+        </div> <!-- /dock-content-row -->
+
+      </div> <!-- /anchored-dock-container -->
+
+    </div> <!-- /focus-stage -->
+
+  </main>
+
+  <!-- ========================================================
+       BOTTOM DESIGN RATIONALE SECTION
+       ======================================================== -->
+  <section class="bottom-section">
+    <h2 class="section-title">设计细节拆解：图1的克制质感 + 图2的反向圆角几何</h2>
+    <p class="section-sub">通过数学级矢量圆弧过渡与材质雕琢，让 Dock 与屏幕底边天然融为一体，浑然天成。</p>
+
+    <div class="cards-grid">
+      
+      <!-- Card 1 -->
+      <div class="guide-card chosen" id="gc-reverse" onclick="setMode('style-reverse')">
+        <div>
+          <div class="card-head">
+            <span class="card-badge cb-1">⭐ 用户指定推荐方案</span>
+            <span style="font-size: 11px; color: #38bdf8;">贴地反向过渡</span>
+          </div>
+          <h3 class="card-name">贴地反向圆角 (图1质感 + 图2反向圆角)</h3>
+          <p class="card-desc">Dock 稳稳附着于屏幕底边。顶部两端为端庄的 16px 正向凸圆角，底部贴合屏幕边缘处向外弧形展开（16px 凹弧反向圆角），如优雅器物裙摆般自然相切。</p>
+          <ul class="core-traits">
+            <li><strong>屏幕接触面</strong>：底部 0 缝隙贴合，左右反向圆角与屏幕底线一阶导数（$C^1$）连续</li>
+            <li><strong>图1克制质感</strong>：96% 深度石墨玄武岩基底，顶部微倒角透光，微光条指示器</li>
+            <li><strong>多窗口展开</strong>：点击 VLC 时，Dock 宽度平滑伸展，右侧反向圆角同步平滑向外位移</li>
+          </ul>
+        </div>
+        <button class="btn-select">当前选中此方案</button>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="guide-card" id="gc-floating" onclick="setMode('style-floating')">
+        <div>
+          <div class="card-head">
+            <span class="card-badge cb-2">原版形态对照</span>
+            <span style="font-size: 11px; color: #64748b;">悬空独立胶囊</span>
+          </div>
+          <h3 class="card-name">悬浮全圆角长条 (图1原版形态)</h3>
+          <p class="card-desc">四角均为闭合凸圆角，悬浮在屏幕底边上方 40px 的空间中。质感与指示器相同，但四周完全悬空，不与屏幕边缘发生相切关系。</p>
+          <ul class="core-traits">
+            <li><strong>空间关系</strong>：完全脱离屏幕边缘，四面悬空</li>
+            <li><strong>边缘形态</strong>：经典的四角对称正向凸圆角</li>
+            <li><strong>对比体验</strong>：相比之下，贴地反向圆角更具系统原生感与桌面沉稳感</li>
+          </ul>
+        </div>
+        <button class="btn-select">切换至悬浮对照</button>
+      </div>
+
+      <!-- Card 3: Technical Implementation -->
+      <div class="guide-card" style="cursor: default;">
+        <div>
+          <div class="card-head">
+            <span class="card-badge cb-3">WayPlank 底层技术落地</span>
+            <span style="font-size: 11px; color: #f59e0b;">Cairo 矢量公式</span>
+          </div>
+          <h3 class="card-name">Cairo 2D 绘图引擎无缝落地保证</h3>
+          <p class="card-desc">WayPlank 的底板在 `Theme.vala` 中通过 Cairo 原生绘制。我们将用 `arc_negative` 完美替代直角，在屏幕底层实现极高精度抗锯齿硬件渲染。</p>
+          <ul class="core-traits">
+            <li><strong>左底反向凹弧</strong>：`cr.arc_negative(x, y + h - r, r, PI/2, 0)`</li>
+            <li><strong>顶端凸圆角</strong>：`cr.arc(x + r + top_r, y + top_r, top_r, PI, -PI/2)`</li>
+            <li><strong>右底反向凹弧</strong>：`cr.arc_negative(x + w, y + h - r, r, PI, PI/2)`</li>
+          </ul>
+        </div>
+        <div style="font-size: 11px; color: #94a3b8; padding-top: 10px;">编译即生效，无需外部着色器</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Interactive Geometry & Vector Path Script -->
+  <script>
+    let currentMode = 'style-reverse';
+    let topR = 16;
+    let revR = 16;
+    let dockOpacity = 0.96;
+    let drawerOpen = false;
+
+    function updateGeometry() {
+      topR = parseInt(document.getElementById('sliderTopR').value);
+      revR = parseInt(document.getElementById('sliderRevR').value);
+      dockOpacity = parseInt(document.getElementById('sliderOpacity').value) / 100;
+
+      document.getElementById('valTopR').innerText = topR + 'px';
+      document.getElementById('valRevR').innerText = revR + 'px';
+      document.getElementById('valOpacity').innerText = Math.round(dockOpacity * 100) + '%';
+
+      renderFilletPath();
+      updateLoupe();
+    }
+
+    function renderFilletPath() {
+      const contentRow = document.getElementById('dockContentRow');
+      const svg = document.getElementById('dockSvg');
+      const path = document.getElementById('filletPath');
+      
+      const contentWidth = contentRow.offsetWidth;
+      const height = contentRow.offsetHeight; // e.g. 60
+
+      if (currentMode === 'style-reverse') {
+        // Reverse fillet geometry
+        // Total SVG width = contentWidth + 2 * revR
+        const totalW = contentWidth + 2 * revR;
+        svg.style.width = totalW + 'px';
+        svg.style.left = (-revR) + 'px';
+        svg.style.top = '0px';
+        svg.style.height = height + 'px';
+        svg.setAttribute('viewBox', `0 0 ${totalW} ${height}`);
+
+        // Construct Cairo-equivalent SVG Path:
+        // 1. Start at bottom-left flared tip (0, height)
+        // 2. Concave arc to (revR, height - revR) -> A revR revR 0 0 0 revR (height - revR)
+        // 3. Line up to (revR, topR)
+        // 4. Convex arc top-left to (revR + topR, 0) -> A topR topR 0 0 1 (revR + topR) 0
+        // 5. Line across to (totalW - revR - topR, 0)
+        // 6. Convex arc top-right to (totalW - revR, topR) -> A topR topR 0 0 1 (totalW - revR) topR
+        // 7. Line down to (totalW - revR, height - revR)
+        // 8. Concave arc bottom-right to (totalW, height) -> A revR revR 0 0 0 totalW height
+        // 9. Line along bottom edge to (0, height) -> Z
+
+        const d = `
+          M 0 ${height}
+          A ${revR} ${revR} 0 0 0 ${revR} ${height - revR}
+          L ${revR} ${topR}
+          A ${topR} ${topR} 0 0 1 ${revR + topR} 0
+          L ${totalW - revR - topR} 0
+          A ${topR} ${topR} 0 0 1 ${totalW - revR} ${topR}
+          L ${totalW - revR} ${height - revR}
+          A ${revR} ${revR} 0 0 0 ${totalW} ${height}
+          Z
+        `;
+        path.setAttribute('d', d);
+        path.setAttribute('fill', `rgba(22, 25, 32, ${dockOpacity})`);
+      } else {
+        // Floating pill geometry
+        const totalW = contentWidth;
+        svg.style.width = totalW + 'px';
+        svg.style.left = '0px';
+        svg.style.top = '0px';
+        svg.style.height = height + 'px';
+        svg.setAttribute('viewBox', `0 0 ${totalW} ${height}`);
+
+        const r = topR;
+        const d = `
+          M ${r} 0
+          L ${totalW - r} 0
+          A ${r} ${r} 0 0 1 ${totalW} ${r}
+          L ${totalW} ${height - r}
+          A ${r} ${r} 0 0 1 ${totalW - r} ${height}
+          L ${r} ${height}
+          A ${r} ${r} 0 0 1 0 ${height - r}
+          L 0 ${r}
+          A ${r} ${r} 0 0 1 ${r} 0
+          Z
+        `;
+        path.setAttribute('d', d);
+        path.setAttribute('fill', `rgba(22, 25, 32, ${dockOpacity})`);
+      }
+    }
+
+    function updateLoupe() {
+      const loupeCurve = document.getElementById('loupeCurve');
+      // Scale fillet curve in loupe
+      const r = revR * 2.2;
+      const d = `M 10 70 A ${r} ${r} 0 0 0 ${10 + r} ${70 - r} L ${10 + r} 0 L 160 0 L 160 70 Z`;
+      loupeCurve.setAttribute('d', d);
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.body.className = mode;
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.style === mode);
+      });
+
+      document.getElementById('gc-reverse').classList.toggle('chosen', mode === 'style-reverse');
+      document.getElementById('gc-floating').classList.toggle('chosen', mode === 'style-floating');
+
+      const tagEl = document.getElementById('bannerTag');
+      const textEl = document.getElementById('bannerText');
+
+      if (mode === 'style-reverse') {
+        tagEl.innerText = '⭐ 用户建议方案';
+        textEl.innerText = '图1克制深墨石板质感 + 贴近屏幕底边 + 左右底角反向圆角平滑过渡（图2效果）。';
+      } else {
+        tagEl.innerText = '原版形态对照';
+        textEl.innerText = '图1原版悬浮长条形态：四角闭合圆角，悬浮于屏幕上方。';
+      }
+
+      renderFilletPath();
+    }
+
+    function setWp(type) {
+      const stage = document.getElementById('focusStage');
+      document.querySelectorAll('.wp-dot').forEach(d => d.classList.remove('active'));
+      event.target.classList.add('active');
+
+      if (type === 'ribbon') {
+        stage.style.background = 'linear-gradient(135deg, #1e285a 0%, #4a287a 40%, #8b457e 75%, #db7b99 100%)';
+      } else if (type === 'dark') {
+        stage.style.background = 'linear-gradient(135deg, #07090e 0%, #141a26 100%)';
+      } else if (type === 'slate') {
+        stage.style.background = 'linear-gradient(135deg, #334155 0%, #0f172a 100%)';
+      } else if (type === 'light') {
+        stage.style.background = 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)';
+      }
+    }
+
+    // Toggle multi-window drawer with smooth width transition
+    function toggleDrawer() {
+      const drawer = document.getElementById('liveDrawer');
+      drawerOpen = !drawerOpen;
+      if (drawerOpen) {
+        drawer.classList.add('open');
+      } else {
+        drawer.classList.remove('open');
+      }
+
+      // Re-render vector path during expansion
+      let startTime = performance.now();
+      function animStep(now) {
+        renderFilletPath();
+        if (now - startTime < 420) {
+          requestAnimationFrame(animStep);
+        } else {
+          renderFilletPath();
+        }
+      }
+      requestAnimationFrame(animStep);
+    }
+
+    // Window resize observer
+    window.addEventListener('resize', renderFilletPath);
+
+    // Initial render
+    window.addEventListener('DOMContentLoaded', () => {
+      renderFilletPath();
+      updateLoupe();
+    });
+    setTimeout(renderFilletPath, 50);
+  </script>
+</body>
+</html>

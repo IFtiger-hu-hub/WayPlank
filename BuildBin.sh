@@ -41,6 +41,10 @@ glib-compile-resources \
     --generate-source \
     "${BASE_DIR}/data/plank.gresource.xml"
 
+echo "🎨 Syncing Default theme to user data folder..."
+mkdir -p "${HOME}/.local/share/wayplank/themes/Default"
+cp -rf "${BASE_DIR}/data/themes/Default/"* "${HOME}/.local/share/wayplank/themes/Default/"
+
 echo "🏗️ Compiling Vala & C sources to native binary..."
 mapfile -t VALA_FILES < <(find "${BASE_DIR}/lib" "${BASE_DIR}/src" -name "*.vala")
 

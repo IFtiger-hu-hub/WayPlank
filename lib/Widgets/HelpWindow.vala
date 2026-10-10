@@ -52,7 +52,7 @@ namespace Plank
 
 			// Page 1: Mouse Actions
 			var grid_mouse = create_shortcuts_grid ();
-			add_shortcut_row (grid_mouse, 0, _("Left Click"), _("Launch application, or activate / cycle open windows"));
+			add_shortcut_row (grid_mouse, 0, _("Left Click"), _("Launch application, or activate / cycle / preview open windows"));
 			add_shortcut_row (grid_mouse, 1, _("Middle Click (or Ctrl + Left)"), _("Force launch a NEW instance of the application"));
 			add_shortcut_row (grid_mouse, 2, _("Right Click"), _("Open application context menu (Quicklists, Keep in Dock)"));
 			add_shortcut_row (grid_mouse, 3, _("Mouse Scroll on Icon"), _("Cycle between all open windows of this application"));
