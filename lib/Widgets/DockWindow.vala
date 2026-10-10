@@ -546,13 +546,7 @@ namespace Plank
 
 			if (controller.drag_manager.ExternalDragActive) {
 				if (item != null && controller.drag_manager.drop_is_accepted_by (item)) {
-					hover_reposition_timer_id = Gdk.threads_add_timeout (60, () => {
-						hover_reposition_timer_id = 0U;
-						if (HoveredItem == item && controller.drag_manager.ExternalDragActive) {
-							show_drop_hint_for_item (item, controller.drag_manager.drag_data);
-						}
-						return false;
-					});
+					show_drop_hint_for_item (item, controller.drag_manager.drag_data);
 				} else {
 					controller.hover.hide ();
 				}
