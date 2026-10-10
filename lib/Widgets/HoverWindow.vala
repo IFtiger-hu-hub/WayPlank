@@ -36,6 +36,7 @@ namespace Plank
 		
 		Gtk.Box box;
 		Gtk.Label label;
+		Gtk.Image hint_icon;
 		
 		public HoverWindow ()
 		{
@@ -82,10 +83,24 @@ namespace Plank
 					"    border: 1px solid rgba(255, 255, 255, 0.18);\n" +
 					"    border-radius: 7px;\n" +
 					"}\n" +
+					"window.tooltip.drop-hint, tooltip.drop-hint, .tooltip.drop-hint {\n" +
+					"    background-color: rgba(20, 20, 24, 0.96);\n" +
+					"    color: #ffffff;\n" +
+					"    border: 1px solid rgba(255, 255, 255, 0.28);\n" +
+					"    border-radius: 20px;\n" +
+					"}\n" +
 					"window.tooltip label, tooltip label, .tooltip label {\n" +
 					"    color: #f5f5f7;\n" +
 					"    font-size: 11px;\n" +
 					"    font-weight: 500;\n" +
+					"}\n" +
+					"window.tooltip.drop-hint label, tooltip.drop-hint label, .tooltip.drop-hint label {\n" +
+					"    color: #ffffff;\n" +
+					"    font-size: 12px;\n" +
+					"    font-weight: 600;\n" +
+					"}\n" +
+					"window.tooltip.drop-hint image, tooltip.drop-hint image, .tooltip.drop-hint image {\n" +
+					"    color: #60a5fa;\n" +
 					"}\n"
 				);
 				get_style_context ().add_provider (css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -99,6 +114,10 @@ namespace Plank
 			add (box);
 			box.show ();
 			
+			hint_icon = new Gtk.Image ();
+			hint_icon.no_show_all = true;
+			box.pack_start (hint_icon, false, false, 0);
+
 			label = new Gtk.Label (null);
 			label.set_line_wrap (false);
 			box.pack_start (label, false, false, 0);
@@ -239,12 +258,44 @@ namespace Plank
 		}
 
 		/**
+		 * Set the smart drop-hint text and symbolic action icon
+		 *
+		 * @param text the text to show
+		 * @param icon_name the symbolic icon to display
+		 */
+		public void set_drop_hint (string text, string? icon_name = null)
+		{
+			get_style_context ().add_class ("drop-hint");
+			box.set_margin_start (14);
+			box.set_margin_end (14);
+			box.set_margin_top (6);
+			box.set_margin_bottom (6);
+
+			if (icon_name != null && icon_name != "") {
+				hint_icon.set_from_icon_name (icon_name, Gtk.IconSize.MENU);
+				hint_icon.show ();
+			} else {
+				hint_icon.hide ();
+			}
+
+			label.set_text (text);
+			label.show ();
+		}
+
+		/**
 		 * Set the tooltip-text to show
 		 *
 		 * @param text the text to show
 		 */
 		public void set_text (string text)
 		{
+			get_style_context ().remove_class ("drop-hint");
+			box.set_margin_start (10);
+			box.set_margin_end (10);
+			box.set_margin_top (5);
+			box.set_margin_bottom (5);
+			hint_icon.hide ();
+
 			label.set_text (text);
 			if (text != null)
 				label.show ();

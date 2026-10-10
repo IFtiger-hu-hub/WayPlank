@@ -240,6 +240,15 @@ namespace Plank
 		}
 		
 		/**
+		 * Gets the smart drop hint text and symbolic icon for this item.
+		 */
+		public virtual void get_drop_hint (Gee.ArrayList<string>? uris, out string text, out string? icon_name)
+		{
+			text = get_drop_text ();
+			icon_name = "document-open-symbolic";
+		}
+		
+		/**
 		 * Returns if this item can be removed from the dock.
 		 *
 		 * @return if this item can be removed from the dock

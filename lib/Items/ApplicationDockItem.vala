@@ -751,7 +751,28 @@ namespace Plank
 		 */
 		public override string get_drop_text ()
 		{
-			return _("Drop to open with %s").printf (Text);
+			return "使用 %s 打开".printf (Text);
+		}
+		
+		public override void get_drop_hint (Gee.ArrayList<string>? uris, out string text, out string? icon_name)
+		{
+			bool has_url = false;
+			if (uris != null) {
+				foreach (var u in uris) {
+					if (u.has_prefix ("http://") || u.has_prefix ("https://")) {
+						has_url = true;
+						break;
+					}
+				}
+			}
+
+			if (has_url) {
+				text = "在 %s 中打开网页".printf (Text);
+				icon_name = "applications-internet-symbolic";
+			} else {
+				text = "使用 %s 打开".printf (Text);
+				icon_name = "document-open-symbolic";
+			}
 		}
 		
 		/**

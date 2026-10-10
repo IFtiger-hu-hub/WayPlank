@@ -232,6 +232,17 @@ namespace Plank
 			return AnimationType.NONE;
 		}
 		
+		public override string get_drop_text ()
+		{
+			return "移动到回收站";
+		}
+
+		public override void get_drop_hint (Gee.ArrayList<string>? uris, out string text, out string? icon_name)
+		{
+			text = "移动到回收站";
+			icon_name = "user-trash-symbolic";
+		}
+		
 		public override bool can_accept_drop (Gee.ArrayList<string> uris)
 		{
 			return uris != null && uris.size > 0;

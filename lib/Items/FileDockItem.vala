@@ -265,8 +265,19 @@ namespace Plank
 		public override string get_drop_text ()
 		{
 			if (is_directory ())
-				return _("Drop to copy into %s").printf (Text);
-			return base.get_drop_text ();
+				return "复制到 %s".printf (Text);
+			return "在 %s 中打开".printf (Text);
+		}
+
+		public override void get_drop_hint (Gee.ArrayList<string>? uris, out string text, out string? icon_name)
+		{
+			if (is_directory ()) {
+				text = "复制到 %s".printf (Text);
+				icon_name = "folder-symbolic";
+			} else {
+				text = "在 %s 中打开".printf (Text);
+				icon_name = "document-open-symbolic";
+			}
 		}
 
 		public override bool can_accept_drop (Gee.ArrayList<string> uris)

@@ -544,8 +544,20 @@ namespace Plank
 				hover_reposition_timer_id = 0U;
 			}
 
-			if (controller.drag_manager.ExternalDragActive)
+			if (controller.drag_manager.ExternalDragActive) {
+				if (item != null && controller.drag_manager.drop_is_accepted_by (item)) {
+					hover_reposition_timer_id = Gdk.threads_add_timeout (60, () => {
+						hover_reposition_timer_id = 0U;
+						if (HoveredItem == item && controller.drag_manager.ExternalDragActive) {
+							show_drop_hint_for_item (item, controller.drag_manager.drag_data);
+						}
+						return false;
+					});
+				} else {
+					controller.hover.hide ();
+				}
 				return;
+			}
 
 			controller.hover.hide ();
 
@@ -579,6 +591,35 @@ namespace Plank
 
 				return false;
 			});
+		}
+
+		public void show_drop_hint_for_item (DockItem item, Gee.ArrayList<string>? uris)
+		{
+			if (item == null || item is SeparatorDockItem) {
+				controller.hover.hide ();
+				return;
+			}
+
+			string text;
+			string? icon_name;
+			item.get_drop_hint (uris, out text, out icon_name);
+
+			if (text == null || text.strip ().length == 0) {
+				controller.hover.hide ();
+				return;
+			}
+
+			unowned HoverWindow hover = controller.hover;
+			hover.set_drop_hint (text, icon_name);
+
+			int x, y;
+			controller.position_manager.get_hover_position (item, out x, out y);
+			var dock_region = controller.position_manager.get_dock_window_region ();
+			var dock_thickness = GtkLayerShell.is_supported ()
+				? controller.position_manager.get_visual_thickness () + 40
+				: (controller.position_manager.is_horizontal_dock () ? dock_region.height : dock_region.width);
+			var monitor = PositionManager.get_monitor_for_plug_name (get_display (), controller.prefs.Monitor);
+			hover.show_at (x, y, controller.position_manager.Position, dock_thickness, monitor);
 		}
 
 		public bool update_hovered (int x, int y)

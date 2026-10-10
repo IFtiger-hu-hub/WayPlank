@@ -75,7 +75,7 @@ namespace Plank
 		uint spring_hover_timer_id = 0U;
 		weak DockItem? spring_hover_target = null;
 		
-		Gee.ArrayList<string>? drag_data = null;
+		public Gee.ArrayList<string>? drag_data { get; private set; default = null; }
 		
 		int window_scale_factor = 1;
 		ulong drag_item_redraw_handler_id = 0UL;
@@ -386,6 +386,7 @@ namespace Plank
 			drop_target_item = controller.window.HoveredItem;
 			
 			cancel_spring_loaded_timer ();
+			controller.hover.hide ();
 			
 			if (ExternalDragActive) {
 				drag_data = null;
@@ -588,10 +589,6 @@ namespace Plank
 			if (ExternalDragActive && !drag_known) {
 				drag_known = true;
 				window.notify["HoveredItem"].connect (hovered_item_changed);
-			}
-			
-			if (ExternalDragActive) {
-				controller.hover.hide ();
 			}
 			
 			controller.renderer.update_local_cursor (x, y);
