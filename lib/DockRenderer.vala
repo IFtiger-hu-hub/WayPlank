@@ -449,13 +449,22 @@ namespace Plank
 #endif
 			
 			// Clip items and shadows to the dock background area so scrolled-out items don't leak
-			item_cr.save ();
-			item_cr.rectangle (background_rect.x, 0, background_rect.width, win_rect.height);
-			item_cr.clip ();
-
-			shadow_cr.save ();
-			shadow_cr.rectangle (background_rect.x, 0, background_rect.width, win_rect.height);
-			shadow_cr.clip ();
+			bool need_scroll_clip = (position_manager.max_scroll_offset > 0.0);
+			if (need_scroll_clip) {
+				item_cr.save ();
+				shadow_cr.save ();
+				if (position_manager.is_horizontal_dock ()) {
+					// Horizontal dock: clip along X scroll axis, keep full height for zoom/bounce
+					item_cr.rectangle (background_rect.x, 0, background_rect.width, win_rect.height);
+					shadow_cr.rectangle (background_rect.x, 0, background_rect.width, win_rect.height);
+				} else {
+					// Vertical dock: clip along Y scroll axis, keep full width for zoom/bounce
+					item_cr.rectangle (0, background_rect.y, win_rect.width, background_rect.height);
+					shadow_cr.rectangle (0, background_rect.y, win_rect.width, background_rect.height);
+				}
+				item_cr.clip ();
+				shadow_cr.clip ();
+			}
 
 			// draw each item onto the dock buffer
 			foreach (unowned DockItem item in current_items) {
@@ -474,8 +483,10 @@ namespace Plank
 #endif
 			}
 
-			item_cr.restore ();
-			shadow_cr.restore ();
+			if (need_scroll_clip) {
+				item_cr.restore ();
+				shadow_cr.restore ();
+			}
 			
 			update_separator_colors ();
 			
