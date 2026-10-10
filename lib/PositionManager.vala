@@ -356,6 +356,46 @@ namespace Plank
 		
 		public int MaxItemCount { get; private set; }
 		int MaxIconSize { get; private set; default = DockPreferences.MAX_ICON_SIZE; }
+
+		public double scroll_offset { get; set; default = 0.0; }
+		public double target_scroll_offset { get; set; default = 0.0; }
+		public double max_scroll_offset { get; private set; default = 0.0; }
+
+		public bool is_scrolling ()
+		{
+			return (max_scroll_offset > 0.0 && Math.fabs (target_scroll_offset - scroll_offset) > 0.5);
+		}
+
+		public void scroll_by (double delta)
+		{
+			if (max_scroll_offset <= 0.0)
+				return;
+
+			target_scroll_offset = (target_scroll_offset + delta).clamp (0.0, max_scroll_offset);
+			controller.renderer.animated_draw ();
+		}
+
+		public void ensure_item_visible (DockItem? item)
+		{
+			if (item == null || max_scroll_offset <= 0.0)
+				return;
+
+			var val = draw_values[item];
+			if (val == null)
+				return;
+
+			double cx = is_horizontal_dock () ? val.static_center.x : val.static_center.y;
+			double slot = get_item_slot (item);
+			double left = cx - slot / 2.0;
+			double right = cx + slot / 2.0;
+			double vis_min = (double) items_offset;
+			double vis_max = (double) ((is_horizontal_dock () ? DockWidth : DockHeight) - items_offset);
+
+			if (left < vis_min)
+				scroll_by (left - vis_min - 20.0);
+			else if (right > vis_max)
+				scroll_by (right - vis_max + 20.0);
+		}
 		
 		public void update (DockTheme theme)
 		{
@@ -546,6 +586,7 @@ namespace Plank
 			
 			if (is_horizontal_dock ()) {
 				width = int.min (monitor_geo.width, width);
+				background_width = int.min (monitor_geo.width, background_width);
 				VisibleDockHeight = height;
 				VisibleDockWidth = width;
 				DockHeight = dock_height;
@@ -555,6 +596,7 @@ namespace Plank
 				MaxItemCount = (int) Math.floor ((double) (monitor_geo.width - 2 * HorizPadding + 4 * LineWidth) / (ItemPadding + IconSize));
 			} else {
 				width = int.min (monitor_geo.height, width);
+				background_width = int.min (monitor_geo.height, background_width);
 				VisibleDockHeight = width;
 				VisibleDockWidth = height;
 				DockHeight = (screen_is_composited ? monitor_geo.height : width);
@@ -782,8 +824,30 @@ namespace Plank
 			}
 
 			double current_dock_width = current_items_span + 2 * items_offset;
+			double available_content_span = (double) width - 2.0 * items_offset;
+			if (available_content_span > 0 && current_items_span > available_content_span) {
+				max_scroll_offset = current_items_span - available_content_span;
+			} else {
+				max_scroll_offset = 0.0;
+				target_scroll_offset = 0.0;
+				scroll_offset = 0.0;
+			}
+
+			if (max_scroll_offset > 0.0) {
+				target_scroll_offset = target_scroll_offset.clamp (0.0, max_scroll_offset);
+				if (Math.fabs (target_scroll_offset - scroll_offset) > 0.1) {
+					scroll_offset += (target_scroll_offset - scroll_offset) * 0.35;
+					if (Math.fabs (target_scroll_offset - scroll_offset) <= 0.1)
+						scroll_offset = target_scroll_offset;
+				} else {
+					scroll_offset = target_scroll_offset;
+				}
+			}
+
 			double dock_start_coord = 0.0;
-			if (screen_is_composited) {
+			if (max_scroll_offset > 0.0) {
+				dock_start_coord = 0.0;
+			} else if (screen_is_composited) {
 				double base_span = (double) width - current_dock_width;
 				switch (Alignment) {
 				default:
@@ -806,7 +870,7 @@ namespace Plank
 
 			double first_slot = (items.size > 0) ? get_item_slot (items.first ()) : (icon_size + ItemPadding);
 			double center_x;
-			if (Alignment == Gtk.Align.FILL) {
+			if (Alignment == Gtk.Align.FILL && max_scroll_offset <= 0.0) {
 				center_x = first_slot / 2.0 + items_offset;
 				switch (ItemsAlignment) {
 				default:
@@ -827,7 +891,7 @@ namespace Plank
 					break;
 				}
 			} else {
-				center_x = dock_start_coord + items_offset + first_slot / 2.0;
+				center_x = dock_start_coord + items_offset + first_slot / 2.0 - scroll_offset;
 			}
 			
 			PointD center = { center_x, Math.floor (center_y) };
@@ -1438,6 +1502,22 @@ namespace Plank
 			var padding_last = (span_last + padding) / 2.0;
 			var rev_round = (ReverseRoundness > 0) ? ReverseRoundness : 0;
 			
+			if (max_scroll_offset > 0.0) {
+				if (is_horizontal_dock ()) {
+					x = static_dock_region.x;
+					width = monitor_geo.width;
+					y += (Position == Gtk.PositionType.BOTTOM) ? (height - DockBackgroundHeight) : 0;
+					background_rect = { x, y, width, DockBackgroundHeight };
+					return;
+				} else {
+					x += (Position == Gtk.PositionType.RIGHT) ? (width - DockBackgroundWidth) : 0;
+					y = static_dock_region.y;
+					height = monitor_geo.height;
+					background_rect = { x, y, DockBackgroundWidth, height };
+					return;
+				}
+			}
+
 			switch (Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
@@ -1466,6 +1546,24 @@ namespace Plank
 				break;
 			}
 			
+			if (is_horizontal_dock ()) {
+				if (x < 0) {
+					width += x;
+					x = 0;
+				}
+				if (x + width > monitor_geo.width) {
+					width = monitor_geo.width - x;
+				}
+			} else {
+				if (y < 0) {
+					height += y;
+					y = 0;
+				}
+				if (y + height > monitor_geo.height) {
+					height = monitor_geo.height - y;
+				}
+			}
+
 			background_rect = { x, y, width, height };
 		}
 		

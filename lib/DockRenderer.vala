@@ -433,6 +433,15 @@ namespace Plank
 			benchmark.add ("background render time - %f ms".printf (end2.difference (start2) / 1000.0));
 #endif
 			
+			// Clip items and shadows to the dock background area so scrolled-out items don't leak
+			item_cr.save ();
+			item_cr.rectangle (background_rect.x, 0, background_rect.width, win_rect.height);
+			item_cr.clip ();
+
+			shadow_cr.save ();
+			shadow_cr.rectangle (background_rect.x, 0, background_rect.width, win_rect.height);
+			shadow_cr.clip ();
+
 			// draw each item onto the dock buffer
 			foreach (unowned DockItem item in current_items) {
 #if BENCHMARK
@@ -449,6 +458,9 @@ namespace Plank
 				benchmark.add ("item render time - %f ms".printf (end2.difference (start2) / 1000.0));
 #endif
 			}
+
+			item_cr.restore ();
+			shadow_cr.restore ();
 			
 			update_separator_colors ();
 			
@@ -459,6 +471,11 @@ namespace Plank
 			// draw items-layer
 			main_cr.set_source_surface (item_buffer.Internal, x_offset, y_offset);
 			main_cr.paint ();
+
+			// draw scroll indicators if overflowed
+			if (position_manager.max_scroll_offset > 0.0 && position_manager.is_horizontal_dock ()) {
+				draw_scroll_edge_indicators (main_cr, background_rect);
+			}
 			
 			// draw the dock on the window and fade it if need be
 			cr.set_operator (Cairo.Operator.SOURCE);
@@ -1347,11 +1364,60 @@ namespace Plank
 				animated_draw ();
 		}
 		
+		void draw_scroll_edge_indicators (Cairo.Context cr, Gdk.Rectangle rect)
+		{
+			unowned PositionManager pm = controller.position_manager;
+			double fade_w = 42.0;
+
+			// Left edge gradient when scroll_offset > 2
+			if (pm.scroll_offset > 2.0) {
+				cr.save ();
+				var pat = new Cairo.Pattern.linear (rect.x, 0, rect.x + fade_w, 0);
+				pat.add_color_stop_rgba (0.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.90);
+				pat.add_color_stop_rgba (1.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.0);
+				cr.set_source (pat);
+				cr.rectangle (rect.x, rect.y, fade_w, rect.height);
+				cr.fill ();
+
+				// Subtle glow indicator chevron "<"
+				cr.set_source_rgba (1.0, 1.0, 1.0, 0.55);
+				cr.set_line_width (2.0);
+				cr.move_to (rect.x + 16, rect.y + rect.height / 2.0 - 6);
+				cr.line_to (rect.x + 10, rect.y + rect.height / 2.0);
+				cr.line_to (rect.x + 16, rect.y + rect.height / 2.0 + 6);
+				cr.stroke ();
+				cr.restore ();
+			}
+
+			// Right edge gradient when scroll_offset < max_scroll_offset - 2
+			if (pm.scroll_offset < pm.max_scroll_offset - 2.0) {
+				cr.save ();
+				var pat = new Cairo.Pattern.linear (rect.x + rect.width - fade_w, 0, rect.x + rect.width, 0);
+				pat.add_color_stop_rgba (0.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.0);
+				pat.add_color_stop_rgba (1.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.90);
+				cr.set_source (pat);
+				cr.rectangle (rect.x + rect.width - fade_w, rect.y, fade_w, rect.height);
+				cr.fill ();
+
+				// Subtle glow indicator chevron ">"
+				cr.set_source_rgba (1.0, 1.0, 1.0, 0.55);
+				cr.set_line_width (2.0);
+				cr.move_to (rect.x + rect.width - 16, rect.y + rect.height / 2.0 - 6);
+				cr.line_to (rect.x + rect.width - 10, rect.y + rect.height / 2.0);
+				cr.line_to (rect.x + rect.width - 16, rect.y + rect.height / 2.0 + 6);
+				cr.stroke ();
+				cr.restore ();
+			}
+		}
+
 		/**
 		 * {@inheritDoc}
 		 */
 		protected override bool animation_needed (int64 frame_time)
 		{
+			if (controller.position_manager.is_scrolling ())
+				return true;
+
 			if (ApplicationDockItem.is_animating_cards ())
 				return true;
 

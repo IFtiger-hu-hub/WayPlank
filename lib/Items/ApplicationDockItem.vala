@@ -186,6 +186,9 @@ namespace Plank
 			}
 
 			provider.insert_batch_after (new_cards, this);
+			if (new_cards.size > 0) {
+				get_dock ()?.position_manager.ensure_item_visible (new_cards.last () as DockItem);
+			}
 			get_dock ()?.renderer.animated_draw ();
 		}
 
