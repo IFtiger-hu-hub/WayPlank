@@ -300,6 +300,32 @@ wayplank -d
 
 # Change log
 
+## V0.5.4: 2026-10-11
+
+**Intelligent Drag & Drop Payload Delivery, Spring-Loaded Window Activation, Smart Drop Capsule & Side Dock Viewport Clipping Fix**:
+
+- **(Cross-Compositor) Intelligent Drag & Drop Payload Delivery**: Dragging files/folders or URLs directly onto dock item launchers (e.g. IDEs, media players, text editors) normalizes arguments and dispatches `GAppInfo.launch_default_for_uri` or application launch with target files. Dragging files onto the Trash docklet sends them to trash asynchronously.
+- **(Cross-Compositor) Spring-Loaded Window Timer (500ms)**: Hovering with a dragged file over an already running application automatically raises and restores its topmost window after a 500ms dwell threshold, allowing precise in-window drop targets.
+- **(Cross-Compositor) Real-Time Smart Drop Capsule Hint**: Displays an elegant synchronous drop indicator pill (e.g. `Drop into <App> to open`) rendered directly within the existing `HoverWindow` singleton without lag or layer-shell race conditions.
+- **(Cross-Compositor) Dual-Axis Viewport Clipping Engine**: Solved vertical dock icon clipping where zoomed icons extending horizontally into the screen were cut off by horizontal background bounds; viewport clipping is now dynamically orientation-aware.
+- **(Packaging & Architecture) Packaging & Build Hardening**: Synced build scripts with zero-warning clean compilation and minimal binary overhead (+456 bytes delta).
+- **Release status**: 100% PASS on multi-compositor FAT validation protocol across GNOME, KDE Plasma, and Labwc; see FAT status: [`FAT/2026-10-11 FAT 0.5.4.txt`](FAT/2026-10-11%20FAT%200.5.4.txt).
+
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.4.md`](Changelogs/CHANGELOG_v0.5.4.md).
+
+## V0.5.3: 2026-10-10
+
+**Dock Screen Width Clamping, Horizontal Viewport Overflow Scrolling & Multi-Window Stability**:
+
+- **(Cross-Compositor) Screen Width Boundary Clamping**: Strictly clamped maximum dock width to physical monitor width (`monitor_geo.width`), preventing the dock from pushing elements past display edges.
+- **(Cross-Compositor) Horizontal Viewport Overflow Scrolling**: When total dock items exceed screen width, items become smoothly scrollable with interpolated damping physics.
+- **(Cross-Compositor) Cairo Viewport Clipping & Edge Indicators**: Clips items and shadows to the dock background rect, rendering dynamic gradient masks and directional indicator chevrons (`<` and `>`) at overflow edges.
+- **(Cross-Compositor) Multi-Input Kinetic Gestures**: Supports mouse wheel (vertical and horizontal tilt) and touchpad kinetic two-finger scrolling.
+- **(Cross-Compositor) Multi-Window Expansion Auto-Scroll**: Expanding grouped window cards automatically scrolls newly revealed items into view (`ensure_item_visible`).
+- **Release status**: 100% PASS on multi-compositor FAT validation protocol across GNOME, KDE Plasma, and Labwc; see FAT status: [`FAT/2026-10-10 FAT 0.5.3.txt`](FAT/2026-10-10%20FAT%200.5.3.txt).
+
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.3.md`](Changelogs/CHANGELOG_v0.5.3.md).
+
 ## V0.5.2 (First Alpha Release): 2026-10-09
 
 > 📢 **FIRST OFFICIAL ALPHA RELEASE & FINAL MASS DEVELOPMENT MILESTONE**:  
