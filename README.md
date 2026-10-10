@@ -40,6 +40,48 @@ If you are waiting for a true, lightweight, native Wayland dock experience to re
 
 ---
 
+## 📸 实机展示 · 多维形态与核心交互 (Real Showcase & Visual Gallery)
+
+Wayplank 深度优化 Linux 原生 Wayland 桌面体验，全方位支持多种形态、自适应主题与手势拖拽交互：
+
+### 1. 经典底部浅色高斯磨砂形态 (Classic Light Frosted Glass Dock)
+支持经典的反向圆角（Reverse Roundness）与通透的高斯模糊底板，配备精确的应用运行状态微点指示器。
+<p align="center">
+  <img src="screenshots/01_bottom_light_dock.png" alt="经典底部浅色磨砂形态" width="100%">
+</p>
+
+### 2. 暗黑深度高质感形态 (Dark Mode / Matte Frosted Dock)
+专为深色模式设计的黑透磨砂底板，支持平滑悬浮放大（Zoom）与细腻的高动态阴影渲染。
+<p align="center">
+  <img src="screenshots/02_bottom_dark_dock.png" alt="暗黑深度高质感形态" width="100%">
+</p>
+
+### 3. 侧边纵向 Dock 贴靠形态 (Vertical Side Dock - Left / Right)
+可自由贴靠于屏幕左侧或右侧边缘。图标悬停放大向屏幕内侧自然舒展，与屏幕边缘完美融合，无任何边界裁切截断。
+<p align="center">
+  <img src="screenshots/03_vertical_side_dock.png" alt="侧边纵向 Dock 形态" height="500">
+</p>
+
+### 4. 智能文件拖拽投递与落点悬浮胶囊提示 (Drag & Drop Payload Delivery & Capsule Hint)
+直接拖动文件、文件夹或 URL 至对应应用图标（如拖拽工程目录至 IDE），实时展示悬浮胶囊操作提示，悬停 500ms 自动置顶唤醒已运行窗口，松手即刻投递打开。
+<p align="center">
+  <img src="screenshots/04_drag_drop_capsule.png" alt="智能文件拖拽投递与落点悬浮胶囊提示" height="500">
+</p>
+
+### 5. 多窗口应用平铺卡片展开 (Multi-Window Grouped Cards Inlining)
+当某个应用（如终端、Dolphin、浏览器）运行多个窗口时，支持在 Dock 内部平铺展开轻量级独立窗口预览卡片，一键直达目标窗口。
+<p align="center">
+  <img src="screenshots/05_window_cards_inline.png" alt="多窗口应用平铺卡片展开" width="100%">
+</p>
+
+### 6. KWin 原生多窗口大图平铺预览 (Present Windows / KWin Overview Integration)
+深度联动 KWin 窗口调度接口，点击多任务图标即刻唤起 KWin 原生多窗口平铺预览特效（Window View / Present Windows），掌控桌面工作流。
+<p align="center">
+  <img src="screenshots/06_kwin_window_previews.png" alt="KWin 原生多窗口大图平铺预览" width="85%">
+</p>
+
+---
+
 > WARNING & DISCLAIMER:
 >
 > DEVELOPED FOR EXPERIMENTAL AND ADVANCED DESKTOP INTEGRATION PROFILES
