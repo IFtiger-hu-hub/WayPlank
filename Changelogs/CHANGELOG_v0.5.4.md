@@ -91,6 +91,13 @@ Wayplank **V0.5.4** systematically resolves these limitations through five core 
 - **Zero-Cost Normal Path**:
   - When `max_scroll_offset <= 0.0` (all items fit on dock), clipping is completely skipped, eliminating 2 Cairo `clip()` operations and `save()`/`restore()` stack frames per render cycle.
 
+### 5. Classic Plank Default Theme Restoration & Modern Dark Theme Split (`data/themes/`, `lib/Drawing/`)
+
+- **100% Upstream Default Preservation**: Restored `data/themes/Default/dock.theme` to match Plank upstream bit-for-bit (0 byte diff vs upstream baseline commit `63fbd7d`), preserving classic 4px rounded corners, metallic dual gradient, bottom-touching flat edge, and icon shadows.
+- **Dedicated Modern Dark Theme (`data/themes/Dark/dock.theme`)**: Separated the reverse-roundness modern frosted dark theme into an independent theme, pairing symmetrically with `Light`.
+- **Theme Engine Non-Intrusive Defaults**: Set `ReverseRoundness` default to `0` in `Theme.vala` so existing and third-party Plank themes render with authentic geometry.
+- **Adaptive Auto Pairing**: `Auto` theme dynamically selects `Dark` in dark mode and `Light` in light mode.
+
 ---
 
 ## 3. 📊 Performance & Memory Benchmark

@@ -308,6 +308,7 @@ wayplank -d
 - **(Cross-Compositor) Spring-Loaded Window Timer (500ms)**: Hovering with a dragged file over an already running application automatically raises and restores its topmost window after a 500ms dwell threshold, allowing precise in-window drop targets.
 - **(Cross-Compositor) Real-Time Smart Drop Capsule Hint**: Displays an elegant synchronous drop indicator pill (e.g. `Drop into <App> to open`) rendered directly within the existing `HoverWindow` singleton without lag or layer-shell race conditions.
 - **(Cross-Compositor) Dual-Axis Viewport Clipping Engine**: Solved vertical dock icon clipping where zoomed icons extending horizontally into the screen were cut off by horizontal background bounds; viewport clipping is now dynamically orientation-aware.
+- **(Themes & Visuals) Classic Plank Default Theme Restoration & Modern Dark Theme Split**: Restored `Default` theme bit-for-bit to match Plank upstream, while migrating the modern reverse-roundness dark frosted glass style to a dedicated `Dark` theme (`Auto` dynamically pairs `Dark` and `Light`).
 - **(Packaging & Architecture) Packaging & Build Hardening**: Synced build scripts with zero-warning clean compilation and minimal binary overhead (+456 bytes delta).
 - **Release status**: 100% PASS on multi-compositor FAT validation protocol across GNOME, KDE Plasma, and Labwc; see FAT status: [`FAT/2026-10-11 FAT 0.5.4.txt`](FAT/2026-10-11%20FAT%200.5.4.txt).
 
