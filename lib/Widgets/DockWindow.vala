@@ -658,7 +658,9 @@ namespace Plank
 				if (!GtkLayerShell.is_supported ()) {
 					resize (win_rect.width, win_rect.height);
 				}
-				controller.renderer.reset_buffers ();
+				if (controller.renderer != null) {
+					controller.renderer.reset_buffers ();
+				}
 
 				update_icon_regions ();
 				set_input_mask ();

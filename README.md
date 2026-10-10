@@ -155,6 +155,20 @@ sudo dpkg -i build/wayplank_0.5.2_amd64.deb
 
 ---
 
+## 4. AUTOMATED OPENSUSE/FEDORA/RHEL PACKAGE CREATION (RPM)
+
+If running openSUSE (Tumbleweed/Leap), Fedora, or RPM-based distributions, run the automated RPM builder:
+
+```bash
+chmod +x BuildRpm.sh
+./BuildRpm.sh
+sudo zypper install build/wayplank-0.5.2-1.x86_64.rpm
+# Or on Fedora/RHEL:
+# sudo dnf install build/wayplank-0.5.2-1.x86_64.rpm
+```
+
+---
+
 # RUNTIME DIRECTORIES & CONFIGURATION MIGRATION
 
 Wayplank operates under its own isolated namespace and standard XDG locations:
