@@ -120,8 +120,6 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_docklet_weather;
 		[GtkChild]
-		unowned Gtk.Switch sw_docklet_network;
-		[GtkChild]
 		unowned Gtk.Image img_docklet_trash;
 		[GtkChild]
 		unowned Gtk.Image img_docklet_cpu;
@@ -147,8 +145,6 @@ namespace Plank
 		unowned Gtk.Image img_docklet_ejector;
 		[GtkChild]
 		unowned Gtk.Image img_docklet_weather;
-		[GtkChild]
-		unowned Gtk.Image img_docklet_network;
 		[GtkChild]
 		unowned Gtk.Stack dock_preferences;
 		[GtkChild]
@@ -705,7 +701,6 @@ namespace Plank
 			sw_docklet_brightness.notify["active"].connect (docklet_brightness_toggled);
 			sw_docklet_ejector.notify["active"].connect (docklet_ejector_toggled);
 			sw_docklet_weather.notify["active"].connect (docklet_weather_toggled);
-			sw_docklet_network.notify["active"].connect (docklet_network_toggled);
 			if (controller != null && controller.default_provider != null)
 				controller.default_provider.elements_changed.connect (default_provider_elements_changed);
 			cb_alignment.changed.connect (alignment_changed);
@@ -757,7 +752,6 @@ namespace Plank
 			sw_docklet_brightness.notify["active"].disconnect (docklet_brightness_toggled);
 			sw_docklet_ejector.notify["active"].disconnect (docklet_ejector_toggled);
 			sw_docklet_weather.notify["active"].disconnect (docklet_weather_toggled);
-			sw_docklet_network.notify["active"].disconnect (docklet_network_toggled);
 			if (controller != null && controller.default_provider != null)
 				controller.default_provider.elements_changed.disconnect (default_provider_elements_changed);
 			cb_alignment.changed.disconnect (alignment_changed);
@@ -955,11 +949,6 @@ namespace Plank
 			toggle_docklet_uri (widget, "docklet://weather");
 		}
 
-		void docklet_network_toggled (GLib.Object widget, ParamSpec param)
-		{
-			toggle_docklet_uri (widget, "docklet://network");
-		}
-
 		void default_provider_elements_changed (Gee.List<DockElement> added, Gee.List<DockElement> removed)
 		{
 			init_docklets_tab ();
@@ -983,7 +972,6 @@ namespace Plank
 				sw_docklet_brightness.set_active (default_provider.item_for_uri ("docklet://brightness") != null);
 				sw_docklet_ejector.set_active (default_provider.item_for_uri ("docklet://ejector") != null);
 				sw_docklet_weather.set_active (default_provider.item_for_uri ("docklet://weather") != null);
-				sw_docklet_network.set_active (default_provider.item_for_uri ("docklet://network") != null);
 			} else {
 				sw_docklet_trash.set_active (false);
 				sw_docklet_clock.set_active (false);
@@ -998,7 +986,6 @@ namespace Plank
 				sw_docklet_brightness.set_active (false);
 				sw_docklet_ejector.set_active (false);
 				sw_docklet_weather.set_active (false);
-				sw_docklet_network.set_active (false);
 			}
 			
 			update_docklet_icons ();
@@ -1039,7 +1026,6 @@ namespace Plank
 			ensure_docklet_icon (img_docklet_brightness, "display-brightness-high", "/net/launchpad/plank/docklets/brightness.svg");
 			ensure_docklet_icon (img_docklet_ejector, "media-eject", "/net/launchpad/plank/docklets/ejector.svg");
 			ensure_docklet_icon (img_docklet_weather, "weather-few-clouds", "/net/launchpad/plank/docklets/weather.svg");
-			ensure_docklet_icon (img_docklet_network, "network-wireless-signal-good", "/net/launchpad/plank/docklets/network.svg");
 		}
 	}
 }

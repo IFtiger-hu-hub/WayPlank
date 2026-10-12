@@ -205,20 +205,12 @@ SESSION 1: GNOME (Mutter Backend)
         - Automatic IP geolocation fallback via ip-api.com when city is not
           configured; high-performance data fetching via Open-Meteo API.
    [ok] 6.12 Docklet Right-Click Context Menu Consistency:
-        - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
-          MPRIS, Battery, Volume, Screenshot, Session, Ejector,
-          Brightness, Weather, Network) show clean, focused context menus.
-   [ ] 6.13 Network & Wi-Fi Docklet (docklet://network):
-        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a complete hardware monitor.
-        - Real-time network detection via GIO NetworkMonitor and NetworkManager DBus.
-        - Dynamic state-driven icons:
-          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak, none).
-          * Ethernet: wired connection active icon.
-          * Offline: disconnected icon.
-        - Informative tooltip displays connection type, SSID, signal strength %, and IP address.
-        - Left-click opens system Network Settings (KDE / GNOME / nm-connection-editor).
-        - Middle-click copies local IP address to clipboard.
-        - Right-click context menu displays connection details, Copy IP Address, Network Settings, and Remove from Dock.
+        - Verify ALL 14 docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Preferences, Ejector,
+          Brightness, Weather) have standard dock actions appended to
+          right-click menu (Preferences..., Shortcuts & Gestures..., Report a
+          Bug..., About Wayplank...). Preferences docklet displays
+          Preferences... as top action.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -563,20 +555,12 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Automatic IP geolocation fallback via ip-api.com when city is not
           configured; high-performance data fetching via Open-Meteo API.
    [ok] 6.12 Docklet Right-Click Context Menu Consistency:
-        - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
-          MPRIS, Battery, Volume, Screenshot, Session, Ejector,
-          Brightness, Weather, Network) show clean, focused context menus.
-   [ ] 6.13 Network & Wi-Fi Docklet (docklet://network):
-        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a complete hardware monitor.
-        - Real-time network detection via GIO NetworkMonitor and NetworkManager DBus.
-        - Dynamic state-driven icons:
-          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak, none).
-          * Ethernet: wired connection active icon.
-          * Offline: disconnected icon.
-        - Informative tooltip displays connection type, SSID, signal strength %, and IP address.
-        - Left-click opens system Network Settings (KDE / GNOME / nm-connection-editor).
-        - Middle-click copies local IP address to clipboard.
-        - Right-click context menu displays connection details, Copy IP Address, Network Settings, and Remove from Dock.
+        - Verify ALL 14 docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Preferences, Ejector,
+          Brightness, Weather) have standard dock actions appended to
+          right-click menu (Preferences..., Shortcuts & Gestures..., Report a
+          Bug..., About Wayplank...). Preferences docklet displays
+          Preferences... as top action.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -927,20 +911,12 @@ SESSION 3: LABWC (wlroots Backend)
         - Automatic IP geolocation fallback via ip-api.com when city is not
           configured; high-performance data fetching via Open-Meteo API.
    [ok] 6.12 Docklet Right-Click Context Menu Consistency:
-        - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
-          MPRIS, Battery, Volume, Screenshot, Session, Ejector,
-          Brightness, Weather, Network) show clean, focused context menus.
-   [ ] 6.13 Network & Wi-Fi Docklet (docklet://network):
-        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a complete hardware monitor.
-        - Real-time network detection via GIO NetworkMonitor and NetworkManager DBus.
-        - Dynamic state-driven icons:
-          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak, none).
-          * Ethernet: wired connection active icon.
-          * Offline: disconnected icon.
-        - Informative tooltip displays connection type, SSID, signal strength %, and IP address.
-        - Left-click opens system Network Settings (KDE / GNOME / nm-connection-editor).
-        - Middle-click copies local IP address to clipboard.
-        - Right-click context menu displays connection details, Copy IP Address, Network Settings, and Remove from Dock.
+        - Verify ALL 14 docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Preferences, Ejector,
+          Brightness, Weather) have standard dock actions appended to
+          right-click menu (Preferences..., Shortcuts & Gestures..., Report a
+          Bug..., About Wayplank...). Preferences docklet displays
+          Preferences... as top action.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)

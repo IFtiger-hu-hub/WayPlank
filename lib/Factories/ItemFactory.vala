@@ -149,8 +149,6 @@ namespace Plank
 				return new BrightnessDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://weather")
 				return new WeatherDockItem.with_dockitem_file (file);
-			if (launcher == "docklet://network")
-				return new NetworkDockItem.with_dockitem_file (file);
 			if (launcher.has_suffix (".desktop"))
 				return new ApplicationDockItem.with_dockitem_file (file);
 			return new FileDockItem.with_dockitem_file (file);

@@ -105,8 +105,7 @@ namespace Plank
 						{ _("_Session / Power"), "docklet://session" },
 						{ _("_Screen Brightness"), "docklet://brightness" },
 						{ _("_Removable Drives"), "docklet://ejector" },
-						{ _("_Weather Forecast"), "docklet://weather" },
-						{ _("_Network / Wi-Fi"), "docklet://network" }
+						{ _("_Weather Forecast"), "docklet://weather" }
 					};
 					foreach (var d in docklets) {
 						var d_uri = d.uri;

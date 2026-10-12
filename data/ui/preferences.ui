@@ -1591,57 +1591,6 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="top_attach">7</property>
               </packing>
             </child>
-            <child>
-              <object class="GtkBox" id="box_docklet_network">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="orientation">horizontal</property>
-                <property name="spacing">10</property>
-                <child>
-                  <object class="GtkImage" id="img_docklet_network">
-                    <property name="visible">True</property>
-                    <property name="icon_name">network-wireless-signal-good</property>
-                    <property name="pixel_size">35</property>
-                    <property name="valign">center</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="l_docklet_network">
-                    <property name="visible">True</property>
-                    <property name="halign">start</property>
-                    <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Network / Wi-Fi</property>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSwitch" id="sw_docklet_network">
-                    <property name="visible">True</property>
-                    <property name="halign">end</property>
-                    <property name="valign">center</property>
-                    <property name="margin_right">10</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">7</property>
-              </packing>
-            </child>
           </object>
           <packing>
             <property name="name">grid_docklets</property>
