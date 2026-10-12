@@ -114,6 +114,10 @@ namespace Plank
 			save_btn.get_style_context ().add_class ("suggested-action");
 
 			show_all ();
+
+			destroy.connect (() => {
+				weather_item.get_dock ()?.check_collapse_after_interaction (this);
+			});
 		}
 
 		~WeatherCityDialog ()

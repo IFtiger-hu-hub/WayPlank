@@ -88,6 +88,14 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_accordion_click_to_expand;
 		[GtkChild]
+		unowned Gtk.Label l_accordion_delay;
+		[GtkChild]
+		unowned Gtk.Box box_accordion_delay;
+		[GtkChild]
+		unowned Gtk.Scale s_accordion_delay;
+		[GtkChild]
+		unowned Gtk.Adjustment adj_accordion_delay;
+		[GtkChild]
 		unowned Gtk.Switch sw_autostart;
 		[GtkChild]
 		unowned Gtk.ComboBoxText cb_window_click_behavior;
@@ -368,6 +376,12 @@ namespace Plank
 			case "AccordionClickToExpand":
 				sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
 				break;
+			case "AccordionDelay":
+				double delay_sec = (prefs.AccordionDelay >= 500U ? prefs.AccordionDelay : 1000U) / 1000.0;
+				if (Math.fabs (adj_accordion_delay.value - delay_sec) > 0.05) {
+					adj_accordion_delay.value = delay_sec;
+				}
+				break;
 			case "ZoomPercent":
 				adj_zoom_percent.value = prefs.ZoomPercent;
 				break;
@@ -640,6 +654,14 @@ namespace Plank
 			box_accordion.visible = prefs.CategorizeItems;
 			btn_reorder_free_items.visible = !prefs.CategorizeItems;
 			sw_accordion_click_to_expand.sensitive = prefs.AccordionDocklets;
+			bool show_delay = prefs.CategorizeItems && prefs.AccordionDocklets;
+			l_accordion_delay.visible = show_delay;
+			box_accordion_delay.visible = show_delay;
+		}
+
+		void accordion_delay_changed (Gtk.Adjustment adj)
+		{
+			prefs.AccordionDelay = (uint) Math.round (adj.value * 1000.0);
 		}
 
 		void reorder_free_items_clicked ()
@@ -711,6 +733,7 @@ namespace Plank
 			adj_iconsize.value_changed.connect (iconsize_changed);
 			adj_offset.value_changed.connect (offset_changed);
 			adj_zoom_percent.value_changed.connect (zoom_percent_changed);
+			adj_accordion_delay.value_changed.connect (accordion_delay_changed);
 			cb_window_click_behavior.changed.connect (window_click_behavior_changed);
 			sw_hide.notify["active"].connect (hide_toggled);
 			sw_primary_display.notify["active"].connect (primary_display_toggled);
@@ -765,6 +788,7 @@ namespace Plank
 			adj_iconsize.value_changed.disconnect (iconsize_changed);
 			adj_offset.value_changed.disconnect (offset_changed);
 			adj_zoom_percent.value_changed.disconnect (zoom_percent_changed);
+			adj_accordion_delay.value_changed.disconnect (accordion_delay_changed);
 			cb_window_click_behavior.changed.disconnect (window_click_behavior_changed);
 			sw_hide.notify["active"].disconnect (hide_toggled);
 			sw_primary_display.notify["active"].disconnect (primary_display_toggled);
@@ -896,6 +920,8 @@ namespace Plank
 			sw_categorize_items.set_active (prefs.CategorizeItems);
 			sw_accordion_docklets.set_active (prefs.AccordionDocklets);
 			sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
+			s_accordion_delay.format_value.connect ((val) => "%.1f s".printf (val));
+			adj_accordion_delay.value = (prefs.AccordionDelay >= 500U ? prefs.AccordionDelay : 1000U) / 1000.0;
 			update_accordion_visibility ();
 			cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
 			cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();

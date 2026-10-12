@@ -179,6 +179,12 @@
 			<summary>Click to expand docklets accordion</summary>
 			<description>When true, docklets accordion expands only when clicking the Master Preferences icon instead of on hover.</description>
 		</key>
+		<key name="accordion-delay" type="u">
+			<range min="500" max="20000"/>
+			<default>1000</default>
+			<summary>Accordion collapse delay</summary>
+			<description>Length of the delay before auto-collapsing docklets, in milliseconds.</description>
+		</key>
 		<key name="zoom-percent" type="i">
 			<range min="100" max="200"/>
 			<default>150</default>

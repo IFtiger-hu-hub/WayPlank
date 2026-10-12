@@ -235,7 +235,7 @@ To ensure rock-solid positioning across all compositors (GNOME Mutter, KDE Plasm
 | `lib/Items/ScreenshotDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
 | `lib/Items/EjectorDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
 | `lib/Items/DefaultApplicationDockItemProvider.vala` | Synchronized `position_manager.update()` and `window.set_input_mask()` on accordion expand, collapse, and toggle events. |
-| `lib/PositionManager.vala` | Unioned `background_rect` (dynamic icon draw centers) with `static_dock_region` in `get_cursor_region()` and `get_static_dock_region()`. |
+| `lib/PositionManager.vala` | Unioned `background_rect` with `static_dock_region`; added 250ms topology debouncer, prioritized geometry coordinate matching `[@ X,Y]` over volatile synthetic indices for identical displays, and eliminated destructive dconf `Monitor` overwriting during transient DPMS wakeups. |
 | `lib/Widgets/DockWindow.vala` | Ensured `set_input_mask()` is always executed on `update_size_and_position()` even when physical canvas resize is not needed. |
 | `FAT/2026-10-11 FAT 0.6.0.txt` | Added test case 12.7 covering accordion sensitive region and input mask synchronization across GNOME, KDE, and Labwc. |
 

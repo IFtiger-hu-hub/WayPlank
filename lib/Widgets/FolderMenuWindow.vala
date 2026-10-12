@@ -333,6 +333,7 @@ namespace Plank
 			TargetItem = null;
 			current_dir = null;
 			history.clear ();
+			controller.check_collapse_after_interaction (this);
 		}
 
 		void populate_items ()

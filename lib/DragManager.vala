@@ -579,12 +579,8 @@ namespace Plank
 			unowned DefaultApplicationDockItemProvider? default_app_provider = controller.default_provider as DefaultApplicationDockItemProvider;
 			if (default_app_provider != null) {
 				default_app_provider.refresh_separators ();
-				if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets) {
-					if (!controller.hide_manager.Hovered) {
-						default_app_provider.schedule_collapse_docklets (200U);
-					}
-				}
 			}
+			controller.check_collapse_after_interaction ();
 			controller.schedule_serialize_item_positions ();
 			
 			disconnect_hovered_item_handler ();

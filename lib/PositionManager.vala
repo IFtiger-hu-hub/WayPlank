@@ -50,8 +50,8 @@ namespace Plank
 			unowned Gdk.Screen screen = controller.window.get_screen ();
 			
 			controller.prefs.notify.connect (prefs_changed);
-			screen.monitors_changed.connect (screen_changed);
-			screen.size_changed.connect (screen_changed);
+			screen.monitors_changed.connect (on_screen_topology_changed);
+			screen.size_changed.connect (on_screen_topology_changed);
 			screen.composited_changed.connect (screen_composited_changed);
 			WindowControl.get_default ().primary_monitor_changed.connect (prefs_monitor_changed);
 			
@@ -63,6 +63,11 @@ namespace Plank
 		
 		~PositionManager ()
 		{
+			if (screen_topology_timer_id != 0U) {
+				Source.remove (screen_topology_timer_id);
+				screen_topology_timer_id = 0U;
+			}
+
 			WindowControl.get_default ().primary_monitor_changed.disconnect (prefs_monitor_changed);
 			
 			if (controller != null) {
@@ -70,8 +75,8 @@ namespace Plank
 				if (controller.window != null) {
 					unowned Gdk.Screen screen = controller.window.get_screen ();
 					if (screen != null) {
-						screen.monitors_changed.disconnect (screen_changed);
-						screen.size_changed.disconnect (screen_changed);
+						screen.monitors_changed.disconnect (on_screen_topology_changed);
+						screen.size_changed.disconnect (on_screen_topology_changed);
 						screen.composited_changed.disconnect (screen_composited_changed);
 					}
 				}
@@ -172,23 +177,10 @@ namespace Plank
 					return display.get_monitor (i);
 			}
 
-			// 2. Stable Label match ignoring volatile resolution/coordinates (e.g. "DELL P2219H (1)" or "eDP-1-0x0B58")
-			// This preserves monitor assignment across fractional scaling, DPI changes, and resolution switches.
-			string plug_label = plug_name;
-			if (plug_label.contains ("[")) {
-				plug_label = plug_label.split ("[")[0].strip ();
-			}
-			if (plug_label != "") {
-				for (int i = 0; i < n_monitors; i++) {
-					string cur_label = names[i];
-					if (cur_label.contains ("["))
-						cur_label = cur_label.split ("[")[0].strip ();
-					if (plug_label == cur_label)
-						return display.get_monitor (i);
-				}
-			}
-
-			// 3. Geometry coordinate match from string "[... @ X,Y]"
+			// 2. Geometry coordinate match from string "[... @ X,Y]"
+			// In multi-monitor setups (especially with identical monitor models),
+			// coordinates in compositor space are the most reliable anchor, since
+			// synthetic indices like (1), (2) can fluctuate upon sleep/wake.
 			if (plug_name.contains ("@")) {
 				int at_idx = plug_name.index_of ("@");
 				int end_idx = plug_name.index_of ("]", at_idx);
@@ -207,6 +199,22 @@ namespace Plank
 				}
 			}
 
+			// 3. Stable Label match ignoring volatile resolution/coordinates (e.g. "DELL P2219H (1)" or "eDP-1-0x0B58")
+			// This preserves monitor assignment across fractional scaling, DPI changes, and resolution switches.
+			string plug_label = plug_name;
+			if (plug_label.contains ("[")) {
+				plug_label = plug_label.split ("[")[0].strip ();
+			}
+			if (plug_label != "") {
+				for (int i = 0; i < n_monitors; i++) {
+					string cur_label = names[i];
+					if (cur_label.contains ("["))
+						cur_label = cur_label.split ("[")[0].strip ();
+					if (plug_label == cur_label)
+						return display.get_monitor (i);
+				}
+			}
+
 			// 4. Match numeric index "X" or legacy "PLUG_MONITOR_X"
 			for (int i = 0; i < n_monitors; i++) {
 				var fallback = "PLUG_MONITOR_%i".printf (i);
@@ -214,13 +222,15 @@ namespace Plank
 					return display.get_monitor (i);
 			}
 
-			// 5. Fallback to matching raw model prefix or name
-			for (int i = 0; i < n_monitors; i++) {
-				var monitor = display.get_monitor (i);
-				if (monitor != null) {
-					var m = monitor.get_model ();
-					if (m != null && m != "" && (plug_name == m || plug_name.has_prefix (m)))
-						return monitor;
+			// 5. Fallback to matching raw model prefix or name (only if no coordinates were specified)
+			if (!plug_name.contains ("@")) {
+				for (int i = 0; i < n_monitors; i++) {
+					var monitor = display.get_monitor (i);
+					if (monitor != null) {
+						var m = monitor.get_model ();
+						if (m != null && m != "" && (plug_name == m || plug_name.has_prefix (m)))
+							return monitor;
+					}
 				}
 			}
 			
@@ -256,6 +266,23 @@ namespace Plank
 			return monitor.get_workarea ();
 		}
 
+		uint screen_topology_timer_id = 0U;
+
+		void on_screen_topology_changed (Gdk.Screen screen)
+		{
+			if (screen_topology_timer_id != 0U) {
+				Source.remove (screen_topology_timer_id);
+				screen_topology_timer_id = 0U;
+			}
+
+			// Debounce monitor/size reconfiguration storms (e.g. sleep/wake or hotplug)
+			screen_topology_timer_id = Timeout.add (250, () => {
+				screen_topology_timer_id = 0U;
+				screen_changed (screen);
+				return Source.REMOVE;
+			});
+		}
+
 		bool updating_screen = false;
 
 		void screen_changed (Gdk.Screen screen)
@@ -269,17 +296,6 @@ namespace Plank
 			monitor_geo = get_effective_monitor_geometry (monitor);
 			bool monitor_changed = (monitor != current_monitor);
 			current_monitor = monitor;
-
-			if (monitor != null && controller.prefs.Monitor != "" && controller.prefs.Monitor != "primary") {
-				var names = get_monitor_plug_names (screen.get_display ());
-				for (int i = 0; i < names.length; i++) {
-					if (screen.get_display ().get_monitor (i) == monitor) {
-						if (controller.prefs.Monitor != names[i])
-							controller.prefs.Monitor = names[i];
-						break;
-					}
-				}
-			}
 
 			if (!monitor_changed
 				&& old_monitor_geo.x == monitor_geo.x

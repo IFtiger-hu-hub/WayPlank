@@ -498,5 +498,37 @@ namespace Plank
 				window.present ();
 			renderer.animated_draw ();
 		}
+
+		public bool is_interaction_active (Gtk.Window? closing_win = null)
+		{
+			if (window != null && window.menu_is_visible ())
+				return true;
+			if (folder_menu != null && folder_menu.get_visible ())
+				return true;
+			if (drag_manager != null && (drag_manager.InternalDragActive || drag_manager.ExternalDragActive))
+				return true;
+
+			GLib.List<weak Gtk.Window> toplevels = Gtk.Window.list_toplevels ();
+			foreach (var win in toplevels) {
+				if (win is DockWindow || win is HoverWindow || win is PoofWindow || win == closing_win)
+					continue;
+				if (win.get_visible ())
+					return true;
+			}
+
+			return false;
+		}
+
+		public void check_collapse_after_interaction (Gtk.Window? closing_win = null)
+		{
+			if (prefs.CategorizeItems && prefs.AccordionDocklets && app_provider != null) {
+				if (hide_manager.Hovered) {
+					app_provider.cancel_collapse_timer ();
+				} else if (!is_interaction_active (closing_win)) {
+					app_provider.cancel_collapse_timer ();
+					app_provider.schedule_collapse_docklets (prefs.AccordionDelay);
+				}
+			}
+		}
 	}
 }

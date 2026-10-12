@@ -480,8 +480,11 @@ namespace Plank
 			});
 			
 			about_dlg.hide.connect (() => {
+				Gtk.Window? old = about_dlg;
 				about_dlg.destroy ();
 				about_dlg = null;
+				if (primary_dock != null)
+					primary_dock.check_collapse_after_interaction (old);
 			});
 			
 			raise_and_focus_window (about_dlg);
@@ -526,12 +529,18 @@ namespace Plank
 				preferences_dlg.show_page (page_name);
 			
 			preferences_dlg.destroy.connect (() => {
+				Gtk.Window? old = preferences_dlg;
 				preferences_dlg = null;
+				if (primary_dock != null)
+					primary_dock.check_collapse_after_interaction (old);
 			});
 			
 			preferences_dlg.hide.connect (() => {
+				Gtk.Window? old = preferences_dlg;
 				preferences_dlg.destroy ();
 				preferences_dlg = null;
+				if (primary_dock != null)
+					primary_dock.check_collapse_after_interaction (old);
 			});
 			
 			raise_and_focus_window (preferences_dlg);
@@ -547,12 +556,18 @@ namespace Plank
 			help_dlg = new HelpWindow ();
 
 			help_dlg.destroy.connect (() => {
+				Gtk.Window? old = help_dlg;
 				help_dlg = null;
+				if (primary_dock != null)
+					primary_dock.check_collapse_after_interaction (old);
 			});
 
 			help_dlg.hide.connect (() => {
+				Gtk.Window? old = help_dlg;
 				help_dlg.destroy ();
 				help_dlg = null;
+				if (primary_dock != null)
+					primary_dock.check_collapse_after_interaction (old);
 			});
 
 			raise_and_focus_window (help_dlg);

@@ -97,6 +97,8 @@ namespace Plank
 			cancel_collapse_timer ();
 			docklets_expanded = false;
 			foreach (var element in internal_elements) {
+				element.IsAttached = true;
+				element.AddTime = 0;
 				element.RemoveTime = 0;
 			}
 			refresh_separators ();
@@ -149,19 +151,41 @@ namespace Plank
 			}
 		}
 
-		public void schedule_collapse_docklets (uint delay_ms = 300U)
+		public void schedule_collapse_docklets (uint delay_ms = 0U)
 		{
+			if (!Prefs.CategorizeItems || !Prefs.AccordionDocklets) {
+				cancel_collapse_timer ();
+				return;
+			}
 			unowned DockController? dock = get_dock ();
 			if (dock != null && (dock.drag_manager.InternalDragActive || dock.drag_manager.ExternalDragActive))
+				return;
+			if (dock != null && dock.is_interaction_active ())
 				return;
 			if (!docklets_expanded)
 				return;
 			if (docklets_collapse_timer_id != 0U)
 				return;
-			docklets_collapse_timer_id = Timeout.add (delay_ms, () => {
+			uint timeout_ms = delay_ms;
+			if (timeout_ms == 0U) {
+				timeout_ms = (Prefs != null && Prefs.AccordionDelay >= 500U) ? Prefs.AccordionDelay : 1000U;
+			}
+			docklets_collapse_timer_id = Timeout.add (timeout_ms, () => {
 				docklets_collapse_timer_id = 0U;
+				if (!Prefs.CategorizeItems || !Prefs.AccordionDocklets) {
+					foreach (var element in internal_elements) {
+						element.IsAttached = true;
+						element.AddTime = 0;
+						element.RemoveTime = 0;
+					}
+					return Source.REMOVE;
+				}
 				unowned DockController? d = get_dock ();
 				if (d != null && (d.drag_manager.InternalDragActive || d.drag_manager.ExternalDragActive))
+					return Source.REMOVE;
+				if (d != null && d.is_interaction_active ())
+					return Source.REMOVE;
+				if (d != null && d.hide_manager.Hovered)
 					return Source.REMOVE;
 				if (docklets_expanded) {
 					docklets_expanded = false;
@@ -185,6 +209,8 @@ namespace Plank
 			docklets_expanded = false;
 			deduplicate_items ();
 			foreach (var element in internal_elements) {
+				element.IsAttached = true;
+				element.AddTime = 0;
 				element.RemoveTime = 0;
 			}
 			if (!Prefs.CategorizeItems) {
@@ -208,6 +234,10 @@ namespace Plank
 				dock.position_manager.update (dock.renderer.theme);
 				dock.renderer.reset_buffers ();
 				dock.schedule_serialize_item_positions ();
+				if (dock.window != null) {
+					dock.window.set_input_mask ();
+				}
+				dock.renderer.animated_draw ();
 			}
 		}
 

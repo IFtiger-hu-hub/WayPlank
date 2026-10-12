@@ -54,15 +54,16 @@ namespace Plank
 			var grid_mouse = create_shortcuts_grid ();
 			add_shortcut_row (grid_mouse, 0, _("Left Click"), _("Launch application, or activate / cycle open windows"));
 			add_shortcut_row (grid_mouse, 1, _("Middle Click (or Ctrl + Left)"), _("Force launch a NEW instance of the application"));
-			add_shortcut_row (grid_mouse, 2, _("Right Click on Any Item"), _("Open context menu (Quicklists, Keep in Dock, Change Icon, Preferences, Quit)"));
+			add_shortcut_row (grid_mouse, 2, _("Right Click on Any Item"), _("Open context menu (Quicklists, Keep in Dock, Change Icon, Shortcuts & Gestures, Preferences, Quit)"));
 			add_shortcut_row (grid_mouse, 3, _("Mouse Scroll on App"), _("Cycle between all open windows of this application"));
 			add_shortcut_row (grid_mouse, 4, _("Shift + Left Click"), _("Focus the next open window of this application"));
 			add_shortcut_row (grid_mouse, 5, _("Left Click on Folder Drawer"), _("Open dark-themed categorized smart application menu"));
-			add_shortcut_row (grid_mouse, 6, _("Left Click on Preferences"), _("Expand docklet accordion (when Click to Expand is ON), or open Preferences"));
-			add_shortcut_row (grid_mouse, 7, _("Mouse Scroll on Brightness"), _("Adjust display brightness with multi-monitor hardware sync"));
-			add_shortcut_row (grid_mouse, 8, _("Mouse Scroll on Volume"), _("Adjust master audio volume up or down"));
-			add_shortcut_row (grid_mouse, 9, _("Middle Click on MPRIS"), _("Play or pause media playback"));
-			add_shortcut_row (grid_mouse, 10, _("Mouse Scroll on MPRIS"), _("Skip to next or previous media track"));
+			add_shortcut_row (grid_mouse, 6, _("Preferences Icon (Accordion)"), _("Hover or click to toggle docklet drawer; directional indicators (▸ / ◂ / ▾ / ▴) show state"));
+			add_shortcut_row (grid_mouse, 7, _("Accordion Auto-Retention"), _("Drawer stays open during menus & dialogs; full countdown (0.5s–20s) restarts on close"));
+			add_shortcut_row (grid_mouse, 8, _("Mouse Scroll on Brightness"), _("Adjust display brightness with multi-monitor hardware sync"));
+			add_shortcut_row (grid_mouse, 9, _("Mouse Scroll on Volume"), _("Adjust master audio volume up or down"));
+			add_shortcut_row (grid_mouse, 10, _("Middle Click on MPRIS"), _("Play or pause media playback"));
+			add_shortcut_row (grid_mouse, 11, _("Mouse Scroll on MPRIS"), _("Skip to next or previous media track"));
 			stack.add_titled (create_page (_("Interactions and gestures on application icons, drawers and docklets"), grid_mouse), "mouse", _("Mouse Actions"));
 
 			// Page 2: Drag & Drop & Organization
@@ -81,8 +82,9 @@ namespace Plank
 			add_shortcut_row (grid_tools, 1, _("Ctrl + Mouse Scroll Down"), _("Decrease dock icon size dynamically in real-time"));
 			add_shortcut_row (grid_tools, 2, _("Ctrl + Right Click"), _("Open dock preferences menu directly, even over an icon"));
 			add_shortcut_row (grid_tools, 3, _("Right Click on space / separator"), _("Open dock preferences menu from any empty dock area or separator"));
-			add_shortcut_row (grid_tools, 4, _("Change Icon... (Right Click)"), _("Choose system icon or custom image for any launcher, folder, or docklet"));
-			add_shortcut_row (grid_tools, 5, _("Ctrl + Alt + Shift + Right Click"), _("Open Developer Tools submenu (inspect launcher, config, theme)"));
+			add_shortcut_row (grid_tools, 4, _("Right Click -> Change Icon..."), _("Choose system icon or custom image for any launcher or folder drawer"));
+			add_shortcut_row (grid_tools, 5, _("Right Click -> Shortcuts & Gestures"), _("Open this interactive guide directly from any item context menu"));
+			add_shortcut_row (grid_tools, 6, _("Ctrl + Alt + Shift + Right Click"), _("Open Developer Tools submenu (inspect launcher, config, theme)"));
 			stack.add_titled (create_page (_("Dynamic zoom, universal icons, dock settings and developer tools"), grid_tools), "tools", _("Shortcuts & Tools"));
 
 			// HeaderBar with StackSwitcher spanning full width

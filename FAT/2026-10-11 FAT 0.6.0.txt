@@ -4,7 +4,7 @@
 Date: 2026-10-11
 Milestone: V0.6.0 (Modern First-Run Autoconfiguration, 4 English Folders Drawers,
            Smart Pinned Apps, Integrated User Guide with Chrome Anchor Navigation,
-           Embedded GResource Release Banner, Pre-Filled Regression-Free Suite)
+           Embedded GResource Release Banner, Multi-Monitor Retention Suite)
 Author & Tester: Sergio Melas
 
 
@@ -288,14 +288,20 @@ SESSION 1: GNOME (Mutter Backend)
    [ok] 10.1  First-Run Onboarding & Documentation:
         - Fresh config generates 4 categorized drawers (Internet, Office, Media, Games/Utility), default pinned apps, and accordion defaults.
         - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html in browser with working Table of Contents anchor jumps.
-   [ok] 10.2  Master Anchor, Accordion & Wayland Input Mask:
-        - Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
-        - Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
-        - Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
-   [ok] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
-        - Right-click App, Folder, Docklet, and Dock background: context actions appear at top, followed by universal '_Preferences...' and '_Quit' at bottom.
-        - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
-        - Right-click App -> 'Change Icon...': instant search, custom icon applies cleanly, 'Restore Default' restores original. Folder drawers accept custom icons via GIO metadata.
+   [  ] 10.2  Master Anchor, Accordion & Wayland Input Mask:
+        - [ok] Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
+        - [ok] Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
+        - [ok] Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
+        - [  ] Master Preferences anchor tooltip dynamically displays directional arrow (▸ / ◂) indicating the docklet accordion expansion state.
+        - [  ] Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in Preferences -> Appearance (visible only when Accordion is active).
+        - [  ] Accordion collapse retention on dock hide/unhide: if dock closes (e.g. intellihide) and reopens before delay expires, drawer remains open. Timer cancels upon cursor re-entry.
+        - [  ] Universal Interaction Invalidation: Accordion collapse timer is held/inhibited while any dialog (Preferences, Help, Icon Chooser, Weather) or menu is open. On close, restarts full delay if cursor is outside, or keeps drawer open if cursor is on dock.
+        - [  ] Free Mode & Accordion Toggle Garbage Collection: Disabling 'Categorize Items' or 'Accordion Docklets' immediately kills active collapse timers, re-attaches and displays all docklets expanded ("spanzo") without crashes.
+   [  ] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
+        - [  ] Right-click on ANY item or dock background includes '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
+        - [ok] Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
+        - [ok] Right-click App -> 'Change Icon...': instant search, custom icon applies cleanly, 'Restore Default' restores original. Folder drawers accept custom icons via GIO metadata.
+        - [  ] Interactive Shortcuts & Gestures window and terminal cheatsheet ('wayplank --help') document Accordion controls, directional indicators, retention, right-click shortcuts, and icon chooser.
    [ok] 10.4  Mode Switching, 'Align by Type' & Separator Integrity:
         - Disable 'Categorize Items' in Preferences: dock switches instantly to Free Mode with single separator after Preferences anchor.
         - Click 'Align by Type': dock immediately arranges in canonical order [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
@@ -583,10 +589,13 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [ok] 10.1  First-Run Onboarding & Documentation:
         - Fresh config generates 4 categorized drawers (Internet, Office, Media, Games/Utility), default pinned apps, and accordion defaults.
         - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html in browser with working Table of Contents anchor jumps.
-   [ok] 10.2  Master Anchor, Accordion & Wayland Input Mask:
-        - Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
-        - Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
-        - Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
+   [  ] 10.2  Master Anchor, Accordion & Wayland Input Mask:
+        - [ok] Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
+        - [ok] Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
+        - [ok] Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
+        - [  ] Master Preferences anchor tooltip dynamically displays directional arrow (▸ / ◂) indicating the docklet accordion expansion state.
+        - [  ] Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in Preferences -> Appearance (visible only when Accordion is active).
+        - [  ] Accordion collapse retention on dock hide/unhide: if dock closes (e.g. intellihide) and reopens before delay expires, drawer remains open. Timer cancels upon cursor re-entry.
    [ok] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
         - Right-click App, Folder, Docklet, and Dock background: context actions appear at top, followed by universal '_Preferences...' and '_Quit' at bottom.
         - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
@@ -857,7 +866,7 @@ SESSION 3: LABWC (wlroots Backend)
    [ok] 9.1 Sleep & Resume Wakeup:
         Suspend machine -> resume; Labwc remains 100% responsive
    [ok] 9.2 Monitor Hotplug / Cable Reconnect:
-        Screen layout storm absorbed by debouncer
+        Screen layout storm absorbed by 250ms debouncer & physical coordinate matching
    [ok] 9.3 Rapid Geometry Storm:
         Rapidly move/maximize/restore windows -> updates throttled smoothly
    [ok] 9.4 Process Lifecycle (--replace / kill):
@@ -877,10 +886,13 @@ SESSION 3: LABWC (wlroots Backend)
    [ok] 10.1  First-Run Onboarding & Documentation:
         - Fresh config generates 4 categorized drawers (Internet, Office, Media, Games/Utility), default pinned apps, and accordion defaults.
         - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html in browser with working Table of Contents anchor jumps.
-   [ok] 10.2  Master Anchor, Accordion & Wayland Input Mask:
-        - Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
-        - Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
-        - Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
+   [  ] 10.2  Master Anchor, Accordion & Wayland Input Mask:
+        - [ok] Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
+        - [ok] Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
+        - [ok] Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
+        - [  ] Master Preferences anchor tooltip dynamically displays directional arrow (▸ / ◂) indicating the docklet accordion expansion state.
+        - [  ] Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in Preferences -> Appearance (visible only when Accordion is active).
+        - [  ] Accordion collapse retention on dock hide/unhide: if dock closes (e.g. intellihide) and reopens before delay expires, drawer remains open. Timer cancels upon cursor re-entry.
    [ok] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
         - Right-click App, Folder, Docklet, and Dock background: context actions appear at top, followed by universal '_Preferences...' and '_Quit' at bottom.
         - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).

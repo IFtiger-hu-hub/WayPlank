@@ -118,6 +118,9 @@ namespace Plank
 		[Description(nick = "accordion-click-to-expand", blurb = "Whether to expand docklets accordion only on click instead of hover.")]
 		public bool AccordionClickToExpand { get; set; }
 		
+		[Description(nick = "accordion-delay", blurb = "Time (in ms) to wait before auto-collapsing docklets.")]
+		public uint AccordionDelay { get; set; }
+		
 		/**
 		 * {@inheritDoc}
 		 */
@@ -177,6 +180,12 @@ namespace Plank
 					ZoomPercent = (uint) MIN_ICON_ZOOM;
 				else if (ZoomPercent > (uint) MAX_ICON_ZOOM)
 					ZoomPercent = (uint) MAX_ICON_ZOOM;
+				break;
+			case "AccordionDelay":
+				if (AccordionDelay < 500)
+					AccordionDelay = 500;
+				else if (AccordionDelay > 20000)
+					AccordionDelay = 20000;
 				break;
 			
 			case "Theme":

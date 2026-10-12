@@ -322,6 +322,9 @@ namespace Plank
 				}
 				dlg.destroy ();
 			});
+			dlg.destroy.connect (() => {
+				item.get_dock ()?.check_collapse_after_interaction (dlg);
+			});
 			dlg.present ();
 		}
 
@@ -404,6 +407,9 @@ namespace Plank
 					reset_folder_icon (item);
 				}
 				dlg.destroy ();
+			});
+			dlg.destroy.connect (() => {
+				item.get_dock ()?.check_collapse_after_interaction (dlg);
 			});
 			dlg.present ();
 		}

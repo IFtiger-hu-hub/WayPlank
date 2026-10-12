@@ -352,8 +352,13 @@ namespace Plank
 				set_hovered_provider (null);
 				set_hovered (null);
 				controller.hide_manager.update_hovered_with_coords (-1, -1);
-				if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
-					controller.app_provider.schedule_collapse_docklets (200U);
+				if (controller.is_interaction_active ()) {
+					if (controller.app_provider != null)
+						controller.app_provider.cancel_collapse_timer ();
+				} else {
+					if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+						controller.app_provider.schedule_collapse_docklets (controller.prefs.AccordionDelay);
+					}
 				}
 			} else
 				controller.hover.hide ();
@@ -427,8 +432,10 @@ namespace Plank
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
 
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && !controller.prefs.AccordionClickToExpand && controller.app_provider != null) {
-				if (is_hovering_docklets ((int) event.x, (int) event.y)) {
+			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+				if (controller.app_provider.docklets_expanded) {
+					controller.app_provider.cancel_collapse_timer ();
+				} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
 					controller.app_provider.expand_docklets ();
 				}
 			}
@@ -453,8 +460,10 @@ namespace Plank
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
 
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && !controller.prefs.AccordionClickToExpand && controller.app_provider != null) {
-				if (is_hovering_docklets ((int) event.x, (int) event.y)) {
+			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+				if (controller.app_provider.docklets_expanded) {
+					controller.app_provider.cancel_collapse_timer ();
+				} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
 					controller.app_provider.expand_docklets ();
 				}
 			}
@@ -646,6 +655,21 @@ namespace Plank
 						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Running"));
 					} else if ((HoveredItem is PlankDockItem || (HoveredItem.Prefs != null && HoveredItem.Prefs.Launcher.has_prefix ("docklet://"))) && !(HoveredItem is TrashDockItem)) {
 						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Docklet"));
+					}
+				} else if (controller.prefs.AccordionDocklets && (HoveredItem is PreferencesDockItem || (HoveredItem.Prefs != null && HoveredItem.Prefs.Launcher == "docklet://preferences"))) {
+					unowned DefaultApplicationDockItemProvider? app_prov = controller.app_provider;
+					bool is_horiz = controller.position_manager.is_horizontal_dock ();
+					string arrow_expand = is_horiz ? "▸" : "▾";
+					string arrow_collapse = is_horiz ? "◂" : "▴";
+
+					if (app_prov != null && !app_prov.docklets_expanded) {
+						if (controller.prefs.AccordionClickToExpand) {
+							tooltip_text = "%s • %s %s (%s)".printf (HoveredItem.Text, _("Docklets"), arrow_expand, _("Click to expand"));
+						} else {
+							tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_expand);
+						}
+					} else {
+						tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_collapse);
 					}
 				}
 				hover.set_text (tooltip_text);
@@ -915,6 +939,12 @@ namespace Plank
 		{
 			items.add (new Gtk.SeparatorMenuItem ());
 
+			var shortcuts_item = DockElement.create_menu_item (_("_Shortcuts & Gestures..."), "help-browser", true);
+			shortcuts_item.activate.connect (() => {
+				Application.get_default ().activate_action ("shortcuts", null);
+			});
+			items.add (shortcuts_item);
+
 			var pref_item = DockElement.create_menu_item (_("_Preferences..."), "preferences-system", true);
 			pref_item.activate.connect (() => {
 				Application.get_default ().activate_action ("preferences", null);
@@ -1009,11 +1039,7 @@ namespace Plank
 				set_hovered (null);
 			}
 
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
-				if (!hide_manager.Hovered && !controller.drag_manager.InternalDragActive) {
-					controller.app_provider.schedule_collapse_docklets (200U);
-				}
-			}
+			controller.check_collapse_after_interaction ();
 
 			menu_items = null;
 		}
@@ -1022,6 +1048,8 @@ namespace Plank
 		{
 			update_icon_regions ();
 			controller.hover.hide ();
+			if (controller.app_provider != null)
+				controller.app_provider.cancel_collapse_timer ();
 			controller.renderer.animated_draw ();
 		}
 
