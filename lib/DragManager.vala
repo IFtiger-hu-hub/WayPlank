@@ -85,6 +85,23 @@ namespace Plank
 		Gdk.DragContext? active_drag_context = null;
 		DockItem? drop_target_item = null;
 		bool last_hovered_trash = false;
+		bool hovered_item_handler_connected = false;
+
+		void connect_hovered_item_handler ()
+		{
+			if (!hovered_item_handler_connected && controller != null && controller.window != null) {
+				controller.window.notify["HoveredItem"].connect (hovered_item_changed);
+				hovered_item_handler_connected = true;
+			}
+		}
+
+		void disconnect_hovered_item_handler ()
+		{
+			if (hovered_item_handler_connected && controller != null && controller.window != null) {
+				controller.window.notify["HoveredItem"].disconnect (hovered_item_changed);
+				hovered_item_handler_connected = false;
+			}
+		}
 		
 		/**
 		 * Creates a new instance of a DragManager, which handles
@@ -124,6 +141,7 @@ namespace Plank
 		
 		~DragManager ()
 		{
+			disconnect_hovered_item_handler ();
 			if (controller != null) {
 				controller.prefs.notify["LockItems"].disconnect (lock_items_changed);
 				
@@ -214,7 +232,17 @@ namespace Plank
 			unowned DockWindow window = controller.window;
 			window.cancel_long_press ();
 			
-			window.notify["HoveredItem"].connect (hovered_item_changed);
+			DragItem = window.HoveredItem;
+			
+			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is TrashDockItem || DragItem is PlankDockItem || DragItem is PreferencesDockItem || (DragItem.Prefs != null && DragItem.Prefs.Launcher == "docklet://preferences"))
+				DragItem = null;
+			
+			if (DragItem == null) {
+				Gdk.drag_abort (context, Gtk.get_current_event_time ());
+				return;
+			}
+			
+			connect_hovered_item_handler ();
 			
 			InternalDragActive = true;
 			drag_canceled = false;
@@ -222,16 +250,6 @@ namespace Plank
 			left_dock_during_drag = false;
 			is_outside_dock = false;
 			last_hovered_trash = false;
-			
-			DragItem = window.HoveredItem;
-			
-			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is TrashDockItem || DragItem is PlankDockItem || DragItem is PreferencesDockItem)
-				DragItem = null;
-			
-			if (DragItem == null) {
-				Gdk.drag_abort (context, Gtk.get_current_event_time ());
-				return;
-			}
 			
 			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
 				controller.app_provider.cancel_collapse_timer ();
@@ -435,7 +453,7 @@ namespace Plank
 					if (DragItem.can_be_removed ()) {
 						unowned ApplicationDockItem? app_item = (DragItem as ApplicationDockItem);
 						var was_pinned = !(DragItem is TransientDockItem);
-						var still_running = (app_item != null && app_item.is_running ());
+						var still_running = (app_item != null && (app_item.is_running () || WindowManager.get_default ().window_count_for_app (DragItem.Launcher) > 0));
 						var launcher_uri = DragItem.Launcher;
 						unowned DockContainer? drag_container = DragItem.Container;
 						
@@ -454,16 +472,27 @@ namespace Plank
 						var monitor = PositionManager.get_monitor_for_plug_name (controller.window.get_display (), controller.prefs.Monitor);
 						var dock_pos = controller.position_manager.Position;
 
-						if (app_item == null || !(still_running || app_item.has_unity_info ())) {
-							DragItem.IsVisible = false;
-							DragItem.Container.remove (DragItem);
+						DragItem.IsVisible = false;
+						if (drag_container != null && drag_container.Elements.contains (DragItem)) {
+							drag_container.remove (DragItem);
 						}
-						DragItem.delete ();
+						var item_to_delete = DragItem;
+						DragItem = null;
+						InternalDragActive = false;
+						item_to_delete.delete ();
 						
 						// A pinned app that's still running should keep a temporary icon
 						// instead of disappearing entirely once dragged out of the dock.
-						if (was_pinned && still_running && drag_container != null)
-							drag_container.add (new TransientDockItem.with_launcher (launcher_uri));
+						if (was_pinned && still_running && drag_container != null) {
+							DockElement? trash_target = null;
+							foreach (var el in drag_container.Elements) {
+								if (el is TrashDockItem) {
+									trash_target = el;
+									break;
+								}
+							}
+							drag_container.add (new TransientDockItem.with_launcher (launcher_uri), trash_target);
+						}
 
 						PoofWindow.get_default ().show_at (poof_x, poof_y, dock_pos, dock_thickness, monitor);
 					}
@@ -493,6 +522,14 @@ namespace Plank
 								}
 							}
 
+							int sep_pref_idx = -1;
+							if (elements.size > 1 && elements.get (1) is SeparatorDockItem) {
+								var first_el = elements.get (0);
+								if (first_el is PreferencesDockItem || (first_el is DockItem && ((DockItem) first_el).Prefs != null && ((DockItem) first_el).Prefs.Launcher == "docklet://preferences")) {
+									sep_pref_idx = 1;
+								}
+							}
+
 							int sep_trash_idx = -1;
 							if (trash_idx > 0 && elements.get (trash_idx - 1) is SeparatorDockItem) {
 								sep_trash_idx = trash_idx - 1;
@@ -500,7 +537,7 @@ namespace Plank
 
 							// Find the separator dividing pinned and transient items
 							for (int i = 0; i < elements.size; i++) {
-								if (elements.get (i) is SeparatorDockItem && i != sep_trash_idx) {
+								if (elements.get (i) is SeparatorDockItem && i != sep_trash_idx && i != sep_pref_idx) {
 									bool is_before_apps = false;
 									if (controller.prefs.CategorizeItems) {
 										if (i > 0) {
@@ -548,8 +585,9 @@ namespace Plank
 					}
 				}
 			}
+			controller.schedule_serialize_item_positions ();
 			
-			controller.window.notify["HoveredItem"].disconnect (hovered_item_changed);
+			disconnect_hovered_item_handler ();
 			controller.hover.hide ();
 			controller.renderer.animated_draw ();
 			hide_manager.update_hovered ();
@@ -575,7 +613,7 @@ namespace Plank
 			drag_known = false;
 			
 			if (ExternalDragActive) {
-				controller.window.notify["HoveredItem"].disconnect (hovered_item_changed);
+				disconnect_hovered_item_handler ();
 				
 				Gdk.threads_add_idle (() => {
 					ExternalDragActive = false;
@@ -636,7 +674,7 @@ namespace Plank
 			
 			if (ExternalDragActive && !drag_known) {
 				drag_known = true;
-				window.notify["HoveredItem"].connect (hovered_item_changed);
+				connect_hovered_item_handler ();
 			}
 			
 			if (ExternalDragActive) {
@@ -647,7 +685,20 @@ namespace Plank
 			hide_manager.update_hovered_with_coords (x, y);
 			window.update_hovered (x, y);
 			
-			if (window.HoveredItem is TrashDockItem)
+			bool over_trash = (window.HoveredItem is TrashDockItem);
+			if (!over_trash) {
+				unowned PositionManager pos_mgr = controller.position_manager;
+				foreach (var el in controller.default_provider.Elements) {
+					if (el is TrashDockItem) {
+						var r = pos_mgr.get_hover_region_for_element (el as DockItem);
+						if (x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height) {
+							over_trash = true;
+							break;
+						}
+					}
+				}
+			}
+			if (over_trash)
 				last_hovered_trash = true;
 			else if (window.HoveredItem != null)
 				last_hovered_trash = false;
@@ -776,60 +827,76 @@ namespace Plank
 					return;
 				}
 				
-				// Identify separators and Trash markers
-				int sep1_idx = -1;
-				int sep2_idx = -1;
-				int trash_idx = -1;
-				for (int i = 0; i < elements.size; i++) {
-					var el = elements.get (i);
-					if (el is SeparatorDockItem) {
-						if (sep1_idx < 0)
-							sep1_idx = i;
-						else
-							sep2_idx = i;
-					} else if (el is TrashDockItem) {
-						trash_idx = i;
+				// Identify Preferences anchor, separators, and Trash markers
+				int sep_pref_idx = -1;
+				if (elements.size > 1 && elements.get (1) is SeparatorDockItem) {
+					var first_el = elements.get (0);
+					if (first_el is PreferencesDockItem || (first_el is DockItem && ((DockItem) first_el).Prefs != null && ((DockItem) first_el).Prefs.Launcher == "docklet://preferences")) {
+						sep_pref_idx = 1;
 					}
 				}
-				
-				// Identify separator preceding Trash
-				int sep_trash_idx = -1;
-				if (trash_idx >= 0) {
-					if (sep2_idx >= 0)
-						sep_trash_idx = sep2_idx;
-					else if (sep1_idx >= 0)
-						sep_trash_idx = sep1_idx;
+
+				int trash_idx = -1;
+				for (int i = 0; i < elements.size; i++) {
+					if (elements.get (i) is TrashDockItem) {
+						trash_idx = i;
+						break;
+					}
 				}
-				
-				// Rule 1: No app (pinned or unpinned, running or not) can ever move to or beyond the separator before Trash.
-				if (sep_trash_idx >= 0 && hover_idx >= sep_trash_idx) {
-					// Move DragItem to immediately before sep_trash if it isn't already there
-					if (sep_trash_idx > 0 && drag_idx != sep_trash_idx - 1) {
-						var target = elements.get (sep_trash_idx - 1);
-						if (target != DragItem && !(target is SeparatorDockItem))
+
+				int sep_trash_idx = -1;
+				if (trash_idx > 0 && elements.get (trash_idx - 1) is SeparatorDockItem) {
+					sep_trash_idx = trash_idx - 1;
+				}
+
+				int sep_transient_idx = -1;
+				for (int i = 0; i < elements.size; i++) {
+					if (elements.get (i) is SeparatorDockItem && i != sep_pref_idx && i != sep_trash_idx) {
+						sep_transient_idx = i;
+						break;
+					}
+				}
+
+				// Rule 0: No item can ever move to index 0 or before/onto the separator after Preferences.
+				if (sep_pref_idx >= 0 && hover_idx <= sep_pref_idx) {
+					if (sep_pref_idx + 1 < elements.size && drag_idx != sep_pref_idx + 1) {
+						var target = elements.get (sep_pref_idx + 1);
+						if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem))
 							DragItem.Container.move_to (DragItem, target);
 					}
 					return;
 				}
-				
-				// Rule 2: Crossing Separator 1 (between pinned and transient):
+
+				// Rule 1: No app (pinned or unpinned, running or not) can ever move to or beyond the separator before Trash, or onto Trash.
+				int limit_trash_idx = sep_trash_idx >= 0 ? sep_trash_idx : trash_idx;
+				if (limit_trash_idx >= 0 && hover_idx >= limit_trash_idx) {
+					// Move DragItem to immediately before limit_trash if it isn't already there
+					if (limit_trash_idx > 0 && drag_idx != limit_trash_idx - 1) {
+						var target = elements.get (limit_trash_idx - 1);
+						if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem))
+							DragItem.Container.move_to (DragItem, target);
+					}
+					return;
+				}
+
+				// Rule 2: Crossing separator between pinned and transient (unpinned) items:
 				if (hovered_item is SeparatorDockItem) {
-					if (hover_idx == sep1_idx) {
-						if (drag_idx < sep1_idx && sep1_idx + 1 < elements.size) {
-							// Moving right across Separator 1 into transient section
-							var target = elements.get (sep1_idx + 1);
+					if (sep_transient_idx >= 0 && hover_idx == sep_transient_idx) {
+						if (drag_idx < sep_transient_idx && sep_transient_idx + 1 < elements.size) {
+							// Moving right across separator into transient section
+							var target = elements.get (sep_transient_idx + 1);
 							if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem))
 								DragItem.Container.move_to (DragItem, target);
-						} else if (drag_idx > sep1_idx && sep1_idx > 0) {
-							// Moving left across Separator 1 into pinned section
-							var target = elements.get (sep1_idx - 1);
+						} else if (drag_idx > sep_transient_idx && sep_transient_idx > 0) {
+							// Moving left across separator into pinned section
+							var target = elements.get (sep_transient_idx - 1);
 							if (target != DragItem && !(target is SeparatorDockItem))
 								DragItem.Container.move_to (DragItem, target);
 						}
 					}
 					return;
 				}
-				
+
 				// Rule 3: Ordinary item hover within allowed bounds
 				DragItem.Container.move_to (DragItem, hovered_item);
 			}

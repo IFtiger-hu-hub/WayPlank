@@ -89,18 +89,30 @@ namespace Plank
 			update_indicator (!WindowControl.has_state ());
 		}
 		
-		~ApplicationDockItem ()
+		bool is_app_cleaned_up = false;
+
+		public override void cleanup ()
 		{
+			if (is_app_cleaned_up)
+				return;
+			is_app_cleaned_up = true;
+
+			Matcher.get_default ().processes_changed.disconnect (handle_processes_changed);
+			WindowManager.get_default ().windows_refreshed.disconnect (handle_window_state_changed);
+
 			supported_mime_types = null;
 			actions = null;
 			actions_map = null;
 			desktop_action_ids = null;
-			
-			Matcher.get_default ().processes_changed.disconnect (handle_processes_changed);
-			WindowManager.get_default ().windows_refreshed.disconnect (handle_window_state_changed);
 #if HAVE_DBUSMENU
 			Quicklist = null;
 #endif
+			base.cleanup ();
+		}
+
+		~ApplicationDockItem ()
+		{
+			cleanup ();
 		}
 		
 		public bool is_running ()

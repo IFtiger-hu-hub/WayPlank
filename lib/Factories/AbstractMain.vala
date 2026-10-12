@@ -429,7 +429,7 @@ namespace Plank
 		void show_about ()
 		{
 			if (about_dlg != null) {
-				about_dlg.show_all ();
+				raise_and_focus_window (about_dlg);
 				return;
 			}
 			
@@ -484,9 +484,28 @@ namespace Plank
 				about_dlg = null;
 			});
 			
-			about_dlg.show_all ();
+			raise_and_focus_window (about_dlg);
 		}
 		
+		void raise_and_focus_window (Gtk.Window window)
+		{
+			window.show_all ();
+			window.deiconify ();
+			window.set_keep_above (true);
+			uint32 time = Gtk.get_current_event_time ();
+			if (time != 0) {
+				window.present_with_time (time);
+			} else {
+				window.present ();
+			}
+			var gdk_win = window.get_window ();
+			if (gdk_win != null) {
+				gdk_win.raise ();
+				gdk_win.focus (time != 0 ? time : Gdk.CURRENT_TIME);
+			}
+			window.grab_focus ();
+		}
+
 		/**
 		 * Displays the preferences dialog.
 		 *
@@ -498,9 +517,7 @@ namespace Plank
 				preferences_dlg.controller = controller;
 				if (page_name != null)
 					preferences_dlg.show_page (page_name);
-				preferences_dlg.show_all ();
-				preferences_dlg.present ();
-				preferences_dlg.grab_focus ();
+				raise_and_focus_window (preferences_dlg);
 				return;
 			}
 			
@@ -517,17 +534,13 @@ namespace Plank
 				preferences_dlg = null;
 			});
 			
-			preferences_dlg.show_all ();
-			preferences_dlg.present ();
-			preferences_dlg.grab_focus ();
+			raise_and_focus_window (preferences_dlg);
 		}
 
 		void show_help ()
 		{
 			if (help_dlg != null) {
-				help_dlg.show_all ();
-				help_dlg.present ();
-				help_dlg.grab_focus ();
+				raise_and_focus_window (help_dlg);
 				return;
 			}
 
@@ -542,9 +555,7 @@ namespace Plank
 				help_dlg = null;
 			});
 
-			help_dlg.show_all ();
-			help_dlg.present ();
-			help_dlg.grab_focus ();
+			raise_and_focus_window (help_dlg);
 		}
 
 		void show_guide ()

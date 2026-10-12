@@ -104,6 +104,15 @@ namespace Plank
 			}
 		}
 
+		public override void @delete ()
+		{
+			if (timer_id != 0) {
+				GLib.Source.remove (timer_id);
+				timer_id = 0;
+			}
+			base.@delete ();
+		}
+
 		public override bool is_valid ()
 		{
 			return true;

@@ -62,7 +62,7 @@ namespace Plank
 			update_ejector_status ();
 		}
 
-		~EjectorDockItem ()
+		private void stop_monitoring ()
 		{
 			if (volume_monitor != null) {
 				if (sig_mount_added != 0) volume_monitor.disconnect (sig_mount_added);
@@ -74,6 +74,17 @@ namespace Plank
 				if (sig_drive_disconnected != 0) volume_monitor.disconnect (sig_drive_disconnected);
 				volume_monitor = null;
 			}
+		}
+
+		~EjectorDockItem ()
+		{
+			stop_monitoring ();
+		}
+
+		public override void @delete ()
+		{
+			stop_monitoring ();
+			base.@delete ();
 		}
 
 		public override bool is_valid ()

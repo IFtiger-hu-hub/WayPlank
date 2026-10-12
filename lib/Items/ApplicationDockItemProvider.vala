@@ -237,7 +237,14 @@ namespace Plank
 				}
 
 				if (!already_exists) {
-					add (new TransientDockItem.with_launcher (uri));
+					DockElement? trash_target = null;
+					foreach (var element in internal_elements) {
+						if (element is TrashDockItem) {
+							trash_target = element;
+							break;
+						}
+					}
+					add (new TransientDockItem.with_launcher (uri), trash_target);
 				}
 			}
 
@@ -257,7 +264,7 @@ namespace Plank
 
 			foreach (var element in internal_elements) {
 				unowned DockItem? item = (element as DockItem);
-				if (item == null || (item is TransientDockItem))
+				if (item == null || (item is TransientDockItem) || (item is SeparatorDockItem))
 					continue;
 
 				var dock_item_filename = item.DockItemFilename;

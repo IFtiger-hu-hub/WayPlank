@@ -38,7 +38,7 @@ namespace Plank
 			set_decorated (true);
 			set_destroy_with_parent (true);
 			set_position (Gtk.WindowPosition.CENTER);
-			set_default_size (560, 420);
+			set_default_size (620, 500);
 			resizable = false;
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
@@ -54,27 +54,36 @@ namespace Plank
 			var grid_mouse = create_shortcuts_grid ();
 			add_shortcut_row (grid_mouse, 0, _("Left Click"), _("Launch application, or activate / cycle open windows"));
 			add_shortcut_row (grid_mouse, 1, _("Middle Click (or Ctrl + Left)"), _("Force launch a NEW instance of the application"));
-			add_shortcut_row (grid_mouse, 2, _("Right Click"), _("Open application context menu (Quicklists, Keep in Dock)"));
-			add_shortcut_row (grid_mouse, 3, _("Mouse Scroll on Icon"), _("Cycle between all open windows of this application"));
+			add_shortcut_row (grid_mouse, 2, _("Right Click on Any Item"), _("Open context menu (Quicklists, Keep in Dock, Change Icon, Preferences, Quit)"));
+			add_shortcut_row (grid_mouse, 3, _("Mouse Scroll on App"), _("Cycle between all open windows of this application"));
 			add_shortcut_row (grid_mouse, 4, _("Shift + Left Click"), _("Focus the next open window of this application"));
-			stack.add_titled (create_page (_("Interactions and gestures on application icons and windows"), grid_mouse), "mouse", _("Mouse Actions"));
+			add_shortcut_row (grid_mouse, 5, _("Left Click on Folder Drawer"), _("Open dark-themed categorized smart application menu"));
+			add_shortcut_row (grid_mouse, 6, _("Left Click on Preferences"), _("Expand docklet accordion (when Click to Expand is ON), or open Preferences"));
+			add_shortcut_row (grid_mouse, 7, _("Mouse Scroll on Brightness"), _("Adjust display brightness with multi-monitor hardware sync"));
+			add_shortcut_row (grid_mouse, 8, _("Mouse Scroll on Volume"), _("Adjust master audio volume up or down"));
+			add_shortcut_row (grid_mouse, 9, _("Middle Click on MPRIS"), _("Play or pause media playback"));
+			add_shortcut_row (grid_mouse, 10, _("Mouse Scroll on MPRIS"), _("Skip to next or previous media track"));
+			stack.add_titled (create_page (_("Interactions and gestures on application icons, drawers and docklets"), grid_mouse), "mouse", _("Mouse Actions"));
 
-			// Page 2: Drag & Drop
+			// Page 2: Drag & Drop & Organization
 			var grid_drag = create_shortcuts_grid ();
-			add_shortcut_row (grid_drag, 0, _("Drag icon off dock"), _("Unpin / remove launcher from dock (with smoke animation)"));
-			add_shortcut_row (grid_drag, 1, _("Drag icon along dock"), _("Reorder pinned application launchers directly on the dock"));
-			add_shortcut_row (grid_drag, 2, _("Drop file on app icon"), _("Open the dropped file directly with that application"));
-			add_shortcut_row (grid_drag, 3, _("Drop .desktop or folder"), _("Pin a new application or folder launcher to the dock"));
-			stack.add_titled (create_page (_("Organizing, pinning and interacting with dock items"), grid_drag), "drag", _("Drag & Drop"));
+			add_shortcut_row (grid_drag, 0, _("Drag icon along dock (Free Mode)"), _("Freely reorder launchers, docklets, and folders anywhere on the dock"));
+			add_shortcut_row (grid_drag, 1, _("Drag icon along dock (Categorized)"), _("Reorder strictly within category bounds; Preferences anchor stays locked"));
+			add_shortcut_row (grid_drag, 2, _("Drag icon off dock"), _("Unpin / remove launcher from dock (with smoke animation)"));
+			add_shortcut_row (grid_drag, 3, _("Drop file on app icon"), _("Open the dropped file directly with that application"));
+			add_shortcut_row (grid_drag, 4, _("Drop .desktop or folder"), _("Pin a new application or folder drawer to the dock"));
+			add_shortcut_row (grid_drag, 5, _("Align by Type (Preferences)"), _("One-shot sort in Free mode: [Plank] -> [Folders] -> [Docklets] -> [Apps] -> [Trash]"));
+			stack.add_titled (create_page (_("Organizing, pinning, reordering and interacting with dock items"), grid_drag), "drag", _("Drag & Drop"));
 
 			// Page 3: Shortcuts & Tools
 			var grid_tools = create_shortcuts_grid ();
 			add_shortcut_row (grid_tools, 0, _("Ctrl + Mouse Scroll Up"), _("Increase dock icon size dynamically in real-time"));
 			add_shortcut_row (grid_tools, 1, _("Ctrl + Mouse Scroll Down"), _("Decrease dock icon size dynamically in real-time"));
 			add_shortcut_row (grid_tools, 2, _("Ctrl + Right Click"), _("Open dock preferences menu directly, even over an icon"));
-			add_shortcut_row (grid_tools, 3, _("Right Click on space"), _("Open dock preferences menu from any empty dock area"));
-			add_shortcut_row (grid_tools, 4, _("Ctrl + Alt + Shift + Right Click"), _("Open Developer Tools submenu (inspect launcher, config, theme)"));
-			stack.add_titled (create_page (_("Dynamic zoom, dock settings and hidden developer tools"), grid_tools), "tools", _("Shortcuts & Tools"));
+			add_shortcut_row (grid_tools, 3, _("Right Click on space / separator"), _("Open dock preferences menu from any empty dock area or separator"));
+			add_shortcut_row (grid_tools, 4, _("Change Icon... (Right Click)"), _("Choose system icon or custom image for any launcher, folder, or docklet"));
+			add_shortcut_row (grid_tools, 5, _("Ctrl + Alt + Shift + Right Click"), _("Open Developer Tools submenu (inspect launcher, config, theme)"));
+			stack.add_titled (create_page (_("Dynamic zoom, universal icons, dock settings and developer tools"), grid_tools), "tools", _("Shortcuts & Tools"));
 
 			// HeaderBar with StackSwitcher spanning full width
 			var header = new Gtk.HeaderBar ();

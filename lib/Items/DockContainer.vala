@@ -133,10 +133,20 @@ namespace Plank
 				return false;
 			}
 			
+			DockElement? effective_target = target;
+			if (effective_target == null && !(element is TrashDockItem)) {
+				foreach (var el in internal_elements) {
+					if (el is TrashDockItem) {
+						effective_target = el;
+						break;
+					}
+				}
+			}
+
 			add_without_signaling (element);
 			
-			if (target != null && target != placeholder_item) {
-				if (!move_to (element, target))
+			if (effective_target != null && effective_target != placeholder_item) {
+				if (!move_to (element, effective_target))
 					update_visible_elements ();
 			} else
 				update_visible_elements ();
@@ -290,14 +300,33 @@ namespace Plank
 			added_items.add_all (visible_elements);
 			added_items.remove_all (old_items);
 			
-			var removed_items = old_items;
+			var removed_items = new Gee.ArrayList<DockElement> ();
+			removed_items.add_all (old_items);
 			removed_items.remove_all (visible_elements);
 			
 			if (visible_elements.size <= 0)
 				visible_elements.add (placeholder_item);
 			
-			if (added_items.size > 0 || removed_items.size > 0)
+			bool order_changed = false;
+			if (old_items.size == visible_elements.size) {
+				for (int i = 0; i < old_items.size; i++) {
+					if (old_items.get (i) != visible_elements.get (i)) {
+						order_changed = true;
+						break;
+					}
+				}
+			} else {
+				order_changed = true;
+			}
+
+			if (added_items.size > 0 || removed_items.size > 0) {
 				elements_changed (added_items, removed_items);
+			} else if (order_changed) {
+				var moved_items = new Gee.ArrayList<unowned DockElement> ();
+				foreach (var el in visible_elements)
+					moved_items.add (el);
+				positions_changed (moved_items);
+			}
 		}
 		
 		/**

@@ -427,7 +427,7 @@ namespace Plank
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
 
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && !controller.prefs.AccordionClickToExpand && controller.app_provider != null) {
 				if (is_hovering_docklets ((int) event.x, (int) event.y)) {
 					controller.app_provider.expand_docklets ();
 				}
@@ -453,7 +453,7 @@ namespace Plank
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
 
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && !controller.prefs.AccordionClickToExpand && controller.app_provider != null) {
 				if (is_hovering_docklets ((int) event.x, (int) event.y)) {
 					controller.app_provider.expand_docklets ();
 				}
@@ -768,6 +768,8 @@ namespace Plank
 				set_input_mask ();
 				set_hovered_provider (null);
 				set_hovered (null);
+			} else {
+				set_input_mask ();
 			}
 
 			if (!GtkLayerShell.is_supported ()) {
@@ -835,6 +837,10 @@ namespace Plank
 					&& (state & Gdk.ModifierType.SHIFT_MASK) != 0)
 					menu_items.add_all (get_item_debug_menu_items (item));
 				position_func = (Gtk.MenuPositionFunc) position_menu;
+
+				if ((button & PopupButton.RIGHT) != 0 && !(item is PreferencesDockItem) && !(item is PlankDockItem)) {
+					append_global_preferences_and_quit (menu_items);
+				}
 			}
 
 			if (menu_items == null || menu_items.size == 0)
@@ -903,6 +909,23 @@ namespace Plank
 			menu.popup_at_rect (get_window (), rect, widget_anchor, menu_anchor, trigger);
 
 			return true;
+		}
+
+		void append_global_preferences_and_quit (Gee.ArrayList<Gtk.MenuItem> items)
+		{
+			items.add (new Gtk.SeparatorMenuItem ());
+
+			var pref_item = DockElement.create_menu_item (_("_Preferences..."), "preferences-system", true);
+			pref_item.activate.connect (() => {
+				Application.get_default ().activate_action ("preferences", null);
+			});
+			items.add (pref_item);
+
+			var quit_item = DockElement.create_menu_item (_("_Quit"), "application-exit", true);
+			quit_item.activate.connect (() => {
+				Application.get_default ().activate_action ("quit", null);
+			});
+			items.add (quit_item);
 		}
 
 		static Gee.ArrayList<Gtk.MenuItem> get_dock_debug_menu_items (DockController controller)

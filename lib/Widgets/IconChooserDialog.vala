@@ -58,6 +58,15 @@ namespace Plank
 			load_theme_icons_async ();
 		}
 
+		public override void destroy ()
+		{
+			if (search_debounce_id > 0) {
+				GLib.Source.remove (search_debounce_id);
+				search_debounce_id = 0;
+			}
+			base.destroy ();
+		}
+
 		private void build_ui ()
 		{
 			set_default_size (640, 520);

@@ -318,7 +318,7 @@ namespace Plank
 		 * @param force_show_icon whether to force showing the icon
 		 * @return the new menu item
 		 */
-		protected static Gtk.MenuItem create_menu_item (string title, string? icon = null, bool force_show_icon = false)
+		public static Gtk.MenuItem create_menu_item (string title, string? icon = null, bool force_show_icon = false)
 		{
 			if (icon == null || icon == "")
 				return new Gtk.MenuItem.with_mnemonic (title);

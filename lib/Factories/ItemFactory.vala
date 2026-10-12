@@ -95,7 +95,7 @@ namespace Plank
 		 * @param file the {@link GLib.File} of .dockitem file to parse
 		 * @return the new {@link DockElement} created
 		 */
-		public virtual DockElement make_element (GLib.File file)
+		public virtual DockElement? make_element (GLib.File file)
 		{
 			var launcher = get_launcher_from_dockitem (file);
 			
@@ -117,9 +117,9 @@ namespace Plank
 		 *
 		 * @param file the {@link GLib.File} of .dockitem file that was parsed
 		 * @param launcher the launcher name from the .dockitem
-		 * @return the new {@link DockElement} created
+		 * @return the new {@link DockElement} created, or null if invalid/unsupported
 		 */
-		protected DockElement default_make_element (GLib.File file, string launcher)
+		protected DockElement? default_make_element (GLib.File file, string launcher)
 		{
 			if (launcher == "docklet://trash")
 				return new TrashDockItem.with_dockitem_file (file);
@@ -149,6 +149,12 @@ namespace Plank
 				return new BrightnessDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://weather")
 				return new WeatherDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://network")
+				return new NetworkDockItem.with_dockitem_file (file);
+			if (launcher.has_prefix ("docklet://")) {
+				warning ("Unknown or unsupported docklet '%s' in %s, skipping", launcher, file.get_basename ());
+				return null;
+			}
 			if (launcher.has_suffix (".desktop"))
 				return new ApplicationDockItem.with_dockitem_file (file);
 			return new FileDockItem.with_dockitem_file (file);

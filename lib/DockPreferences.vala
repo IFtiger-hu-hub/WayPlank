@@ -115,6 +115,9 @@ namespace Plank
 		[Description(nick = "accordion-docklets", blurb = "Whether to collapse docklets in-line showing only the first one at rest.")]
 		public bool AccordionDocklets { get; set; }
 		
+		[Description(nick = "accordion-click-to-expand", blurb = "Whether to expand docklets accordion only on click instead of hover.")]
+		public bool AccordionClickToExpand { get; set; }
+		
 		/**
 		 * {@inheritDoc}
 		 */

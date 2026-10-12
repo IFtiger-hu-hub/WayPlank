@@ -80,9 +80,13 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_categorize_items;
 		[GtkChild]
+		unowned Gtk.Button btn_reorder_free_items;
+		[GtkChild]
 		unowned Gtk.Box box_accordion;
 		[GtkChild]
 		unowned Gtk.Switch sw_accordion_docklets;
+		[GtkChild]
+		unowned Gtk.Switch sw_accordion_click_to_expand;
 		[GtkChild]
 		unowned Gtk.Switch sw_autostart;
 		[GtkChild]
@@ -120,6 +124,8 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_docklet_weather;
 		[GtkChild]
+		unowned Gtk.Switch sw_docklet_network;
+		[GtkChild]
 		unowned Gtk.Image img_docklet_trash;
 		[GtkChild]
 		unowned Gtk.Image img_docklet_cpu;
@@ -145,6 +151,8 @@ namespace Plank
 		unowned Gtk.Image img_docklet_ejector;
 		[GtkChild]
 		unowned Gtk.Image img_docklet_weather;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_network;
 		[GtkChild]
 		unowned Gtk.Stack dock_preferences;
 		[GtkChild]
@@ -231,6 +239,13 @@ namespace Plank
 			init_window_tab ();
 			init_docklets_tab ();
 			connect_signals ();
+			
+			this.map.connect (() => {
+				update_accordion_visibility ();
+			});
+			this.show.connect (() => {
+				update_accordion_visibility ();
+			});
 			
 			notify["controller"].connect (controller_changed);
 			destroy.connect (() => {
@@ -348,6 +363,10 @@ namespace Plank
 				break;
 			case "AccordionDocklets":
 				sw_accordion_docklets.set_active (prefs.AccordionDocklets);
+				update_accordion_visibility ();
+				break;
+			case "AccordionClickToExpand":
+				sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
 				break;
 			case "ZoomPercent":
 				adj_zoom_percent.value = prefs.ZoomPercent;
@@ -608,11 +627,29 @@ namespace Plank
 		void accordion_docklets_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.AccordionDocklets = ((Gtk.Switch) widget).get_active ();
+			update_accordion_visibility ();
+		}
+
+		void accordion_click_to_expand_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.AccordionClickToExpand = ((Gtk.Switch) widget).get_active ();
 		}
 
 		void update_accordion_visibility ()
 		{
 			box_accordion.visible = prefs.CategorizeItems;
+			btn_reorder_free_items.visible = !prefs.CategorizeItems;
+			sw_accordion_click_to_expand.sensitive = prefs.AccordionDocklets;
+		}
+
+		void reorder_free_items_clicked ()
+		{
+			if (controller != null && controller.default_provider != null) {
+				unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
+				if (default_provider != null) {
+					default_provider.reorder_free_items_by_category ();
+				}
+			}
 		}
 		
 		void iconsize_changed (Gtk.Adjustment adj)
@@ -684,7 +721,9 @@ namespace Plank
 			sw_pressure_reveal.notify["active"].connect (pressure_reveal_toggled);
 			sw_zoom_enabled.notify["active"].connect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].connect (categorize_items_toggled);
+			btn_reorder_free_items.clicked.connect (reorder_free_items_clicked);
 			sw_accordion_docklets.notify["active"].connect (accordion_docklets_toggled);
+			sw_accordion_click_to_expand.notify["active"].connect (accordion_click_to_expand_toggled);
 			sw_restore_minimized.notify["active"].connect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].connect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].connect (show_attention_indicators_toggled);
@@ -701,6 +740,7 @@ namespace Plank
 			sw_docklet_brightness.notify["active"].connect (docklet_brightness_toggled);
 			sw_docklet_ejector.notify["active"].connect (docklet_ejector_toggled);
 			sw_docklet_weather.notify["active"].connect (docklet_weather_toggled);
+			sw_docklet_network.notify["active"].connect (docklet_network_toggled);
 			if (controller != null && controller.default_provider != null)
 				controller.default_provider.elements_changed.connect (default_provider_elements_changed);
 			cb_alignment.changed.connect (alignment_changed);
@@ -735,7 +775,9 @@ namespace Plank
 			sw_pressure_reveal.notify["active"].disconnect (pressure_reveal_toggled);
 			sw_zoom_enabled.notify["active"].disconnect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].disconnect (categorize_items_toggled);
+			btn_reorder_free_items.clicked.disconnect (reorder_free_items_clicked);
 			sw_accordion_docklets.notify["active"].disconnect (accordion_docklets_toggled);
+			sw_accordion_click_to_expand.notify["active"].disconnect (accordion_click_to_expand_toggled);
 			sw_restore_minimized.notify["active"].disconnect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].disconnect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].disconnect (show_attention_indicators_toggled);
@@ -752,6 +794,7 @@ namespace Plank
 			sw_docklet_brightness.notify["active"].disconnect (docklet_brightness_toggled);
 			sw_docklet_ejector.notify["active"].disconnect (docklet_ejector_toggled);
 			sw_docklet_weather.notify["active"].disconnect (docklet_weather_toggled);
+			sw_docklet_network.notify["active"].disconnect (docklet_network_toggled);
 			if (controller != null && controller.default_provider != null)
 				controller.default_provider.elements_changed.disconnect (default_provider_elements_changed);
 			cb_alignment.changed.disconnect (alignment_changed);
@@ -852,6 +895,7 @@ namespace Plank
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
 			sw_categorize_items.set_active (prefs.CategorizeItems);
 			sw_accordion_docklets.set_active (prefs.AccordionDocklets);
+			sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
 			update_accordion_visibility ();
 			cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
 			cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();
@@ -949,6 +993,11 @@ namespace Plank
 			toggle_docklet_uri (widget, "docklet://weather");
 		}
 
+		void docklet_network_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://network");
+		}
+
 		void default_provider_elements_changed (Gee.List<DockElement> added, Gee.List<DockElement> removed)
 		{
 			init_docklets_tab ();
@@ -972,6 +1021,7 @@ namespace Plank
 				sw_docklet_brightness.set_active (default_provider.item_for_uri ("docklet://brightness") != null);
 				sw_docklet_ejector.set_active (default_provider.item_for_uri ("docklet://ejector") != null);
 				sw_docklet_weather.set_active (default_provider.item_for_uri ("docklet://weather") != null);
+				sw_docklet_network.set_active (default_provider.item_for_uri ("docklet://network") != null);
 			} else {
 				sw_docklet_trash.set_active (false);
 				sw_docklet_clock.set_active (false);
@@ -986,6 +1036,7 @@ namespace Plank
 				sw_docklet_brightness.set_active (false);
 				sw_docklet_ejector.set_active (false);
 				sw_docklet_weather.set_active (false);
+				sw_docklet_network.set_active (false);
 			}
 			
 			update_docklet_icons ();
@@ -1026,6 +1077,7 @@ namespace Plank
 			ensure_docklet_icon (img_docklet_brightness, "display-brightness-high", "/net/launchpad/plank/docklets/brightness.svg");
 			ensure_docklet_icon (img_docklet_ejector, "media-eject", "/net/launchpad/plank/docklets/ejector.svg");
 			ensure_docklet_icon (img_docklet_weather, "weather-few-clouds", "/net/launchpad/plank/docklets/weather.svg");
+			ensure_docklet_icon (img_docklet_network, "network-wireless-signal-good", "/net/launchpad/plank/docklets/network.svg");
 		}
 	}
 }

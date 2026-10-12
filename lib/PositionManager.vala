@@ -580,6 +580,9 @@ namespace Plank
 		public Gdk.Rectangle get_cursor_region ()
 		{
 			var cursor_region = static_dock_region;
+			if (background_rect.width > 0 && background_rect.height > 0) {
+				cursor_region.union (background_rect, out cursor_region);
+			}
 			var gdk_win = controller.window.get_window ();
 			window_scale_factor = (gdk_win != null) ? gdk_win.get_scale_factor () : 1;
 			
@@ -622,6 +625,9 @@ namespace Plank
 		public Gdk.Rectangle get_static_dock_region ()
 		{
 			var dock_region = static_dock_region;
+			if (background_rect.width > 0 && background_rect.height > 0) {
+				dock_region.union (background_rect, out dock_region);
+			}
 			dock_region.x += win_x;
 			dock_region.y += win_y;
 			

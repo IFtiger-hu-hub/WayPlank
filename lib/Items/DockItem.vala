@@ -171,30 +171,41 @@ namespace Plank
 				icon_file_monitor_start ();
 		}
 		
-		~DockItem ()
+		bool is_cleaned_up = false;
+
+		public virtual void cleanup ()
 		{
+			if (is_cleaned_up)
+				return;
+			is_cleaned_up = true;
+
 			buffer.clear ();
 			background_buffer.clear ();
-			
-			Prefs.deleted.disconnect (handle_deleted);
+
 			Prefs.notify["Launcher"].disconnect (handle_launcher_changed);
-			
+
 			DrawingService.get_icon_theme ().changed.disconnect (icon_theme_changed);
 			notify["Icon"].disconnect (icon_changed);
 			notify["ForcePixbuf"].disconnect (icon_changed);
-			
+
 			notify["Count"].disconnect (reset_foreground_buffer);
 			notify["CountVisible"].disconnect (reset_foreground_buffer);
 			notify["Progress"].disconnect (reset_foreground_buffer);
 			notify["ProgressVisible"].disconnect (reset_foreground_buffer);
-			
+
 			launcher_file_monitor_stop ();
 			icon_file_monitor_stop ();
-			
+		}
+
+		~DockItem ()
+		{
+			cleanup ();
+			Prefs.deleted.disconnect (handle_deleted);
+
 			if (stop_removal ())
 				@delete ();
 		}
-		
+
 		/**
 		 * Signal handler called when the underlying preferences file is deleted.
 		 */
@@ -202,7 +213,7 @@ namespace Plank
 		{
 			deleted ();
 		}
-		
+
 		/**
 		 * Parses the associated launcher and e.g. sets the icon and text from it.
 		 */
@@ -210,23 +221,23 @@ namespace Plank
 		{
 			// No default implementation needed
 		}
-		
+
 		void handle_launcher_changed ()
 		{
 			launcher_file_monitor_stop ();
-			
+
 			load_from_launcher ();
-			
+
 			launcher_file_monitor_start ();
 		}
-		
+
 		/**
 		 * Deletes the underlying preferences file.
 		 */
 		public virtual void @delete ()
 		{
 			launcher_file_monitor_stop ();
-			
+
 			Prefs.delete ();
 		}
 		
@@ -579,7 +590,19 @@ namespace Plank
 				cr.set_source_surface (icon, 0, 0);
 				cr.paint ();
 			} else {
-				warn_if_reached ();
+				// Fallback when icon cannot be found: NEVER leave surface empty or render a dead black box
+				double x_scale = 1.0, y_scale = 1.0;
+				surface.Internal.get_device_scale (out x_scale, out y_scale);
+				var fallback = DrawingService.load_icon_for_scale ("image-missing", surface.Width, surface.Height, (int) double.max (x_scale, y_scale));
+				if (fallback == null)
+					fallback = DrawingService.load_icon_for_scale ("application-x-executable", surface.Width, surface.Height, (int) double.max (x_scale, y_scale));
+				if (fallback != null) {
+					fallback.set_device_scale (1.0, 1.0);
+					cr.set_source_surface (fallback, 0, 0);
+					cr.paint ();
+				} else {
+					draw_icon_fast (surface);
+				}
 			}
 		}
 		
@@ -603,13 +626,13 @@ namespace Plank
 			cr.arc (radius + line_width_half, radius + line_width_half, radius, 0, 2 * Math.PI);
 			cr.close_path ();
 			
-			cr.set_source_rgba (1, 1, 1, 0.2);
+			cr.set_source_rgba (1, 1, 1, 0.4);
 			cr.set_line_width (2 * line_width_half);
 			cr.stroke_preserve ();
 			
-			var rg = new Cairo.Pattern.radial (width / 2, height, height / 8, width / 2, height, height);
-			rg.add_color_stop_rgba (0, 0, 0, 0, 0.6);
-			rg.add_color_stop_rgba (1, 0, 0, 0, 0.3);
+			var rg = new Cairo.Pattern.radial (width / 2, height / 2, height / 8, width / 2, height / 2, height / 2);
+			rg.add_color_stop_rgba (0, 0.35, 0.55, 0.85, 0.7);
+			rg.add_color_stop_rgba (1, 0.15, 0.25, 0.45, 0.5);
 			
 			cr.set_source (rg);
 			cr.fill ();

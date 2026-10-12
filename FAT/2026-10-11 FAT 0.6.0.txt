@@ -181,7 +181,7 @@ SESSION 1: GNOME (Mutter Backend)
         - Displays brightness icon with gold/amber gradient fallback.
         - Badge counter displays current brightness percentage (e.g. 75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps:
-          Bug: the weel do not work, move a bit then goes back to 100
+          * Instantaneous UI badge update with 150ms trailing hardware debounce to protect multi-monitor DDC/CI I2C channels from packet loss.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
           -> 100%).
         - Right-click context menu provides brightness presets (10%, 25%, 50%,
@@ -205,12 +205,20 @@ SESSION 1: GNOME (Mutter Backend)
         - Automatic IP geolocation fallback via ip-api.com when city is not
           configured; high-performance data fetching via Open-Meteo API.
    [ok] 6.12 Docklet Right-Click Context Menu Consistency:
-        - Verify ALL 14 docklets (Trash, CPU, Clock, Desktop, Digital Clock,
-          MPRIS, Battery, Volume, Screenshot, Session, Preferences, Ejector,
-          Brightness, Weather) have standard dock actions appended to
-          right-click menu (Preferences..., Shortcuts & Gestures..., Report a
-          Bug..., About Wayplank...). Preferences docklet displays
-          Preferences... as top action.
+        - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Ejector,
+          Brightness, Weather, Network) show clean, focused context menus.
+   [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
+        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a complete hardware monitor.
+        - Real-time network detection via GIO NetworkMonitor and NetworkManager DBus.
+        - Dynamic state-driven icons:
+          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak, none).
+          * Ethernet: wired connection active icon.
+          * Offline: disconnected icon.
+        - Informative tooltip displays connection type, SSID, signal strength %, and IP address.
+        - Left-click opens system Network Settings (KDE / GNOME / nm-connection-editor).
+        - Middle-click copies local IP address to clipboard.
+        - Right-click context menu displays connection details, Copy IP Address, Network Settings, and Remove from Dock.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -276,94 +284,28 @@ SESSION 1: GNOME (Mutter Backend)
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
-10. V0.6.0 AUTOCREATION & USER GUIDE (v0.6.0 FOCUS)
-   [ ] 10.1 First-Run Auto-Creation of 4 English Folders:
-        - When ~/.config/wayplank/dock1/launchers is missing or empty,
-          Wayplank creates ~/.config/wayplank/folders/ with:
-          * Internet (Web browsers, email, chat, VPN)
-          * Office (Productivity, text editors, IDEs, calculator)
-          * Media (Media players, graphics, audio, recorder)
-          * Games (Steam, games, emulators) or fallback Utilities
-        - Real .desktop files copied with full icons and localized names.
-        - .directory metadata and custom-icon attributes written.
-   [ ] 10.2 First-Run Top-Level Pinned Applications:
-        - Default File Manager (via inode/directory MIME or fallback)
-        - Default Web Browser (via x-scheme-handler/http or fallback)
-        - System Terminal Emulator (Konsole, GNOME Terminal, Ptyxis, etc.)
-        - Default Text Editor (Kate, Gedit, TextEditor, VSCode)
-   [ ] 10.3 First-Run Docklets & Accordion Mode:
-        - Preferences, Desktop, Volume created and grouped in Docklets section.
-        - Accordion mode automatically enabled (collapsed at rest, expands on hover).
-        - Trash docklet automatically created and permanently anchored on far right.
-        - categorize-items and accordion-docklets default to true.
-   [ ] 10.4 Context Menu Modernization:
-        - 'Wayland Migration Report...' removed from dock context menu.
-        - 'User Guide...' added with help-browser icon.
-        - Migration report safely preserved in repository and documentation.
-   [ ] 10.5 User Guide In-App HTML Viewer & Chrome Navigation:
-        - Left-clicking 'User Guide...' opens wayplank_user_guide.html in browser.
-        - Table of Contents links work with smooth scrolling in Google Chrome.
-        - Fuzzy anchor matching resolves heading jumps reliably.
-   [ ] 10.6 Embedded GResource Release Banner:
-        - Release banner loaded directly from internal GResource (doc/banner.png).
-        - 100% self-contained binary; no external file dependencies installed in /usr.
-   [ ] 10.7 Non-Destructive Integrity for Existing Users:
-        - Existing launchers in ~/.config/wayplank/dock1/launchers/ are untouched.
-        - No overwrites or resets if launchers folder is populated.
-
-
-11. UNIVERSAL CHANGE ICON SYSTEM (v0.6.0 FOCUS)
-   [ ] 11.1 Application Launchers "Change Icon...":
-        - Right-click any application launcher -> select "Change Icon...".
-        - Instant GTK3 dialog opens with live search over 20,000+ system theme icons.
-        - Debounced 120ms search displays matches smoothly without freezing.
-        - "Browse Image..." file chooser allows selecting custom PNG, SVG, ICO, JPG files.
-        - Selected icon saves cleanly into ~/.local/share/applications/<app>.desktop
-          preserving original system desktop files without root requirements.
-        - "Restore Default" resets launcher icon to original factory theme icon.
-   [ ] 11.2 Folder Drawers "Change Icon...":
-        - Right-click any folder drawer -> select "Change Icon...".
-        - Replaces standard 4-tile stack preview with single custom icon.
-        - Stores custom icon via standard GIO metadata (metadata::custom-icon /
-          metadata::custom-icon-name).
-        - "Restore Default" instantly clears GIO metadata and restores 4-tile stack icon.
-   [ ] 11.3 Docklet Animated & Dynamic State Icon Integrity:
-        - Docklets (Battery, Clocks, CPU, Weather, Media Player, Trash, Volume) have
-          dynamic/state-driven icons.
-        - "Change Icon..." intentionally omitted from docklets to protect dynamic animations.
-        - Multimedia player (MPRIS) icon dynamically updates between Triangle (Playing)
-          and Pause (Paused) based on real video/audio playback state across single or
-          multiple players (Chromium, Plasma browser integration, media players).
-
-
-12. MASTER ANCHOR & CONTEXT MENU DECLUTTERING (v0.6.0 FOCUS)
-   [ ] 12.1 Permanent Preferences Master Control Center Anchor:
-        - Preferences icon is permanent, unremovable, and anchored strictly at the leftmost
-          position (index 0) of the docklet area.
-        - Fixed anchor of the Docklets Accordion: remains permanently visible when collapsed;
-          other docklets expand to its right on hover.
-        - Cannot be dragged, reordered, removed, or poofed off the dock (can_be_removed() returns false,
-          "Remove from Dock" omitted from context menu, drag-to-poof/trash blocked in DragManager).
-        - Removed from toggleable docklet lists in PreferencesWindow and context submenus so it
-          can never be disabled or removed.
-   [ ] 12.2 Cleaned Launcher & Folder Context Menus:
-        - Right-clicking app launchers displays desktop shortcuts/actions prominently
-          at the top (e.g. "New Window", "New Incognito Window" for Chrome, "New Empty Window" for VSCode).
-        - Dynamic loading guard & DesktopAppInfo fallback ensure shortcuts never disappear.
-        - App management actions (Keep in Dock, Change Icon) appear neatly separated below shortcuts.
-        - Global dock management items (Preferences, About, User Guide, Shortcuts,
-          Report Bug, Quit) removed from launcher menus.
-        - Right-clicking folder drawers shows only folder actions (Keep in Dock, Open
-          in File Browser, Change Icon).
-   [ ] 12.3 Cleaned Docklet Context Menus:
-        - Right-clicking individual docklets (Volume, Battery, Brightness, Weather,
-          Clocks, etc.) shows only docklet-specific controls and "Remove from Dock".
-        - "Change Icon..." omitted from docklets to protect dynamic/animated icon states.
-   [ ] 12.4 Centralized Global Actions via Master Control Center & Empty Dock:
-        - Global dock actions (Report Bug, Shortcuts, Docklets toggle submenu, Preferences,
-          User Guide, About, Quit) reside exclusively on the Preferences Master Control Center icon.
-        - Right-clicking empty dock areas or separators also provides access to the
-          global dock menu.
+10. V0.6.0 LOGICAL ACCEPTANCE PROOF (MINIMAL SUITE)
+   [ok] 10.1  First-Run Onboarding & Documentation:
+        - Fresh config generates 4 categorized drawers (Internet, Office, Media, Games/Utility), default pinned apps, and accordion defaults.
+        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html in browser with working Table of Contents anchor jumps.
+   [ok] 10.2  Master Anchor, Accordion & Wayland Input Mask:
+        - Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
+        - Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
+        - Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
+   [ok] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
+        - Right-click App, Folder, Docklet, and Dock background: context actions appear at top, followed by universal '_Preferences...' and '_Quit' at bottom.
+        - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
+        - Right-click App -> 'Change Icon...': instant search, custom icon applies cleanly, 'Restore Default' restores original. Folder drawers accept custom icons via GIO metadata.
+   [ok] 10.4  Mode Switching, 'Align by Type' & Separator Integrity:
+        - Disable 'Categorize Items' in Preferences: dock switches instantly to Free Mode with single separator after Preferences anchor.
+        - Click 'Align by Type': dock immediately arranges in canonical order [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
+        - Re-enable 'Categorize Items': dock immediately returns to categorized layout with zero duplicate or phantom separators.
+        - dconf serialization: verify Separators are strictly excluded from stored item arrays.
+   [ok] 10.5  Drag State Machine, Running App Unpinning & Pre-Trash Clamping:
+        - Attempt to drag locked items (Preferences, Separator, Trash): drag cleanly aborts with zero GLib terminal warnings.
+        - Drag a running pinned app off the dock (or onto Trash): poof animation plays, app unpins and moves to running transient section BEFORE Trash (never past Trash or into trash zone).
+        - Drag running app back across divider into pinned section: immediately re-pins.
+        - In Free Mode, dragging an app past Trash strictly clamps before Trash; Trash is never displaced.
 
 GNOME BUGS / NOTES:
 
@@ -533,7 +475,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [ok] 6.10 Screen Brightness Docklet (docklet://brightness):
         - Displays brightness icon with gold/amber gradient fallback.
         - Badge counter displays current brightness percentage (e.g. 75%).
-        - Mouse wheel over icon increases / decreases brightness by 5% steps.
+        - Mouse wheel over icon increases / decreases brightness by 5% steps:
+          * Instantaneous UI badge update with 150ms trailing hardware debounce to protect multi-monitor DDC/CI I2C channels from packet loss.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
           -> 100%).
         - Right-click context menu provides brightness presets (10%, 25%, 50%,
@@ -555,12 +498,20 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Automatic IP geolocation fallback via ip-api.com when city is not
           configured; high-performance data fetching via Open-Meteo API.
    [ok] 6.12 Docklet Right-Click Context Menu Consistency:
-        - Verify ALL 14 docklets (Trash, CPU, Clock, Desktop, Digital Clock,
-          MPRIS, Battery, Volume, Screenshot, Session, Preferences, Ejector,
-          Brightness, Weather) have standard dock actions appended to
-          right-click menu (Preferences..., Shortcuts & Gestures..., Report a
-          Bug..., About Wayplank...). Preferences docklet displays
-          Preferences... as top action.
+        - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Ejector,
+          Brightness, Weather, Network) show clean, focused context menus.
+   [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
+        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a complete hardware monitor.
+        - Real-time network detection via GIO NetworkMonitor and NetworkManager DBus.
+        - Dynamic state-driven icons:
+          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak, none).
+          * Ethernet: wired connection active icon.
+          * Offline: disconnected icon.
+        - Informative tooltip displays connection type, SSID, signal strength %, and IP address.
+        - Left-click opens system Network Settings (KDE / GNOME / nm-connection-editor).
+        - Middle-click copies local IP address to clipboard.
+        - Right-click context menu displays connection details, Copy IP Address, Network Settings, and Remove from Dock.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -628,94 +579,28 @@ SESSION 2: KDE PLASMA (KWin Backend)
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
-10. V0.6.0 AUTOCREATION & USER GUIDE (v0.6.0 FOCUS)
-   [ ] 10.1 First-Run Auto-Creation of 4 English Folders:
-        - When ~/.config/wayplank/dock1/launchers is missing or empty,
-          Wayplank creates ~/.config/wayplank/folders/ with:
-          * Internet (Web browsers, email, chat, VPN)
-          * Office (Productivity, text editors, IDEs, calculator)
-          * Media (Media players, graphics, audio, recorder)
-          * Games (Steam, games, emulators) or fallback Utilities
-        - Real .desktop files copied with full icons and localized names.
-        - .directory metadata and custom-icon attributes written.
-   [ ] 10.2 First-Run Top-Level Pinned Applications:
-        - Default File Manager (via inode/directory MIME or fallback)
-        - Default Web Browser (via x-scheme-handler/http or fallback)
-        - System Terminal Emulator (Konsole, GNOME Terminal, Ptyxis, etc.)
-        - Default Text Editor (Kate, Gedit, TextEditor, VSCode)
-   [ ] 10.3 First-Run Docklets & Accordion Mode:
-        - Preferences, Desktop, Volume created and grouped in Docklets section.
-        - Accordion mode automatically enabled (collapsed at rest, expands on hover).
-        - Trash docklet automatically created and permanently anchored on far right.
-        - categorize-items and accordion-docklets default to true.
-   [ ] 10.4 Context Menu Modernization:
-        - 'Wayland Migration Report...' removed from dock context menu.
-        - 'User Guide...' added with help-browser icon.
-        - Migration report safely preserved in repository and documentation.
-   [ ] 10.5 User Guide In-App HTML Viewer & Chrome Navigation:
-        - Left-clicking 'User Guide...' opens wayplank_user_guide.html in browser.
-        - Table of Contents links work with smooth scrolling in Google Chrome.
-        - Fuzzy anchor matching resolves heading jumps reliably.
-   [ ] 10.6 Embedded GResource Release Banner:
-        - Release banner loaded directly from internal GResource (doc/banner.png).
-        - 100% self-contained binary; no external file dependencies installed in /usr.
-   [ ] 10.7 Non-Destructive Integrity for Existing Users:
-        - Existing launchers in ~/.config/wayplank/dock1/launchers/ are untouched.
-        - No overwrites or resets if launchers folder is populated.
-
-
-11. UNIVERSAL CHANGE ICON SYSTEM (v0.6.0 FOCUS)
-   [ ] 11.1 Application Launchers "Change Icon...":
-        - Right-click any application launcher -> select "Change Icon...".
-        - Instant GTK3 dialog opens with live search over 20,000+ system theme icons.
-        - Debounced 120ms search displays matches smoothly without freezing.
-        - "Browse Image..." file chooser allows selecting custom PNG, SVG, ICO, JPG files.
-        - Selected icon saves cleanly into ~/.local/share/applications/<app>.desktop
-          preserving original system desktop files without root requirements.
-        - "Restore Default" resets launcher icon to original factory theme icon.
-   [ ] 11.2 Folder Drawers "Change Icon...":
-        - Right-click any folder drawer -> select "Change Icon...".
-        - Replaces standard 4-tile stack preview with single custom icon.
-        - Stores custom icon via standard GIO metadata (metadata::custom-icon /
-          metadata::custom-icon-name).
-        - "Restore Default" instantly clears GIO metadata and restores 4-tile stack icon.
-   [ ] 11.3 Docklet Animated & Dynamic State Icon Integrity:
-        - Docklets (Battery, Clocks, CPU, Weather, Media Player, Trash, Volume) have
-          dynamic/state-driven icons.
-        - "Change Icon..." intentionally omitted from docklets to protect dynamic animations.
-        - Multimedia player (MPRIS) icon dynamically updates between Triangle (Playing)
-          and Pause (Paused) based on real video/audio playback state across single or
-          multiple players (Chromium, Plasma browser integration, media players).
-
-
-12. MASTER ANCHOR & CONTEXT MENU DECLUTTERING (v0.6.0 FOCUS)
-   [ ] 12.1 Permanent Preferences Master Control Center Anchor:
-        - Preferences icon is permanent, unremovable, and anchored strictly at the leftmost
-          position (index 0) of the docklet area.
-        - Fixed anchor of the Docklets Accordion: remains permanently visible when collapsed;
-          other docklets expand to its right on hover.
-        - Cannot be dragged, reordered, removed, or poofed off the dock (can_be_removed() returns false,
-          "Remove from Dock" omitted from context menu, drag-to-poof/trash blocked in DragManager).
-        - Removed from toggleable docklet lists in PreferencesWindow and context submenus so it
-          can never be disabled or removed.
-   [ ] 12.2 Cleaned Launcher & Folder Context Menus:
-        - Right-clicking app launchers displays desktop shortcuts/actions prominently
-          at the top (e.g. "New Window", "New Incognito Window" for Chrome, "New Empty Window" for VSCode).
-        - Dynamic loading guard & DesktopAppInfo fallback ensure shortcuts never disappear.
-        - App management actions (Keep in Dock, Change Icon) appear neatly separated below shortcuts.
-        - Global dock management items (Preferences, About, User Guide, Shortcuts,
-          Report Bug, Quit) removed from launcher menus.
-        - Right-clicking folder drawers shows only folder actions (Keep in Dock, Open
-          in File Browser, Change Icon).
-   [ ] 12.3 Cleaned Docklet Context Menus:
-        - Right-clicking individual docklets (Volume, Battery, Brightness, Weather,
-          Clocks, etc.) shows only docklet-specific controls and "Remove from Dock".
-        - "Change Icon..." omitted from docklets to protect dynamic/animated icon states.
-   [ ] 12.4 Centralized Global Actions via Master Control Center & Empty Dock:
-        - Global dock actions (Report Bug, Shortcuts, Docklets toggle submenu, Preferences,
-          User Guide, About, Quit) reside exclusively on the Preferences Master Control Center icon.
-        - Right-clicking empty dock areas or separators also provides access to the
-          global dock menu.
+10. V0.6.0 LOGICAL ACCEPTANCE PROOF (MINIMAL SUITE)
+   [ok] 10.1  First-Run Onboarding & Documentation:
+        - Fresh config generates 4 categorized drawers (Internet, Office, Media, Games/Utility), default pinned apps, and accordion defaults.
+        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html in browser with working Table of Contents anchor jumps.
+   [ok] 10.2  Master Anchor, Accordion & Wayland Input Mask:
+        - Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
+        - Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
+        - Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
+   [ok] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
+        - Right-click App, Folder, Docklet, and Dock background: context actions appear at top, followed by universal '_Preferences...' and '_Quit' at bottom.
+        - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
+        - Right-click App -> 'Change Icon...': instant search, custom icon applies cleanly, 'Restore Default' restores original. Folder drawers accept custom icons via GIO metadata.
+   [ok] 10.4  Mode Switching, 'Align by Type' & Separator Integrity:
+        - Disable 'Categorize Items' in Preferences: dock switches instantly to Free Mode with single separator after Preferences anchor.
+        - Click 'Align by Type': dock immediately arranges in canonical order [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
+        - Re-enable 'Categorize Items': dock immediately returns to categorized layout with zero duplicate or phantom separators.
+        - dconf serialization: verify Separators are strictly excluded from stored item arrays.
+   [ok] 10.5  Drag State Machine, Running App Unpinning & Pre-Trash Clamping:
+        - Attempt to drag locked items (Preferences, Separator, Trash): drag cleanly aborts with zero GLib terminal warnings.
+        - Drag a running pinned app off the dock (or onto Trash): poof animation plays, app unpins and moves to running transient section BEFORE Trash (never past Trash or into trash zone).
+        - Drag running app back across divider into pinned section: immediately re-pins.
+        - In Free Mode, dragging an app past Trash strictly clamps before Trash; Trash is never displaced.
 
 PLASMA BUGS / NOTES:
 
@@ -889,7 +774,8 @@ SESSION 3: LABWC (wlroots Backend)
    [ok] 6.10 Screen Brightness Docklet (docklet://brightness):
         - Displays brightness icon with gold/amber gradient fallback.
         - Badge counter displays current brightness percentage (e.g. 75%).
-        - Mouse wheel over icon increases / decreases brightness by 5% steps.
+        - Mouse wheel over icon increases / decreases brightness by 5% steps:
+          * Instantaneous UI badge update with 150ms trailing hardware debounce to protect multi-monitor DDC/CI I2C channels from packet loss.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
           -> 100%).
         - Right-click context menu provides brightness presets (10%, 25%, 50%,
@@ -911,12 +797,20 @@ SESSION 3: LABWC (wlroots Backend)
         - Automatic IP geolocation fallback via ip-api.com when city is not
           configured; high-performance data fetching via Open-Meteo API.
    [ok] 6.12 Docklet Right-Click Context Menu Consistency:
-        - Verify ALL 14 docklets (Trash, CPU, Clock, Desktop, Digital Clock,
-          MPRIS, Battery, Volume, Screenshot, Session, Preferences, Ejector,
-          Brightness, Weather) have standard dock actions appended to
-          right-click menu (Preferences..., Shortcuts & Gestures..., Report a
-          Bug..., About Wayplank...). Preferences docklet displays
-          Preferences... as top action.
+        - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Ejector,
+          Brightness, Weather, Network) show clean, focused context menus.
+   [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
+        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a complete hardware monitor.
+        - Real-time network detection via GIO NetworkMonitor and NetworkManager DBus.
+        - Dynamic state-driven icons:
+          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak, none).
+          * Ethernet: wired connection active icon.
+          * Offline: disconnected icon.
+        - Informative tooltip displays connection type, SSID, signal strength %, and IP address.
+        - Left-click opens system Network Settings (KDE / GNOME / nm-connection-editor).
+        - Middle-click copies local IP address to clipboard.
+        - Right-click context menu displays connection details, Copy IP Address, Network Settings, and Remove from Dock.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -979,94 +873,28 @@ SESSION 3: LABWC (wlroots Backend)
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
-10. V0.6.0 AUTOCREATION & USER GUIDE (v0.6.0 FOCUS)
-   [ ] 10.1 First-Run Auto-Creation of 4 English Folders:
-        - When ~/.config/wayplank/dock1/launchers is missing or empty,
-          Wayplank creates ~/.config/wayplank/folders/ with:
-          * Internet (Web browsers, email, chat, VPN)
-          * Office (Productivity, text editors, IDEs, calculator)
-          * Media (Media players, graphics, audio, recorder)
-          * Games (Steam, games, emulators) or fallback Utilities
-        - Real .desktop files copied with full icons and localized names.
-        - .directory metadata and custom-icon attributes written.
-   [ ] 10.2 First-Run Top-Level Pinned Applications:
-        - Default File Manager (via inode/directory MIME or fallback)
-        - Default Web Browser (via x-scheme-handler/http or fallback)
-        - System Terminal Emulator (Konsole, GNOME Terminal, Ptyxis, etc.)
-        - Default Text Editor (Kate, Gedit, TextEditor, VSCode)
-   [ ] 10.3 First-Run Docklets & Accordion Mode:
-        - Preferences, Desktop, Volume created and grouped in Docklets section.
-        - Accordion mode automatically enabled (collapsed at rest, expands on hover).
-        - Trash docklet automatically created and permanently anchored on far right.
-        - categorize-items and accordion-docklets default to true.
-   [ ] 10.4 Context Menu Modernization:
-        - 'Wayland Migration Report...' removed from dock context menu.
-        - 'User Guide...' added with help-browser icon.
-        - Migration report safely preserved in repository and documentation.
-   [ ] 10.5 User Guide In-App HTML Viewer & Chrome Navigation:
-        - Left-clicking 'User Guide...' opens wayplank_user_guide.html in browser.
-        - Table of Contents links work with smooth scrolling in Google Chrome.
-        - Fuzzy anchor matching resolves heading jumps reliably.
-   [ ] 10.6 Embedded GResource Release Banner:
-        - Release banner loaded directly from internal GResource (doc/banner.png).
-        - 100% self-contained binary; no external file dependencies installed in /usr.
-   [ ] 10.7 Non-Destructive Integrity for Existing Users:
-        - Existing launchers in ~/.config/wayplank/dock1/launchers/ are untouched.
-        - No overwrites or resets if launchers folder is populated.
-
-
-11. UNIVERSAL CHANGE ICON SYSTEM (v0.6.0 FOCUS)
-   [ ] 11.1 Application Launchers "Change Icon...":
-        - Right-click any application launcher -> select "Change Icon...".
-        - Instant GTK3 dialog opens with live search over 20,000+ system theme icons.
-        - Debounced 120ms search displays matches smoothly without freezing.
-        - "Browse Image..." file chooser allows selecting custom PNG, SVG, ICO, JPG files.
-        - Selected icon saves cleanly into ~/.local/share/applications/<app>.desktop
-          preserving original system desktop files without root requirements.
-        - "Restore Default" resets launcher icon to original factory theme icon.
-   [ ] 11.2 Folder Drawers "Change Icon...":
-        - Right-click any folder drawer -> select "Change Icon...".
-        - Replaces standard 4-tile stack preview with single custom icon.
-        - Stores custom icon via standard GIO metadata (metadata::custom-icon /
-          metadata::custom-icon-name).
-        - "Restore Default" instantly clears GIO metadata and restores 4-tile stack icon.
-   [ ] 11.3 Docklet Animated & Dynamic State Icon Integrity:
-        - Docklets (Battery, Clocks, CPU, Weather, Media Player, Trash, Volume) have
-          dynamic/state-driven icons.
-        - "Change Icon..." intentionally omitted from docklets to protect dynamic animations.
-        - Multimedia player (MPRIS) icon dynamically updates between Triangle (Playing)
-          and Pause (Paused) based on real video/audio playback state across single or
-          multiple players (Chromium, Plasma browser integration, media players).
-
-
-12. MASTER ANCHOR & CONTEXT MENU DECLUTTERING (v0.6.0 FOCUS)
-   [ ] 12.1 Permanent Preferences Master Control Center Anchor:
-        - Preferences icon is permanent, unremovable, and anchored strictly at the leftmost
-          position (index 0) of the docklet area.
-        - Fixed anchor of the Docklets Accordion: remains permanently visible when collapsed;
-          other docklets expand to its right on hover.
-        - Cannot be dragged, reordered, removed, or poofed off the dock (can_be_removed() returns false,
-          "Remove from Dock" omitted from context menu, drag-to-poof/trash blocked in DragManager).
-        - Removed from toggleable docklet lists in PreferencesWindow and context submenus so it
-          can never be disabled or removed.
-   [ ] 12.2 Cleaned Launcher & Folder Context Menus:
-        - Right-clicking app launchers displays desktop shortcuts/actions prominently
-          at the top (e.g. "New Window", "New Incognito Window" for Chrome, "New Empty Window" for VSCode).
-        - Dynamic loading guard & DesktopAppInfo fallback ensure shortcuts never disappear.
-        - App management actions (Keep in Dock, Change Icon) appear neatly separated below shortcuts.
-        - Global dock management items (Preferences, About, User Guide, Shortcuts,
-          Report Bug, Quit) removed from launcher menus.
-        - Right-clicking folder drawers shows only folder actions (Keep in Dock, Open
-          in File Browser, Change Icon).
-   [ ] 12.3 Cleaned Docklet Context Menus:
-        - Right-clicking individual docklets (Volume, Battery, Brightness, Weather,
-          Clocks, etc.) shows only docklet-specific controls and "Remove from Dock".
-        - "Change Icon..." omitted from docklets to protect dynamic/animated icon states.
-   [ ] 12.4 Centralized Global Actions via Master Control Center & Empty Dock:
-        - Global dock actions (Report Bug, Shortcuts, Docklets toggle submenu, Preferences,
-          User Guide, About, Quit) reside exclusively on the Preferences Master Control Center icon.
-        - Right-clicking empty dock areas or separators also provides access to the
-          global dock menu.
+10. V0.6.0 LOGICAL ACCEPTANCE PROOF (MINIMAL SUITE)
+   [ok] 10.1  First-Run Onboarding & Documentation:
+        - Fresh config generates 4 categorized drawers (Internet, Office, Media, Games/Utility), default pinned apps, and accordion defaults.
+        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html in browser with working Table of Contents anchor jumps.
+   [ok] 10.2  Master Anchor, Accordion & Wayland Input Mask:
+        - Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
+        - Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
+        - Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
+   [ok] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
+        - Right-click App, Folder, Docklet, and Dock background: context actions appear at top, followed by universal '_Preferences...' and '_Quit' at bottom.
+        - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
+        - Right-click App -> 'Change Icon...': instant search, custom icon applies cleanly, 'Restore Default' restores original. Folder drawers accept custom icons via GIO metadata.
+   [ok] 10.4  Mode Switching, 'Align by Type' & Separator Integrity:
+        - Disable 'Categorize Items' in Preferences: dock switches instantly to Free Mode with single separator after Preferences anchor.
+        - Click 'Align by Type': dock immediately arranges in canonical order [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
+        - Re-enable 'Categorize Items': dock immediately returns to categorized layout with zero duplicate or phantom separators.
+        - dconf serialization: verify Separators are strictly excluded from stored item arrays.
+   [ok] 10.5  Drag State Machine, Running App Unpinning & Pre-Trash Clamping:
+        - Attempt to drag locked items (Preferences, Separator, Trash): drag cleanly aborts with zero GLib terminal warnings.
+        - Drag a running pinned app off the dock (or onto Trash): poof animation plays, app unpins and moves to running transient section BEFORE Trash (never past Trash or into trash zone).
+        - Drag running app back across divider into pinned section: immediately re-pins.
+        - In Free Mode, dragging an app past Trash strictly clamps before Trash; Trash is never displaced.
 
 LABWC BUGS / NOTES:
 

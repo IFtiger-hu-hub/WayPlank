@@ -29,6 +29,8 @@ namespace Plank
 		private uint32 max_raw_brightness = 100;
 		private int current_percent = 100;
 		private uint timer_id = 0;
+		private uint apply_timer_id = 0;
+		private int pending_hardware_target = -1;
 
 		private GLib.DBusConnection? session_bus = null;
 		private GLib.DBusConnection? system_bus = null;
@@ -72,11 +74,16 @@ namespace Plank
 			base.@delete ();
 		}
 
-		private void cleanup ()
+		public override void cleanup ()
 		{
 			if (timer_id != 0) {
 				GLib.Source.remove (timer_id);
 				timer_id = 0;
+			}
+
+			if (apply_timer_id != 0) {
+				GLib.Source.remove (apply_timer_id);
+				apply_timer_id = 0;
 			}
 
 			if (session_bus != null) {
@@ -89,6 +96,8 @@ namespace Plank
 					gnome_signal_id = 0;
 				}
 			}
+
+			base.cleanup ();
 		}
 
 		public override bool is_valid ()
@@ -370,16 +379,43 @@ namespace Plank
 
 		public void adjust_brightness (int delta)
 		{
-			set_brightness_percent (current_percent + delta);
+			set_brightness_percent (current_percent + delta, false);
 		}
 
-		public void set_brightness_percent (int percent)
+		public void set_brightness_percent (int percent, bool immediate = false)
 		{
 			int target = percent.clamp (5, 100);
 			current_percent = target;
 			last_user_action_time = GLib.get_monotonic_time ();
 			update_display ();
 
+			pending_hardware_target = target;
+
+			if (apply_timer_id != 0) {
+				GLib.Source.remove (apply_timer_id);
+				apply_timer_id = 0;
+			}
+
+			if (immediate) {
+				int t = pending_hardware_target;
+				pending_hardware_target = -1;
+				apply_hardware_brightness (t);
+			} else {
+				// Debounce by 150ms to allow smooth mouse wheel scrolling without dropping I2C DDC/CI packets on external monitors
+				apply_timer_id = GLib.Timeout.add (150, () => {
+					apply_timer_id = 0;
+					if (pending_hardware_target >= 0) {
+						int t = pending_hardware_target;
+						pending_hardware_target = -1;
+						apply_hardware_brightness (t);
+					}
+					return GLib.Source.REMOVE;
+				});
+			}
+		}
+
+		private void apply_hardware_brightness (int target)
+		{
 			// 1. Try KDE Solid PowerManagement D-Bus
 			if (session_bus != null) {
 				if (kde_max_brightness <= 0) {
@@ -485,7 +521,7 @@ namespace Plank
 				else if (current_percent < 100) next = 100;
 				else next = 25;
 
-				set_brightness_percent (next);
+				set_brightness_percent (next, true);
 				return AnimationType.BOUNCE;
 			}
 
@@ -509,7 +545,7 @@ namespace Plank
 				int p = presets[i];
 				string label = "%d%% %s".printf (p, p == 100 ? _("(Maximum)") : (p == 10 ? _("(Minimum)") : ""));
 				var item = create_menu_item (label, preset_icons[i], true);
-				item.activate.connect (() => set_brightness_percent (p));
+				item.activate.connect (() => set_brightness_percent (p, true));
 				items.add (item);
 			}
 

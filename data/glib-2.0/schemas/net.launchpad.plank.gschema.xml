@@ -139,7 +139,7 @@
 			<description>If true, use pressure-based revealing of the dock if the input device supports it.</description>
 		</key>
 		<key name="show-dock-item" type="b">
-			<default>true</default>
+			<default>false</default>
 			<summary>Show the item for the dock itself</summary>
 			<description>If true, show the Plank dock item.</description>
 		</key>
@@ -173,6 +173,11 @@
 			<default>true</default>
 			<summary>Accordion docklets mode</summary>
 			<description>When Categorize Items is enabled, collapse docklets so only the first one on the left is visible at rest, expanding in-line on hover.</description>
+		</key>
+		<key name="accordion-click-to-expand" type="b">
+			<default>false</default>
+			<summary>Click to expand docklets accordion</summary>
+			<description>When true, docklets accordion expands only when clicking the Master Preferences icon instead of on hover.</description>
 		</key>
 		<key name="zoom-percent" type="i">
 			<range min="100" max="200"/>

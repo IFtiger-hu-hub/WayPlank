@@ -114,6 +114,7 @@ namespace Plank
 		public override void @delete ()
 		{
 			stop_timer ();
+			stop_dbus_listener ();
 			base.@delete ();
 		}
 

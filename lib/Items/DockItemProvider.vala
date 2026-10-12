@@ -150,7 +150,8 @@ namespace Plank
 		
 		protected virtual void handle_item_deleted (DockItem item)
 		{
-			remove (item);
+			if (internal_elements.contains (item))
+				remove (item);
 		}
 		
 		/**

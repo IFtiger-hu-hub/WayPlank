@@ -210,6 +210,16 @@ namespace Plank
 				if (element is DockItem)
 					default_provider.add (element);
 
+			unowned DefaultApplicationDockItemProvider? def_prov = default_provider as DefaultApplicationDockItemProvider;
+			if (def_prov != null) {
+				def_prov.deduplicate_items ();
+				def_prov.ensure_preferences_dockitem ();
+				def_prov.deduplicate_items ();
+				if (prefs.FreeDockItems == null || prefs.FreeDockItems.length == 0) {
+					def_prov.reorder_free_items_by_category ();
+				}
+			}
+
 			bool has_default_provider = false;
 			foreach (var element in elements) {
 				if (!has_default_provider && element is DockItem) {
@@ -421,6 +431,14 @@ namespace Plank
 		
 		void handle_states_changed (DockContainer container)
 		{
+			renderer.animated_draw ();
+		}
+
+		public void refresh_visible_elements ()
+		{
+			update_visible_elements ();
+			update_items ();
+			window.update_icon_regions ();
 			renderer.animated_draw ();
 		}
 		

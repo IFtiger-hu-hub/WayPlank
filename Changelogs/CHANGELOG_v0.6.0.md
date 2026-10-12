@@ -148,7 +148,71 @@ In v0.6.0, Wayplank introduces an integrated, non-intrusive icon personalization
 
 ---
 
-## 5. 🗂️ File Changes Summary
+## 5. 🛡️ Architectural Invariant: Dock Positioning Safety & Input Mask Synchronization (Core vs. HAL)
+
+### Core Problem & Historical Context
+In earlier development iterations of Wayplank, attempts to dynamically adjust the dock's clickable width (e.g. during hover expansion, accordion toggling, or dynamic item addition) often broke window positioning, particularly under **Mutter (GNOME Shell)** and **Labwc (wlroots)**:
+- Resizing or repositioning the GTK top-level window via `resize()`, `move()`, or Layer Shell anchors triggered D-Bus event storms with the GNOME Shell extension (`proxy.position_dock()`).
+- On Mutter, calling `position_dock()` repeatedly during dynamic pointer interactions caused Clutter stage repositioning loops, visual stutter, or displaced the dock off-screen.
+- On wlroots/Labwc, renegotiating Layer Shell surface buffers caused window flicker and anchor reset races.
+
+### The Golden Rule: Separation of Canvas Geometry (HAL) and Input Shape (Core)
+To ensure rock-solid positioning across all compositors (GNOME Mutter, KDE Plasma KWin, Labwc wlroots, and XFCE), Wayplank adheres to a strict architectural invariant:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                           IMMUTABLE GTK CANVAS                                 │
+│    (Full monitor width, e.g. 1920x80px — NEVER resized or moved dynamically)   │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                     DYNAMIC CAIRO INPUT MASK                                   │
+│  (Updated via window.input_shape_combine_region / wl_surface.set_input_region) │
+│                                                                                │
+│     [Left Items]   ...   [Center / Docklets]   ...   [Trash / Right]           │
+│      |<-------------------- background_rect -------------------->|             │
+│                                                                                │
+│  Clicks INSIDE: Captured by WayPlank DockItem hit-testing                      │
+│  Clicks OUTSIDE: 100% passthrough to desktop apps underneath                   │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 1. Immutable Full-Monitor Canvas (HAL Protection)
+- Under Wayland (Layer Shell on KWin/Labwc, Mutter workarea on GNOME), the GTK window is sized once as a monitor-wide canvas (e.g., `1920x80px`).
+- **HAL Invariant**: Never invoke `resize()`, `move()`, Layer Shell anchor reconfigurations, or backend positioning methods (`WindowControl.position_dock()`, `MutterBackend.vala`, `KWinBridge.vala`, `LabwcBackend.vala`) during dynamic hover, accordion collapse/expand, or item count changes.
+- Window position and monitor allocation remain completely frozen and stable at all times.
+
+#### 2. Dynamic Interactive Bounds via Cairo Input Masks (`input_shape_combine_region`)
+- Pointer responsiveness (click detection, hover tracking, and desktop click-through) is controlled **strictly in the Core** through GDK's input shape mask (`window.input_shape_combine_region()`), which translates natively to Wayland's `wl_surface.set_input_region` (and X11 XShape).
+- Clicks outside the active dock region pass directly to background windows with 0ms latency and zero compositor renegotiation.
+
+#### 3. Coordinate Union with `background_rect` (Dynamic Item Centers)
+- Plank's legacy `static_dock_region` is computed from `VisibleDockWidth`.
+- `background_rect` is recalculated every frame in `PositionManager.update_background_region()` from actual item draw centers (`val_first.center.x` to `val_last.center.x` — the exact coordinate anchors used for tooltips).
+- In `PositionManager.get_cursor_region()` and `get_static_dock_region()`, the sensitive region is computed as a geometric union:
+  ```vala
+  public Gdk.Rectangle get_cursor_region ()
+  {
+      var cursor_region = static_dock_region;
+      if (background_rect.width > 0 && background_rect.height > 0) {
+          cursor_region.union (background_rect, out cursor_region);
+      }
+      // ... zoom hover regions & hide offsets ...
+      return cursor_region;
+  }
+  ```
+- This guarantees a 1:1 match between the rendered visual dock and the interactive hit-test zone, eliminating dead zones, clipped click regions, or blind spots when accordion docklets expand or collapse.
+
+#### 4. Event Synchronization on Accordion Toggles (`DefaultApplicationDockItemProvider.vala` & `DockWindow.vala`)
+- Whenever accordion state changes (`handle_accordion_docklets_changed()`, `expand_docklets()`, `schedule_collapse_docklets()`):
+  1. Synchronize item collections: `dock.update_items()`.
+  2. Recalculate dimensions: `dock.position_manager.update (dock.renderer.theme)`.
+  3. Reset Cairo buffers: `dock.renderer.reset_buffers()`.
+  4. Trigger smooth animation: `dock.renderer.animated_draw()`.
+  5. Immediately update input mask: `dock.window.set_input_mask()`.
+- In `DockWindow.update_size_and_position()`, even when `needs_resize == false` (the monitor canvas width is unchanged), `set_input_mask()` is explicitly invoked in the `else` branch, ensuring Wayland's surface input mask stays synchronized in real time.
+
+---
+
+## 6. 🗂️ File Changes Summary
 
 | File | Changes Made |
 | :--- | :--- |
@@ -170,10 +234,14 @@ In v0.6.0, Wayplank introduces an integrated, non-intrusive icon personalization
 | `lib/Items/SessionDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
 | `lib/Items/ScreenshotDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
 | `lib/Items/EjectorDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
+| `lib/Items/DefaultApplicationDockItemProvider.vala` | Synchronized `position_manager.update()` and `window.set_input_mask()` on accordion expand, collapse, and toggle events. |
+| `lib/PositionManager.vala` | Unioned `background_rect` (dynamic icon draw centers) with `static_dock_region` in `get_cursor_region()` and `get_static_dock_region()`. |
+| `lib/Widgets/DockWindow.vala` | Ensured `set_input_mask()` is always executed on `update_size_and_position()` even when physical canvas resize is not needed. |
+| `FAT/2026-10-11 FAT 0.6.0.txt` | Added test case 12.7 covering accordion sensitive region and input mask synchronization across GNOME, KDE, and Labwc. |
 
 ---
 
-## 6. 📦 Validation & Build Artifacts
+## 7. 📦 Validation & Build Artifacts
 
 - **Native Binary**: Compiled and verified via `./BuildBin.sh`:
   - Path: `build/wayplank`
@@ -182,5 +250,6 @@ In v0.6.0, Wayplank introduces an integrated, non-intrusive icon personalization
   - Path: `build/wayplank_0.6.0_amd64.deb`
 - **First-Run Verification**: Tested in isolated environment (`/tmp/test_wayplank_dock1`), verifying exact generation of 4 English drawers (`Internet`, `Office`, `Media`, `Games`), 4 docklets, and 4 top-level pinned apps.
 - **Icon Customization Verification**: Validated interactive theme icon search, custom file chooser, GIO folder metadata assignment, FreeDesktop `.desktop` cloning, and factory default restoration.
+- **Positioning & Input Mask Verification**: Verified 100% clickability and hover interaction across all items (~1100px width) when Accordion Docklets is toggled off, with 0px dead zones and 0 repositioning calls on Mutter, KWin, and Labwc.
 
 

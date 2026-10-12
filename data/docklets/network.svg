@@ -1,0 +1,16 @@
+<svg clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+ <linearGradient id="netgrad" x2="1" gradientTransform="matrix(0 -44 44 0 24 46)" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#00897b" offset="0"/>
+  <stop stop-color="#26a69a" offset="1"/>
+ </linearGradient>
+ <circle cx="24" cy="24" r="22.5" fill="url(#netgrad)"/>
+ <!-- Wi-Fi Antenna Dot -->
+ <circle cx="24" cy="34" r="2.8" fill="#ffffff"/>
+ <!-- Inner Arc -->
+ <path d="M 18.5,28.2 C 20.1,26.6 22,25.8 24,25.8 C 26,25.8 27.9,26.6 29.5,28.2" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+ <!-- Middle Arc -->
+ <path d="M 14,23.5 C 16.8,20.8 20.3,19.5 24,19.5 C 27.7,19.5 31.2,20.8 34,23.5" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+ <!-- Outer Arc -->
+ <path d="M 9.5,18.8 C 13.5,15 18.6,13.2 24,13.2 C 29.4,13.2 34.5,15 38.5,18.8" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+</svg>
+
