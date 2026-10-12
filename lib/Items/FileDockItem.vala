@@ -408,7 +408,12 @@ namespace Plank
 				launch ();
 			});
 			items.add (item);
-			append_dock_menu_items (items);
+
+			var icon_item = create_menu_item (_("Change _Icon..."), "preferences-desktop-theme");
+			icon_item.activate.connect (() => {
+				IconChooserDialog.show_for_folder (this);
+			});
+			items.add (icon_item);
 
 			return items;
 		}
@@ -547,21 +552,16 @@ namespace Plank
 				LastClicked = GLib.get_monotonic_time ();
 			});
 			items.add (item);
-			append_dock_menu_items (items);
+
+			var icon_item = create_menu_item (_("Change _Icon..."), "preferences-desktop-theme");
+			icon_item.activate.connect (() => {
+				IconChooserDialog.show_for_folder (this);
+			});
+			items.add (icon_item);
 			
 			return items;
 		}
 
-		void append_dock_menu_items (Gee.ArrayList<Gtk.MenuItem> items)
-		{
-			if (items.size > 0)
-				items.add (new Gtk.SeparatorMenuItem ());
-			var dock_item = Factory.item_factory.get_item_for_dock ();
-			if (dock_item != null)
-				foreach (var menu_item in dock_item.get_menu_items ())
-					items.add (menu_item);
-		}
-		
 		static Gee.HashMap<string,File> get_files (File file)
 		{
 			var files = new Gee.HashMap<string,File> ();

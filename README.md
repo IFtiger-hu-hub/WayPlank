@@ -5,9 +5,9 @@
 > Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Release: v0.5.2 Alpha](https://img.shields.io/badge/Release-v0.5.2%20Alpha-orange.svg)](Changelogs/CHANGELOG_v0.5.2.md)
+> [![Release: v0.6.0](https://img.shields.io/badge/Release-v0.6.0-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.0.md)
 
-![Wayplank v0.5.2 Release Banner](Release%20Pic.png)
+![Wayplank Release Banner](Release%20Pic.png)
 
 ---
 
@@ -17,6 +17,7 @@ Plank was completely unmaintained and broken on Wayland. Wayplank brings it back
 
 Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL) working out of the box with **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)**. It auto-detects your compositor at startup without messy configs. Feedback, testing, and pull requests across different setups are very welcome!
 
+* 📚 [User Guide & Reference Manual](Documentation/USER_GUIDE.md)
 * 📖 [Technical migration report](Documentation/wayplank_x11_to_wayland_report_en.md)
 * 🧪 [Compositor test matrix & protocols](FAT/)
 * 📦 [Full technical changelogs](Changelogs/)
@@ -144,9 +145,9 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
 # Install with automatic dependency resolution:
-sudo apt install ./build/wayplank_0.5.2_amd64.deb
+sudo apt install ./build/wayplank_0.6.0_amd64.deb
 # Or via dpkg:
-# sudo dpkg -i build/wayplank_0.5.2_amd64.deb && sudo apt install -f
+# sudo dpkg -i build/wayplank_0.6.0_amd64.deb && sudo apt install -f
 ```
 
 ---
@@ -230,6 +231,7 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
+* ✨ **v0.6.0 — 2026-10-11:** Smart first-run auto-configuration (categorized English app drawers, auto-detected pinned apps, docklets & trash), universal "Change Icon..." dialog with FreeDesktop & GIO metadata, integrated User Guide, and clean release polish.
 * 🚀 **v0.5.2 (Alpha) — 2026-10-09:** Cairo folder launcher menu, 14 built-in docklets, category layout grouping and deep audit fixing stack overflows & GObject assertions.
 * 🛠️ **v0.5.1 — 2026-10-08:** Fixed KWin resume freeze on Plasma 6 with 50ms debouncer, native screenshot docklet and 100% FAT pass rate.
 * 🖥️ **v0.5.0 — 2026-10-07:** Solved multi-monitor duplicate ID collisions, live monitor hotplugging and Mutter drag race fixes.

@@ -225,7 +225,7 @@ namespace Plank
 			
 			DragItem = window.HoveredItem;
 			
-			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is TrashDockItem)
+			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is TrashDockItem || DragItem is PlankDockItem || DragItem is PreferencesDockItem)
 				DragItem = null;
 			
 			if (DragItem == null) {
@@ -749,6 +749,9 @@ namespace Plank
 					}
 
 					// For FOLDER or DOCKLET: strictly clamped to their own category range
+					if (drag_cat == DragCategory.DOCKLET && hovered_item is PreferencesDockItem)
+						return;
+
 					if (hover_idx < first_cat_idx) {
 						if (drag_idx != first_cat_idx) {
 							var target = elements.get (first_cat_idx);

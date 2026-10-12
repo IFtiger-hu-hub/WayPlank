@@ -28,10 +28,8 @@ namespace Plank
 
 		public static bool is_docklet_element (DockElement el)
 		{
-			if (el is TrashDockItem || el is SeparatorDockItem)
+			if (el is TrashDockItem || el is SeparatorDockItem || el is PlankDockItem)
 				return false;
-			if (el is PlankDockItem)
-				return true;
 			var item = el as DockItem;
 			if (item != null && item.Prefs != null && item.Prefs.Launcher != null)
 				return item.Prefs.Launcher.has_prefix ("docklet://");
@@ -49,6 +47,14 @@ namespace Plank
 			Prefs.notify["PinnedOnly"].connect (handle_pinned_only_changed);
 			Prefs.notify["CategorizeItems"].connect (handle_categorize_items_changed);
 			Prefs.notify["AccordionDocklets"].connect (handle_accordion_docklets_changed);
+			ensure_preferences_dockitem ();
+		}
+
+		public void ensure_preferences_dockitem ()
+		{
+			if (item_for_uri ("docklet://preferences") == null) {
+				add_item_with_uri ("docklet://preferences");
+			}
 		}
 
 		~DefaultApplicationDockItemProvider ()
@@ -323,6 +329,8 @@ namespace Plank
 				var folders = new Gee.ArrayList<DockElement> ();
 				var pinned_apps = new Gee.ArrayList<DockElement> ();
 				var docklets = new Gee.ArrayList<DockElement> ();
+				DockElement? preferences_docklet = null;
+				var other_docklets = new Gee.ArrayList<DockElement> ();
 				var transients = new Gee.ArrayList<DockElement> ();
 
 				for (int i = 0; i < internal_elements.size; i++) {
@@ -341,11 +349,26 @@ namespace Plank
 					} else if (el is FileDockItem) {
 						folders.add (el);
 					} else if (is_docklet_element (el)) {
-						docklets.add (el);
+						unowned DockItem? item = el as DockItem;
+						if (el is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
+							preferences_docklet = el;
+						} else {
+							other_docklets.add (el);
+						}
 					} else {
 						pinned_apps.add (el);
 					}
 				}
+
+				if (preferences_docklet == null && dragging_item == null) {
+					ensure_preferences_dockitem ();
+					preferences_docklet = item_for_uri ("docklet://preferences");
+				}
+
+				if (preferences_docklet != null)
+					docklets.add (preferences_docklet);
+				foreach (var od in other_docklets)
+					docklets.add (od);
 
 				foreach (var orphan in orphan_transients) {
 					disconnect_element (orphan);

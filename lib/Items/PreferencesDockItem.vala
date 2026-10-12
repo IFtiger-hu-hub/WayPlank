@@ -45,6 +45,11 @@ namespace Plank
 			return true;
 		}
 
+		public override bool can_be_removed ()
+		{
+			return false;
+		}
+
 		public void open_preferences ()
 		{
 			Application.get_default ().activate_action ("preferences", null);
@@ -63,6 +68,62 @@ namespace Plank
 		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
+
+			var report_item = create_menu_item (_("Report a _Bug Online..."), "tools-report-bug");
+			report_item.activate.connect (() => Application.get_default ().activate_action ("help", null));
+			items.add (report_item);
+
+			var shortcuts_item = create_menu_item (_("_Shortcuts & Gestures..."), "help-browser");
+			shortcuts_item.activate.connect (() => Application.get_default ().activate_action ("shortcuts", null));
+			items.add (shortcuts_item);
+
+			items.add (new Gtk.SeparatorMenuItem ());
+
+			unowned DockController? controller = get_dock ();
+			if (controller != null) {
+				unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
+				if (default_provider != null) {
+					var docklets_item = create_menu_item (_("_Docklets"), "system-run", true);
+					var docklets_menu = new Gtk.Menu ();
+					DockletMenuEntry[] docklets = {
+						{ _("_Trash"), "docklet://trash" },
+						{ _("_Analog Clock"), "docklet://clock" },
+						{ _("_Digital Clock"), "docklet://digital-clock" },
+						{ _("_Battery"), "docklet://battery" },
+						{ _("_CPU / RAM Monitor"), "docklet://cpu" },
+						{ _("_Show Desktop"), "docklet://desktop" },
+						{ _("_Media Player"), "docklet://mpris" },
+						{ _("_Volume Control"), "docklet://volume" },
+						{ _("_Screenshot"), "docklet://screenshot" },
+						{ _("_Session / Power"), "docklet://session" },
+						{ _("_Screen Brightness"), "docklet://brightness" },
+						{ _("_Removable Drives"), "docklet://ejector" },
+						{ _("_Weather Forecast"), "docklet://weather" },
+						{ _("_Network / Wi-Fi"), "docklet://network" }
+					};
+					foreach (var d in docklets) {
+						var d_uri = d.uri;
+						var c_item = new Gtk.CheckMenuItem.with_mnemonic (d.label);
+						c_item.active = (default_provider.item_for_uri (d_uri) != null);
+						c_item.toggled.connect (() => {
+							if (c_item.active) {
+								if (default_provider.item_for_uri (d_uri) == null)
+									default_provider.add_item_with_uri (d_uri);
+							} else {
+								unowned DockItem? di = default_provider.item_for_uri (d_uri);
+								if (di != null)
+									di.delete ();
+							}
+						});
+						docklets_menu.add (c_item);
+					}
+
+					docklets_menu.show_all ();
+					docklets_item.set_submenu (docklets_menu);
+					items.add (docklets_item);
+					items.add (new Gtk.SeparatorMenuItem ());
+				}
+			}
 
 			var pref_item = create_menu_item (_("_Preferences..."), "preferences-system", true);
 			pref_item.activate.connect (open_preferences);
@@ -84,27 +145,21 @@ namespace Plank
 			docklets_item.activate.connect (() => Application.get_default ().activate_action ("preferences-docklets", null));
 			items.add (docklets_item);
 
-			items.add (new Gtk.SeparatorMenuItem ());
+			var guide_item = create_menu_item (_("User Guide..."), "help-browser", true);
+			guide_item.activate.connect (() => Application.get_default ().activate_action ("guide", null));
+			items.add (guide_item);
 
-			var shortcuts_item = create_menu_item (_("_Shortcuts & Gestures..."), "help-browser", true);
-			shortcuts_item.activate.connect (() => Application.get_default ().activate_action ("shortcuts", null));
-			items.add (shortcuts_item);
-
-			var bug_item = create_menu_item (_("Report a _Bug Online..."), "tools-report-bug", true);
-			bug_item.activate.connect (() => Application.get_default ().activate_action ("help", null));
-			items.add (bug_item);
-
-			var about_item = create_menu_item (_("_About Wayplank..."), "help-about", true);
+			var about_item = create_menu_item (_("_About"), "help-about", true);
 			about_item.activate.connect (() => Application.get_default ().activate_action ("about", null));
 			items.add (about_item);
 
-			items.add (new Gtk.SeparatorMenuItem ());
+			if (!environment_is_session_desktop (XdgSessionDesktop.PANTHEON)) {
+				items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+				var quit_item = create_menu_item (_("_Quit"), "application-exit", true);
+				quit_item.activate.connect (() => Application.get_default ().activate_action ("quit", null));
+				items.add (quit_item);
+			}
 
 			return items;
 		}

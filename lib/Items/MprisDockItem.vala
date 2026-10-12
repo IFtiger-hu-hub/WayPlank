@@ -22,6 +22,7 @@ namespace Plank
 	public class MprisDockItem : DockItem
 	{
 		uint timer_id = 0;
+		uint dbus_sub_id = 0;
 		string? active_player_bus = null;
 		string playback_status = "Stopped";
 		string track_title = "";
@@ -45,11 +46,48 @@ namespace Plank
 			
 			refresh_player_state ();
 			start_timer ();
+			start_dbus_listener ();
 		}
 		
 		~MprisDockItem ()
 		{
 			stop_timer ();
+			stop_dbus_listener ();
+		}
+		
+		void on_dbus_properties_changed (DBusConnection conn, string? sender, string path, string iface, string signal, Variant parameters)
+		{
+			refresh_player_state ();
+			reset_icon_buffer ();
+		}
+
+		void start_dbus_listener ()
+		{
+			if (dbus_sub_id != 0)
+				return;
+			try {
+				var bus = Bus.get_sync (BusType.SESSION, null);
+				dbus_sub_id = bus.signal_subscribe (
+					null,
+					"org.freedesktop.DBus.Properties",
+					"PropertiesChanged",
+					null,
+					"/org/mpris/MediaPlayer2",
+					DBusSignalFlags.NONE,
+					on_dbus_properties_changed
+				);
+			} catch (Error e) { }
+		}
+		
+		void stop_dbus_listener ()
+		{
+			if (dbus_sub_id != 0) {
+				try {
+					var bus = Bus.get_sync (BusType.SESSION, null);
+					bus.signal_unsubscribe (dbus_sub_id);
+				} catch (Error e) { }
+				dbus_sub_id = 0;
+			}
 		}
 		
 		void start_timer ()
@@ -57,7 +95,7 @@ namespace Plank
 			if (timer_id != 0)
 				return;
 			
-			timer_id = Timeout.add_seconds (3, on_timer_tick);
+			timer_id = Timeout.add_seconds (1, on_timer_tick);
 		}
 		
 		void stop_timer ()
@@ -78,6 +116,33 @@ namespace Plank
 			stop_timer ();
 			base.@delete ();
 		}
+
+		void extract_metadata (Variant props, out string title, out string artist)
+		{
+			title = "";
+			artist = "";
+			var meta_val = props.lookup_value ("Metadata", null);
+			if (meta_val == null)
+				return;
+			var meta = meta_val.is_of_type (VariantType.VARIANT) ? meta_val.get_variant () : meta_val;
+
+			var t_val = meta.lookup_value ("xesam:title", null);
+			if (t_val != null) {
+				title = t_val.is_of_type (VariantType.VARIANT) ? t_val.get_variant ().get_string () : t_val.get_string ();
+			}
+
+			var a_val = meta.lookup_value ("xesam:artist", null);
+			if (a_val != null) {
+				var a = a_val.is_of_type (VariantType.VARIANT) ? a_val.get_variant () : a_val;
+				if (a.is_of_type (VariantType.STRING_ARRAY)) {
+					string[] arr = a.get_strv ();
+					if (arr.length > 0)
+						artist = arr[0];
+				} else if (a.is_of_type (VariantType.STRING)) {
+					artist = a.get_string ();
+				}
+			}
+		}
 		
 		void refresh_player_state ()
 		{
@@ -91,60 +156,91 @@ namespace Plank
 					null,
 					null,
 					DBusCallFlags.NONE,
-					50,
+					500,
 					null
 				);
 				
 				active_player_bus = null;
+				playback_status = "Stopped";
+				track_title = "";
+				track_artist = "";
+
 				string[] names = names_variant.get_child_value (0).get_strv ();
 				foreach (unowned string name in names) {
-					if (name.has_prefix ("org.mpris.MediaPlayer2.")) {
-						active_player_bus = name;
-						break;
+					if (!name.has_prefix ("org.mpris.MediaPlayer2."))
+						continue;
+
+					try {
+						var all_props_var = bus.call_sync (
+							name,
+							"/org/mpris/MediaPlayer2",
+							"org.freedesktop.DBus.Properties",
+							"GetAll",
+							new Variant ("(s)", "org.mpris.MediaPlayer2.Player"),
+							null,
+							DBusCallFlags.NO_AUTO_START,
+							200,
+							null
+						);
+						var props_dict = all_props_var.get_child_value (0);
+						var status_val = props_dict.lookup_value ("PlaybackStatus", null);
+						string cur_status = "Stopped";
+						if (status_val != null) {
+							cur_status = status_val.is_of_type (VariantType.VARIANT) ? status_val.get_variant ().get_string () : status_val.get_string ();
+						}
+
+						string cur_title = "";
+						string cur_artist = "";
+						extract_metadata (props_dict, out cur_title, out cur_artist);
+
+						if (cur_status == "Playing") {
+							active_player_bus = name;
+							playback_status = cur_status;
+							track_title = cur_title;
+							track_artist = cur_artist;
+							break;
+						} else if (cur_status == "Paused" && (active_player_bus == null || playback_status != "Playing")) {
+							active_player_bus = name;
+							playback_status = cur_status;
+							track_title = cur_title;
+							track_artist = cur_artist;
+						} else if (active_player_bus == null) {
+							active_player_bus = name;
+							playback_status = cur_status;
+							track_title = cur_title;
+							track_artist = cur_artist;
+						}
+					} catch {
+						try {
+							var status_prop = bus.call_sync (
+								name,
+								"/org/mpris/MediaPlayer2",
+								"org.freedesktop.DBus.Properties",
+								"Get",
+								new Variant ("(ss)", "org.mpris.MediaPlayer2.Player", "PlaybackStatus"),
+								null,
+								DBusCallFlags.NO_AUTO_START,
+								200,
+								null
+							);
+							var status_val = status_prop.get_child_value (0);
+							if (status_val != null) {
+								var inner_val = status_val.is_of_type (VariantType.VARIANT) ? status_val.get_variant () : status_val;
+								string cur_status = inner_val.get_string ();
+								if (cur_status == "Playing") {
+									active_player_bus = name;
+									playback_status = cur_status;
+									break;
+								} else if (cur_status == "Paused" && (active_player_bus == null || playback_status != "Playing")) {
+									active_player_bus = name;
+									playback_status = cur_status;
+								}
+							}
+						} catch { }
 					}
 				}
 				
 				if (active_player_bus != null) {
-					// Query All Player Properties in a single round-trip with tight 50ms timeout
-					var all_props_var = bus.call_sync (
-						active_player_bus,
-						"/org/mpris/MediaPlayer2",
-						"org.freedesktop.DBus.Properties",
-						"GetAll",
-						new Variant ("(s)", "org.mpris.MediaPlayer2.Player"),
-						null,
-						DBusCallFlags.NONE,
-						50,
-						null
-					);
-					var props_dict = all_props_var.get_child_value (0);
-					
-					var status_val = props_dict.lookup_value ("PlaybackStatus", VariantType.ANY);
-					if (status_val != null) {
-						playback_status = status_val.get_variant ().get_string ();
-					}
-					
-					track_title = "";
-					track_artist = "";
-					var meta_val = props_dict.lookup_value ("Metadata", VariantType.ANY);
-					if (meta_val != null) {
-						var meta_dict = meta_val.get_variant ();
-						var title_val = meta_dict.lookup_value ("xesam:title", VariantType.ANY);
-						if (title_val != null)
-							track_title = title_val.get_variant ().get_string ();
-						
-						var artist_val = meta_dict.lookup_value ("xesam:artist", VariantType.ANY);
-						if (artist_val != null) {
-							var artist_variant = artist_val.get_variant ();
-							if (artist_variant.is_of_type (VariantType.STRING_ARRAY)) {
-								string[] artists = artist_variant.get_strv ();
-								if (artists.length > 0) track_artist = artists[0];
-							} else if (artist_variant.is_of_type (VariantType.STRING)) {
-								track_artist = artist_variant.get_string ();
-							}
-						}
-					}
-					
 					if (track_title != "") {
 						if (track_artist != "")
 							Text = "%s - %s (%s)".printf (track_artist, track_title, playback_status);
@@ -155,9 +251,9 @@ namespace Plank
 					}
 					
 					if (playback_status == "Playing")
-						Icon = "media-playback-start;;multimedia-player;;audio-player";
+						Icon = "media-playback-start;;media-playback-start-symbolic;;player_play;;multimedia-player;;audio-player";
 					else if (playback_status == "Paused")
-						Icon = "media-playback-pause;;multimedia-player;;audio-player";
+						Icon = "media-playback-pause;;media-playback-pause-symbolic;;player_pause;;multimedia-player;;audio-player";
 					else
 						Icon = "multimedia-player;;audio-player;;applications-multimedia";
 				} else {
@@ -247,18 +343,7 @@ namespace Plank
 			});
 			items.add (remove_item);
 			
-			append_dock_menu_items (items);
 			return items;
-		}
-		
-		void append_dock_menu_items (Gee.ArrayList<Gtk.MenuItem> items)
-		{
-			if (items.size > 0)
-				items.add (new Gtk.SeparatorMenuItem ());
-			var dock_item = Factory.item_factory.get_item_for_dock ();
-			if (dock_item != null)
-				foreach (var menu_item in dock_item.get_menu_items ())
-					items.add (menu_item);
 		}
 	}
 }

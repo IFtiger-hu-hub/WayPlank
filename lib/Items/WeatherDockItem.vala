@@ -366,19 +366,7 @@ namespace Plank
 			});
 			items.add (remove_item);
 
-			append_dock_menu_items (items);
-
 			return items;
-		}
-
-		private void append_dock_menu_items (Gee.ArrayList<Gtk.MenuItem> items)
-		{
-			if (items.size > 0)
-				items.add (new Gtk.SeparatorMenuItem ());
-			var dock_item = Factory.item_factory.get_item_for_dock ();
-			if (dock_item != null)
-				foreach (var menu_item in dock_item.get_menu_items ())
-					items.add (menu_item);
 		}
 
 		public static string code_to_description (int code)

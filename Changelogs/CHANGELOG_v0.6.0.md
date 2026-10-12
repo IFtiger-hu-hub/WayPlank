@@ -1,0 +1,186 @@
+# Wayplank V0.6.0 Detailed Technical Changelog
+
+Release Milestone: **V0.6.0 (Modern First-Run Autoconfiguration, English App Drawers, Integrated User Guide & Release Polish)**  
+Release Date: 2026-10-11  
+Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)  
+
+---
+
+## 1. 📋 Overview & Motivation
+
+Wayplank **V0.6.0** represents a major evolutionary leap for the project, transitioning Wayplank from a low-level Wayland migration port to a **complete, elegant, out-of-the-box desktop dock experience ready for everyday end-users**.
+
+Following the rock-solid core stabilization achieved in v0.5.2 (Mutter extension v10, sub-second 0.74s boot time, Clutter stage probing on multi-monitor bottom boundaries, and the 14-docklet suite), v0.6.0 addresses the user onboarding experience:
+
+1. **Complete Modernization of First-Run Initialization**: The legacy 2012 Plank pre-population logic (which contained dead media players like Songbird/Banshee and broken terminal detection via `ssh` URIs) has been completely retired and replaced with an intelligent, FreeDesktop-compliant auto-creation engine.
+2. **4 Auto-Created English Application Drawers (Folders)**: On fresh installations or empty docks, Wayplank automatically creates four standard drawer directories (`Internet`, `Office`, `Media`, `Games` / `Utilities`) populated with the user's real installed applications, accessible via Cairo-Dock style popup menus.
+3. **Intelligent Top-Level Pinned Applications**: Automatically detects and pins the user's default File Manager, Web Browser, Terminal Emulator, and Text Editor using modern GIO MIME handlers with comprehensive desktop fallback chains.
+4. **Auto-Activated Modern Layout & Accordion Docklets**: Automatically enables `categorize-items` (arranging items into Folders, Docklets, Pinned Apps, Running Windows, and Trash) and `accordion-docklets` (collapsing docklets into a compact, space-saving master icon at rest).
+5. **Integrated User Guide & Reference Manual (`Documentation/USER_GUIDE.md`)**: Replaces the internal developer-facing "Wayland Migration Report" with a rich, user-facing manual complete with a clickable Table of Contents, explaining drawer creation, docklet configuration, gestures, multi-monitor setups, and shortcuts.
+6. **Universal "Change Icon..." System (Launchers, Folders & Docklets)**: Adds an interactive right-click "Change Icon..." dialog with live search across 20,000+ theme icons, custom image file browsing (PNG/SVG), and instant "Restore Default", fully compliant with FreeDesktop standards and GIO metadata.
+7. **Release Banner Update ("Comic Fusion")**: Upgraded release announcement artwork integrating the live desktop screenshot with Cairo-dock folder menus into the comic illustration, embedded directly into internal binary resources.
+
+---
+
+## 2. 🏗️ In-Depth Technical Breakdown of the Auto-Creation Engine
+
+### Architecture of First-Run Detection (`lib/DockController.vala`)
+In previous versions, default launchers were only created if `launchers_folder` did not exist on the filesystem. In v0.6.0, `DockController.create_default_provider()` features proactive first-run and empty-dock detection:
+
+```vala
+bool is_first_run = Paths.ensure_directory_exists (launchers_folder);
+if (!is_first_run) {
+    try {
+        var enumerator = launchers_folder.enumerate_children (FileAttribute.STANDARD_NAME, 0);
+        if (enumerator.next_file (null) == null)
+            is_first_run = true;
+    } catch { }
+}
+
+if (is_first_run) {
+    debug ("First run or empty launchers detected: initializing modern defaults...");
+    prefs.CategorizeItems = true;
+    prefs.AccordionDocklets = true;
+    prefs.ShowDockItem = false;
+    Factory.item_factory.make_default_items ();
+    debug ("done.");
+}
+```
+
+- **Non-Destructive**: If the user already has existing launchers in `~/.config/wayplank/dock1/launchers/`, Wayplank leaves them completely untouched.
+- **Auto-Provisioning**: If the directory is created for the first time or emptied by the user, Wayplank automatically initializes the modern suite and applies optimal GSettings defaults.
+
+---
+
+### Step 1: The 4 English Application Drawers (`lib/Factories/ItemFactory.vala`)
+Wayplank creates a dedicated folder root at `~/.config/wayplank/folders/` and initializes four structured categories:
+
+| Drawer Name | Custom Vector Icon | Priority App Search List | FreeDesktop Category Tags Scanned |
+| :--- | :--- | :--- | :--- |
+| **`Internet`** | `applications-internet` | `google-chrome`, `firefox`, `chromium-browser`, `brave-browser`, `microsoft-edge`, `thunderbird`, `org.telegram.desktop`, `discord`, `signal-desktop` | `WebBrowser`, `Network`, `Email`, `Chat`, `InstantMessaging`, `IRCClient`, `Feed` |
+| **`Office`** | `applications-office` | `libreoffice-startcenter`, `libreoffice-writer`, `code`, `com.microsoft.VSCode`, `org.kde.kate`, `org.gnome.TextEditor`, `gedit`, `org.kde.kcalc`, `org.gnome.Calculator` | `Office`, `Development`, `IDE`, `TextEditor`, `WordProcessor`, `Spreadsheet`, `Calculator`, `Viewer` |
+| **`Media`** | `applications-multimedia` | `vlc`, `org.videolan.VLC`, `org.gnome.Totem`, `org.kde.dragonplayer`, `spotify`, `org.inkscape.Inkscape`, `gimp`, `org.gimp.GIMP`, `rhythmbox`, `org.pulseaudio.pavucontrol` | `AudioVideo`, `Audio`, `Video`, `Graphics`, `Player`, `Recorder`, `Music` |
+| **`Games`** | `applications-games` | `steam`, `com.valvesoftware.Steam`, `lutris`, `net.lutris.Lutris`, `heroic`, `com.heroicgameslauncher.hgl` | `Game`, `Emulator` |
+| **`Utilities`** *(Fallback)* | `applications-utilities` | `org.gnome.DiskUtility`, `gnome-system-monitor`, `org.kde.ark`, `file-roller` | `System`, `Utility`, `Archiving`, `Settings`, `FileManager` |
+
+#### Population Algorithm (`populate_folder`):
+1. **Directory Setup & Metadata**: Ensures the target directory exists, writes standard FreeDesktop `[Desktop Entry]\nType=Directory\nIcon=...` to `.directory`, and assigns GVFS `metadata::custom-icon-name` so file managers and Wayplank immediately render the custom category icon.
+2. **Two-Tier App Discovery**:
+   - **Tier 1 (Priority Scan)**: Checks for installed high-profile applications matching the priority list. If found and visible (`should_show() == true`), the `.desktop` file is copied directly into the folder drawer.
+   - **Tier 2 (System-Wide FreeDesktop Category Scan)**: If the drawer contains fewer than 6 items, Wayplank queries `AppInfo.get_all()`, casting each item to `DesktopAppInfo` and parsing its FreeDesktop `Categories` string against the category tags until the drawer reaches its limit (max 6 items to prevent visual menu bloat).
+3. **Dynamic Games/Utilities Fallback**: After scanning, Wayplank verifies if the `Games` folder received any desktop files. If the user has no games installed on the system, Wayplank automatically provisions a `Utilities` drawer instead, ensuring no empty or useless drawers appear on the dock.
+4. **Dockitem Generation**: For each created drawer, Wayplank writes a `.dockitem` file in `launchers_folder` pointing to `file:///home/user/.config/wayplank/folders/<Category>`, turning it into an interactive Cairo-Dock style popup menu.
+
+---
+
+### Step 2: Auto-Created Built-in Docklets
+Wayplank provisions four essential built-in docklets:
+- `preferences.dockitem` (`docklet://preferences`): Provides instant single-click access to Wayplank settings.
+- `desktop.dockitem` (`docklet://desktop`): Classic Show/Hide Desktop toggle.
+- `volume.dockitem` (`docklet://volume`): Hardware audio volume indicator and slider.
+- `trash.dockitem` (`docklet://trash`): Trash can indicator and ejection target.
+
+Under `categorize-items = true`, `preferences`, `desktop`, and `volume` are automatically grouped into the Docklets zone on the left, while `trash` is permanently anchored to the far right. Under `accordion-docklets = true`, the docklets collapse into a neat, expandable single slot at rest.
+
+---
+
+### Step 3: Top-Level Pinned Applications
+Alongside the drawers and docklets, Wayplank provisions four direct single-click launchers for everyday essentials:
+1. **File Manager**:
+   - Primary: `AppInfo.get_default_for_type ("inode/directory", false)`
+   - Fallbacks: `org.gnome.Nautilus`, `org.kde.dolphin`, `nemo`, `thunar`, `pcmanfm`, `org.xfce.FileManager`
+2. **Primary Web Browser**:
+   - Primary: `AppInfo.get_default_for_type ("x-scheme-handler/http", false)`
+   - Fallbacks: `google-chrome`, `firefox`, `chromium-browser`, `chromium`, `brave-browser`, `microsoft-edge`, `org.gnome.Epiphany`
+3. **Terminal Emulator**:
+   - Probing: `org.gnome.Terminal`, `org.gnome.Ptyxis`, `ptyxis`, `org.kde.konsole`, `alacritty`, `kitty`, `xfce4-terminal`, `foot`, `terminator`
+4. **Text Editor**:
+   - Primary: `AppInfo.get_default_for_type ("text/plain", false)`
+   - Fallbacks: `org.gnome.TextEditor`, `gedit`, `org.kde.kate`, `code`, `com.microsoft.VSCode`, `mousepad`
+
+---
+
+## 3. 📖 Integrated User Guide & Context Menu Modernization
+
+### Transition from Developer Report to End-User Guide
+In earlier releases, the dock context menu included a link to "Wayland Migration Report...", which was an internal architecture document used during early porting.
+
+In v0.6.0:
+- **Menu Item Renamed**: Replaced with `User Guide...` (icon: `help-browser`) in `lib/Items/PlankDockItem.vala`.
+- **GResource Alias**: Updated `data/plank.gresource.xml` to compile `Documentation/USER_GUIDE.md` under the resource path `/net/launchpad/plank/doc/guide.md`.
+- **Action Renamed**: Updated action in `lib/Factories/AbstractMain.vala` from `report` to `guide`.
+- **HTML Viewer Generation (`show_guide`)**: Loads the embedded markdown guide, compiles it into a modern, responsive HTML page with dark/light mode detection and Mermaid diagram rendering, and opens it directly in the user's default browser via `AppInfo.launch_default_for_uri`.
+
+---
+
+---
+
+## 4. 🎨 Universal "Change Icon..." System (FreeDesktop & GIO Metadata Architecture)
+
+### Motivation & Design Principles
+Users frequently wish to customize dock item icons (e.g. assigning distinctive brand logos to application drawers, personalizing browser launchers, or adjusting docklet appearances) without risking compatibility with legacy Plank configurations or breaking upstream FreeDesktop standards.
+
+In v0.6.0, Wayplank introduces an integrated, non-intrusive icon personalization system accessible via right-click on all dock elements.
+
+### The `IconChooserDialog` Widget (`lib/Widgets/IconChooserDialog.vala`)
+- **Live Search & Dynamic Virtualization**: Directly queries `Gtk.IconTheme.get_default().list_icons(null)` (accessing all 20,000+ icons in the active system theme). Employs 120ms search debouncing and paginated `Gtk.FlowBox` rendering to achieve 0ms visual latency and zero UI freezing.
+- **Custom Image File Chooser**: A dedicated "Browse File..." action enables selecting local PNG, SVG, ICO, or JPG graphic assets from any filesystem path.
+- **Real-Time Header Preview**: Dynamically previews theme icons and scaled pixbuf file paths alongside the item's display name.
+- **Instant "Restore Default"**: A dedicated action button to immediately revert to factory appearance.
+
+### Architecture by Element Type
+
+#### 1. Application Launchers (`lib/Items/ApplicationDockItem.vala`)
+- **Standard FreeDesktop Override ("Approach A")**: When a new icon is selected, Wayplank writes an override desktop file to `~/.local/share/applications/<basename>.desktop` with `Icon=<new_icon>`, updating `Prefs.Launcher` accordingly.
+- **Zero Plank Migration Breakage**: Because the `.dockitem` file continues to reference a standard `file:///...` desktop URI, configurations remain 100% interoperable with upstream Plank X11 and system application menus.
+- **Clean Reset**: Clicking "Restore Default" deletes the user override from `~/.local/share/applications/` and points back to the system `/usr/share/applications/` launcher.
+
+#### 2. Folders & Drawer Directories (`lib/Items/FileDockItem.vala`)
+- **Standard GIO Filesystem Metadata**: Custom folder icons are persisted via `metadata::custom-icon-name` (for theme icons) or `metadata::custom-icon` (for image file paths) on `OwnedFile`.
+- **Automatic Rendering Transition**: Once a custom icon is set, `FileDockItem` transitions from the 4-tile stack preview to rendering the single custom icon at full dock resolution.
+- **Nautilus / Dolphin Compatibility**: Because GIO metadata is standard across GNOME and KDE, custom icons set in Wayplank are natively recognized in file managers.
+- **Stack Restoration**: Clicking "Restore Default" unsets the metadata attributes, immediately restoring the 4-tile stack view.
+
+#### 3. Dedicated Docklets (`ShowDesktop`, `Preferences`, `Session`, `Screenshot`, `Ejector`)
+- **Targeted Class Extension**: Docklets persist their custom icon directly as an optional `Icon=` key within their respective `.dockitem` preference file.
+- **Common Engine Integrity**: By implementing the feature within the specific docklet classes rather than modifying the base `DockItem.vala` or `DockElement.vala`, the core engine, window management, and positioning pipeline remain 100% locked and untouched.
+- **Backward Parser Immunity**: When parsing `.dockitem` files, Plank's `GKeyFile` loader only queries registered class properties, automatically ignoring extra keys without warnings or crashes.
+
+---
+
+## 5. 🗂️ File Changes Summary
+
+| File | Changes Made |
+| :--- | :--- |
+| `include/config.h` | Bumped `VERSION` and `PACKAGE_VERSION` to `0.6.0`, updated `VERSION_INFO` to `"Wayplank 0.6.0 - Release Build"`. |
+| `BuildDeb.sh` | Bumped `PKG_VER` to `"0.6.0"` for native Debian package building. |
+| `data/glib-2.0/schemas/net.launchpad.plank.gschema.xml` | Updated schema defaults for `categorize-items` and `accordion-docklets` to `true`. |
+| `data/plank.gresource.xml` | Replaced legacy report with `doc/guide.md` pointing to `../Documentation/USER_GUIDE.md`, added `doc/banner.png`. |
+| `Documentation/USER_GUIDE.md` | Authored 10-chapter comprehensive User Guide with clickable Table of Contents. |
+| `Release Pic.png` | Updated release announcement image to "Comic Fusion" style with real desktop Cairo-dock screenshot embedded in the monitor. |
+| `lib/Widgets/IconChooserDialog.vala` | Created new searchable theme icon browser with live search, custom image browsing, and default reset. |
+| `lib/DockController.vala` | Implemented proactive first-run and empty launchers detection to apply modern preferences and trigger `make_default_items()`. |
+| `lib/Factories/ItemFactory.vala` | Replaced legacy 2012 prefill code with modern FreeDesktop auto-creation engine (4 English drawers, docklets, smart pinned apps). |
+| `lib/Factories/AbstractMain.vala` | Replaced `report` action with `guide` action, rendering `wayplank_user_guide.html`. |
+| `lib/Items/PlankDockItem.vala` | Updated context menu item from "Wayland Migration Report..." to "User Guide...". |
+| `lib/Items/ApplicationDockItem.vala` | Added "Change Icon..." context menu item with FreeDesktop `~/.local/share/applications/` persistence. |
+| `lib/Items/FileDockItem.vala` | Added "Change Icon..." context menu item with GIO `metadata::custom-icon` persistence. |
+| `lib/Items/ShowDesktopDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
+| `lib/Items/PreferencesDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
+| `lib/Items/SessionDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
+| `lib/Items/ScreenshotDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
+| `lib/Items/EjectorDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
+
+---
+
+## 6. 📦 Validation & Build Artifacts
+
+- **Native Binary**: Compiled and verified via `./BuildBin.sh`:
+  - Path: `build/wayplank`
+  - Output: `Wayplank 0.6.0`
+- **Debian Package**: Generated and verified via `./BuildDeb.sh`:
+  - Path: `build/wayplank_0.6.0_amd64.deb`
+- **First-Run Verification**: Tested in isolated environment (`/tmp/test_wayplank_dock1`), verifying exact generation of 4 English drawers (`Internet`, `Office`, `Media`, `Games`), 4 docklets, and 4 top-level pinned apps.
+- **Icon Customization Verification**: Validated interactive theme icon search, custom file chooser, GIO folder metadata assignment, FreeDesktop `.desktop` cloning, and factory default restoration.
+
+

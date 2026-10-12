@@ -103,10 +103,10 @@ namespace Plank
 						{ _("_Volume Control"), "docklet://volume" },
 						{ _("_Screenshot"), "docklet://screenshot" },
 						{ _("_Session / Power"), "docklet://session" },
-						{ _("_Preferences"), "docklet://preferences" },
 						{ _("_Screen Brightness"), "docklet://brightness" },
 						{ _("_Removable Drives"), "docklet://ejector" },
-						{ _("_Weather Forecast"), "docklet://weather" }
+						{ _("_Weather Forecast"), "docklet://weather" },
+						{ _("_Network / Wi-Fi"), "docklet://network" }
 					};
 					foreach (var d in docklets) {
 						var d_uri = d.uri;
@@ -136,8 +136,8 @@ namespace Plank
 			item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));
 			items.add (item);
 
-			item = create_menu_item (_("Wayland Migration Report..."), "text-x-generic", true);
-			item.activate.connect (() => Application.get_default ().activate_action ("report", null));
+			item = create_menu_item (_("User Guide..."), "help-browser", true);
+			item.activate.connect (() => Application.get_default ().activate_action ("guide", null));
 			items.add (item);
 			
 			item = create_menu_item (_("_About"), "help-about", true);

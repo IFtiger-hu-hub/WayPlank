@@ -139,7 +139,7 @@
 			<description>If true, use pressure-based revealing of the dock if the input device supports it.</description>
 		</key>
 		<key name="show-dock-item" type="b">
-			<default>false</default>
+			<default>true</default>
 			<summary>Show the item for the dock itself</summary>
 			<description>If true, show the Plank dock item.</description>
 		</key>
@@ -165,12 +165,12 @@
 			<description>If true, zoom dock items when hovered with the cursor.</description>
 		</key>
 		<key name="categorize-items" type="b">
-			<default>false</default>
+			<default>true</default>
 			<summary>Categorize dock items</summary>
 			<description>If true, group items into folders, pinned apps, docklets, unpinned apps, and trash with dynamic separators.</description>
 		</key>
 		<key name="accordion-docklets" type="b">
-			<default>false</default>
+			<default>true</default>
 			<summary>Accordion docklets mode</summary>
 			<description>When Categorize Items is enabled, collapse docklets so only the first one on the left is visible at rest, expanding in-line on hover.</description>
 		</key>

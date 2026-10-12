@@ -260,7 +260,7 @@ namespace Plank
 			var folder_item = create_menu_item (_("Open Screenshots Folder"), "folder-pictures", true);
 			folder_item.activate.connect (open_folder);
 			items.add (folder_item);
-			
+
 			items.add (new Gtk.SeparatorMenuItem ());
 			
 			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
@@ -269,18 +269,7 @@ namespace Plank
 			});
 			items.add (remove_item);
 			
-			append_dock_menu_items (items);
 			return items;
-		}
-		
-		void append_dock_menu_items (Gee.ArrayList<Gtk.MenuItem> items)
-		{
-			if (items.size > 0)
-				items.add (new Gtk.SeparatorMenuItem ());
-			var dock_item = Factory.item_factory.get_item_for_dock ();
-			if (dock_item != null)
-				foreach (var menu_item in dock_item.get_menu_items ())
-					items.add (menu_item);
 		}
 	}
 }

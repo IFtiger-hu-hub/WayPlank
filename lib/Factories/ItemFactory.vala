@@ -25,65 +25,63 @@ namespace Plank
 	 */
 	public class ItemFactory : GLib.Object
 	{
-		const string[] DEFAULT_APP_WEB = {
-			"file:///usr/share/applications/chromium-browser.desktop",
-			"file:///usr/share/applications/google-chrome.desktop",
-			"file:///usr/share/applications/firefox.desktop",
-			"file:///usr/share/applications/epiphany.desktop",
-			"file:///usr/share/applications/midori.desktop",
-			"file:///usr/share/applications/kde4/konqbrowser.desktop"
+		const string[] FALLBACK_FILE_MANAGERS = {
+			"org.gnome.Nautilus.desktop",
+			"org.kde.dolphin.desktop",
+			"nemo.desktop",
+			"thunar.desktop",
+			"pcmanfm.desktop",
+			"org.xfce.FileManager.desktop"
 		};
-		
-		const string[] DEFAULT_APP_MAIL = {
-			"file:///usr/share/applications/thunderbird.desktop",
-			"file:///usr/share/applications/evolution.desktop",
-			"file:///usr/share/applications/geary.desktop",
-			"file:///usr/share/applications/kde4/KMail2.desktop"
+
+		const string[] FALLBACK_BROWSERS = {
+			"google-chrome.desktop",
+			"firefox.desktop",
+			"chromium-browser.desktop",
+			"chromium.desktop",
+			"brave-browser.desktop",
+			"microsoft-edge.desktop",
+			"org.gnome.Epiphany.desktop"
 		};
-		
-		const string[] DEFAULT_APP_CALENDAR = {
-			"file:///usr/share/applications/thunderbird.desktop",
-			"file:///usr/share/applications/evolution.desktop",
-			"file:///usr/share/applications/maya-calendar.desktop",
-			"file:///usr/share/applications/kde4/korganizer.desktop"
+
+		const string[] FALLBACK_TERMINALS = {
+			"org.gnome.Terminal.desktop",
+			"org.gnome.Ptyxis.desktop",
+			"ptyxis.desktop",
+			"org.kde.konsole.desktop",
+			"alacritty.desktop",
+			"kitty.desktop",
+			"xfce4-terminal.desktop",
+			"foot.desktop",
+			"terminator.desktop"
 		};
-		
-		const string[] DEFAULT_APP_TERMINAL = {
-			"file:///usr/share/applications/terminator.desktop",
-			"file:///usr/share/applications/gnome-terminal.desktop",
-			"file:///usr/share/applications/pantheon-terminal.desktop",
-			"file:///usr/share/applications/kde4/konsole.desktop"
+
+		const string[] FALLBACK_EDITORS = {
+			"org.gnome.TextEditor.desktop",
+			"gedit.desktop",
+			"org.kde.kate.desktop",
+			"code.desktop",
+			"com.microsoft.VSCode.desktop",
+			"mousepad.desktop"
 		};
-		
-		const string[] DEFAULT_APP_AUDIO = {
-			"file:///usr/share/applications/exaile.desktop",
-			"file:///usr/share/applications/songbird.desktop",
-			"file:///usr/share/applications/rhythmbox.desktop",
-			"file:///usr/share/applications/noise.desktop",
-			"file:///usr/share/applications/banshee-1.desktop",
-			"file:///usr/share/applications/kde4/amarok.desktop"
+
+		const string[] PRIORITY_INTERNET = {
+			"google-chrome", "firefox", "chromium-browser", "brave-browser",
+			"microsoft-edge", "thunderbird", "org.telegram.desktop", "discord", "signal-desktop"
 		};
-		
-		const string[] DEFAULT_APP_VIDEO = {
-			"file:///usr/share/applications/vlc.desktop",
-			"file:///usr/share/applications/totem.desktop",
-			"file:///usr/share/applications/audience.desktop",
-			"file:///usr/share/applications/kde4/amarok.desktop"
+
+		const string[] PRIORITY_OFFICE = {
+			"libreoffice-startcenter", "libreoffice-writer", "code", "com.microsoft.VSCode",
+			"org.kde.kate", "org.gnome.TextEditor", "gedit", "org.kde.kcalc", "org.gnome.Calculator"
 		};
-		
-		const string[] DEFAULT_APP_PHOTO = {
-			"file:///usr/share/applications/eog.desktop",
-			"file:///usr/share/applications/gnome-photos.desktop",
-			"file:///usr/share/applications/org.gnome.Photos.desktop",
-			"file:///usr/share/applications/shotwell.desktop",
-			"file:///usr/share/applications/kde4/digikam.desktop"
+
+		const string[] PRIORITY_MEDIA = {
+			"vlc", "org.videolan.VLC", "org.gnome.Totem", "org.kde.dragonplayer",
+			"spotify", "org.inkscape.Inkscape", "gimp", "org.gimp.GIMP", "rhythmbox", "org.pulseaudio.pavucontrol"
 		};
-		
-		const string[] DEFAULT_APP_MESSENGER = {
-			"file:///usr/share/applications/pidgin.desktop",
-			"file:///usr/share/applications/empathy.desktop",
-			"file:///usr/share/applications/birdie.desktop",
-			"file:///usr/share/applications/kde4/kopete.desktop"
+
+		const string[] PRIORITY_GAMES = {
+			"steam", "com.valvesoftware.Steam", "lutris", "net.lutris.Lutris", "heroic", "com.heroicgameslauncher.hgl"
 		};
 		
 		/**
@@ -151,6 +149,8 @@ namespace Plank
 				return new BrightnessDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://weather")
 				return new WeatherDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://network")
+				return new NetworkDockItem.with_dockitem_file (file);
 			if (launcher.has_suffix (".desktop"))
 				return new ApplicationDockItem.with_dockitem_file (file);
 			return new FileDockItem.with_dockitem_file (file);
@@ -270,105 +270,217 @@ namespace Plank
 			return null;
 		}
 
-		void make_dock_item_for_desktop_id (string id)
+		bool make_dock_item_for_desktop_id (string id)
 		{
-			var app_info = new DesktopAppInfo (id);
-			if (app_info == null) {
-				warning ("Failed to create dock item for '%s'", id);
-				return;
-			}
+			string desktop_id = id.has_suffix (".desktop") ? id : id + ".desktop";
+			var app_info = new DesktopAppInfo (desktop_id);
+			if (app_info == null)
+				return false;
 			
 			unowned string filename = app_info.get_filename ();
-			if (filename == null) {
-				warning ("Failed to create dock item for '%s'", id);
-				return;
-			}
+			if (filename == null)
+				return false;
 			
 			try {
 				var uri = Filename.to_uri (filename);
-				if (make_dock_item (uri) == null)
-					warning ("Failed to create dock item for '%s' ('%s')", id, uri);
+				return (make_dock_item (uri) != null);
 			} catch (ConvertError e) {
-				warning ("Failed to create dock item for '%s'", id);
-				warning (e.message);
+				return false;
 			}
 		}
 
-		bool make_default_gnome_items ()
+		static bool categories_contain (string? categories, string[] search_tags)
 		{
-			var browser = AppInfo.get_default_for_type ("x-scheme-handler/http", false);
-			var mail = AppInfo.get_default_for_type ("x-scheme-handler/mailto", false);
-			// FIXME dont know how to get terminal...
-			var terminal = AppInfo.get_default_for_uri_scheme ("ssh");
-			var calendar = AppInfo.get_default_for_type ("text/calendar", false);
-			var audio = AppInfo.get_default_for_type ("audio/x-vorbis+ogg", false);
-			var video = AppInfo.get_default_for_type ("video/x-ogm+ogg", false);
-			var photo = AppInfo.get_default_for_type ("image/jpeg", false);
-
-			if (browser == null && mail == null && calendar == null && terminal == null
-				&& audio == null && video == null && photo == null)
+			if (categories == null || categories == "")
 				return false;
 			
-			if (browser != null)
-				make_dock_item_for_desktop_id (browser.get_id ());
-			if (mail != null)
-				make_dock_item_for_desktop_id (mail.get_id ());
-			if (terminal != null)
-				make_dock_item_for_desktop_id (terminal.get_id ());
-			if (calendar != null)
-				make_dock_item_for_desktop_id (calendar.get_id ());
-			if (audio != null)
-				make_dock_item_for_desktop_id (audio.get_id ());
-			if (video != null)
-				make_dock_item_for_desktop_id (video.get_id ());
-			if (photo != null)
-				make_dock_item_for_desktop_id (photo.get_id ());
-			
-			return true;
+			foreach (unowned string tag in search_tags) {
+				if (categories.contains (tag))
+					return true;
+			}
+			return false;
 		}
-		
+
+		void populate_folder (File folder, string icon_name, string[] priority_ids, string[] category_tags, int max_items = 6)
+		{
+			Paths.ensure_directory_exists (folder);
+
+			var dot_dir = folder.get_child (".directory");
+			if (!dot_dir.query_exists ()) {
+				try {
+					FileUtils.set_contents (dot_dir.get_path (), "[Desktop Entry]\nType=Directory\nIcon=%s\n".printf (icon_name));
+				} catch { }
+			}
+
+			try {
+				folder.set_attribute_string ("metadata::custom-icon-name", icon_name, FileQueryInfoFlags.NONE, null);
+			} catch { }
+
+			var added_files = new Gee.HashSet<string> ();
+
+			// 1. Check priority applications
+			foreach (unowned string id in priority_ids) {
+				if (added_files.size >= max_items)
+					break;
+				string desktop_id = id.has_suffix (".desktop") ? id : id + ".desktop";
+				var app = new DesktopAppInfo (desktop_id);
+				if (app != null && app.should_show ()) {
+					unowned string fn = app.get_filename ();
+					if (fn != null && !added_files.contains (fn)) {
+						var src = File.new_for_path (fn);
+						var dst = folder.get_child (src.get_basename ());
+						try {
+							src.copy (dst, FileCopyFlags.OVERWRITE, null, null);
+							added_files.add (fn);
+						} catch { }
+					}
+				}
+			}
+
+			// 2. Scan installed desktop apps for matching categories
+			if (added_files.size < max_items) {
+				var all = AppInfo.get_all ();
+				foreach (var info in all) {
+					if (added_files.size >= max_items)
+						break;
+					var d_info = info as DesktopAppInfo;
+					if (d_info == null || !d_info.should_show ())
+						continue;
+					unowned string fn = d_info.get_filename ();
+					if (fn == null || added_files.contains (fn))
+						continue;
+					unowned string cats = d_info.get_categories ();
+					if (categories_contain (cats, category_tags)) {
+						var src = File.new_for_path (fn);
+						var dst = folder.get_child (src.get_basename ());
+						try {
+							src.copy (dst, FileCopyFlags.OVERWRITE, null, null);
+							added_files.add (fn);
+						} catch { }
+					}
+				}
+			}
+		}
+
+		void make_default_folders ()
+		{
+			File folders_base = Paths.AppConfigFolder.get_child ("folders");
+			Paths.ensure_directory_exists (folders_base);
+
+			// 1. Internet Folder
+			var internet_folder = folders_base.get_child ("Internet");
+			populate_folder (internet_folder, "applications-internet", PRIORITY_INTERNET, {
+				"WebBrowser", "Network", "Email", "Chat", "InstantMessaging", "IRCClient", "Feed"
+			});
+			make_dock_item (internet_folder.get_uri ());
+
+			// 2. Office & Productivity Folder
+			var office_folder = folders_base.get_child ("Office");
+			populate_folder (office_folder, "applications-office", PRIORITY_OFFICE, {
+				"Office", "Development", "IDE", "TextEditor", "WordProcessor", "Spreadsheet", "Calculator", "Viewer"
+			});
+			make_dock_item (office_folder.get_uri ());
+
+			// 3. Media & Creative Folder
+			var media_folder = folders_base.get_child ("Media");
+			populate_folder (media_folder, "applications-multimedia", PRIORITY_MEDIA, {
+				"AudioVideo", "Audio", "Video", "Graphics", "Player", "Recorder", "Music"
+			});
+			make_dock_item (media_folder.get_uri ());
+
+			// 4. Games Folder (or Utilities fallback if no games exist)
+			var games_folder = folders_base.get_child ("Games");
+			populate_folder (games_folder, "applications-games", PRIORITY_GAMES, {
+				"Game", "Emulator"
+			});
+			
+			// Verify if Games folder received any app; if empty, create Utilities instead
+			bool has_game = false;
+			try {
+				var enum_games = games_folder.enumerate_children (FileAttribute.STANDARD_NAME, 0);
+				FileInfo? info;
+				while ((info = enum_games.next_file (null)) != null) {
+					if (info.get_name ().has_suffix (".desktop")) {
+						has_game = true;
+						break;
+					}
+				}
+			} catch { }
+
+			if (has_game) {
+				make_dock_item (games_folder.get_uri ());
+			} else {
+				var utils_folder = folders_base.get_child ("Utilities");
+				populate_folder (utils_folder, "applications-utilities", { "org.gnome.DiskUtility", "gnome-system-monitor", "org.kde.ark", "file-roller" }, {
+					"System", "Utility", "Archiving", "Settings", "FileManager"
+				});
+				make_dock_item (utils_folder.get_uri ());
+			}
+		}
+
+		void make_default_docklets ()
+		{
+			make_dock_item ("docklet://preferences");
+			make_dock_item ("docklet://desktop");
+			make_dock_item ("docklet://volume");
+			make_dock_item ("docklet://trash");
+		}
+
+		void make_default_pinned_apps ()
+		{
+			// 1. File Manager
+			bool fm_done = false;
+			var fm = AppInfo.get_default_for_type ("inode/directory", false);
+			if (fm != null && fm.get_id () != null)
+				fm_done = make_dock_item_for_desktop_id (fm.get_id ());
+			if (!fm_done) {
+				foreach (unowned string fallback_id in FALLBACK_FILE_MANAGERS) {
+					if (make_dock_item_for_desktop_id (fallback_id))
+						break;
+				}
+			}
+
+			// 2. Web Browser
+			bool browser_done = false;
+			var browser = AppInfo.get_default_for_type ("x-scheme-handler/http", false);
+			if (browser != null && browser.get_id () != null)
+				browser_done = make_dock_item_for_desktop_id (browser.get_id ());
+			if (!browser_done) {
+				foreach (unowned string fallback_id in FALLBACK_BROWSERS) {
+					if (make_dock_item_for_desktop_id (fallback_id))
+						break;
+				}
+			}
+
+			// 3. System Terminal
+			foreach (unowned string term_id in FALLBACK_TERMINALS) {
+				if (make_dock_item_for_desktop_id (term_id))
+					break;
+			}
+
+			// 4. Text Editor
+			bool editor_done = false;
+			var editor = AppInfo.get_default_for_type ("text/plain", false);
+			if (editor != null && editor.get_id () != null)
+				editor_done = make_dock_item_for_desktop_id (editor.get_id ());
+			if (!editor_done) {
+				foreach (unowned string fallback_id in FALLBACK_EDITORS) {
+					if (make_dock_item_for_desktop_id (fallback_id))
+						break;
+				}
+			}
+		}
+
 		/**
-		 * Creates a bunch of default .dockitem's.
+		 * Creates a bunch of default .dockitem's and category folders.
 		 */
 		public void make_default_items ()
 		{
-			if (make_default_gnome_items ())
-				return;
-			
-			// add browser
-			foreach (unowned string uri in DEFAULT_APP_WEB)
-				if (make_dock_item (uri) != null)
-					break;
-			
-			// add mail-client
-			foreach (unowned string uri in DEFAULT_APP_MAIL)
-				if (make_dock_item (uri) != null)
-					break;
-			
-			// add terminal
-			foreach (unowned string uri in DEFAULT_APP_TERMINAL)
-				if (make_dock_item (uri) != null)
-					break;
-			
-			// add audio player
-			foreach (unowned string uri in DEFAULT_APP_AUDIO)
-				if (make_dock_item (uri) != null)
-					break;
-			
-			// add video player
-			foreach (unowned string uri in DEFAULT_APP_VIDEO)
-				if (make_dock_item (uri) != null)
-					break;
-			
-			// add photo viewer
-			foreach (unowned string uri in DEFAULT_APP_PHOTO)
-				if (make_dock_item (uri) != null)
-					break;
-			
-			// add IM client
-			foreach (unowned string uri in DEFAULT_APP_MESSENGER)
-				if (make_dock_item (uri) != null)
-					break;
+			debug ("ItemFactory: creating modern default folders, docklets and pinned applications...");
+			make_default_folders ();
+			make_default_docklets ();
+			make_default_pinned_apps ();
+			debug ("ItemFactory: default items successfully created.");
 		}
 		
 		/**

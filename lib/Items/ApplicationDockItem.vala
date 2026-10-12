@@ -266,17 +266,47 @@ namespace Plank
 					});
 					items.add (close_item);
 				}
-				items.add (new Gtk.SeparatorMenuItem ());
 			}
 			
-			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
-			if (default_provider != null
-				&& !default_provider.Prefs.LockItems
-				&& !is_window ()) {
-				var item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
-				item.active = !(this is TransientDockItem);
-				item.activate.connect (() => pin_launcher ());
-				items.add (item);
+			// Application Shortcuts & Desktop Actions (e.g. "New Window", "New Incognito Window")
+			if (!is_window ()) {
+				if (actions.size == 0 && Launcher != "") {
+					load_from_launcher ();
+				}
+				
+				if (actions.size > 0) {
+					if (items.size > 0)
+						items.add (new Gtk.SeparatorMenuItem ());
+					
+					foreach (var s in actions) {
+						var values = actions_map.get (s).split (";;");
+						var action_id = desktop_action_ids.get (s);
+						
+						var item = create_menu_item (s, values.length > 1 ? values[1] : "", true);
+						item.activate.connect (() => {
+							if (action_id != null) {
+								string? path = null;
+								if (Launcher.has_prefix ("file://"))
+									path = File.new_for_uri (Launcher).get_path ();
+								else
+									path = Launcher;
+								if (path != null) {
+									var desktop_info = new DesktopAppInfo.from_filename (path);
+									if (desktop_info != null) {
+										desktop_info.launch_action (action_id, System.get_default ().context);
+										return;
+									}
+								}
+							}
+							if (values.length > 0 && values[0] != "") {
+								try {
+									AppInfo.create_from_commandline (values[0], null, AppInfoCreateFlags.NONE).launch (null, null);
+								} catch { }
+							}
+						});
+						items.add (item);
+					}
+				}
 			}
 			
 #if HAVE_DBUSMENU
@@ -293,45 +323,28 @@ namespace Plank
 			}
 #endif
 			
-			if (!is_window () && actions.size > 0) {
-				if (items.size > 0)
-					items.add (new Gtk.SeparatorMenuItem ());
-				
-				foreach (var s in actions) {
-					var values = actions_map.get (s).split (";;");
-					var action_id = desktop_action_ids.get (s);
-					
-					var item = create_menu_item (s, values[1], true);
-					item.activate.connect (() => {
-						if (action_id != null) {
-							var path = File.new_for_uri (Launcher).get_path ();
-							if (path != null) {
-								var desktop_info = new DesktopAppInfo.from_filename (path);
-								if (desktop_info != null)
-									desktop_info.launch_action (action_id, System.get_default ().context);
-							}
-							return;
-						}
-						try {
-							AppInfo.create_from_commandline (values[0], null, AppInfoCreateFlags.NONE).launch (null, null);
-						} catch { }
-					});
-					items.add (item);
-				}
+			if (items.size > 0)
+				items.add (new Gtk.SeparatorMenuItem ());
+
+			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
+			if (default_provider != null
+				&& !default_provider.Prefs.LockItems
+				&& !is_window ()) {
+				var item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
+				item.active = !(this is TransientDockItem);
+				item.activate.connect (() => pin_launcher ());
+				items.add (item);
 			}
 			
-			if (items.size > 0)
-							items.add (new Gtk.SeparatorMenuItem ());
-
-						// Append native dock menu items (Preferences, About)
-						var dock_item = Factory.item_factory.get_item_for_dock ();
-						if (dock_item != null) {
-							foreach (var mi in dock_item.get_menu_items ()) {
-								items.add (mi);
-							}
-						}
-
-						return items;
+			if (!is_window () && Launcher != "") {
+				var icon_item = create_menu_item (_("Change _Icon..."), "preferences-desktop-theme", true);
+				icon_item.activate.connect (() => {
+					IconChooserDialog.show_for_launcher (this);
+				});
+				items.add (icon_item);
+			}
+			
+			return items;
 		}
 		
 		/**
@@ -415,11 +428,23 @@ namespace Plank
 			if (launcher == null || launcher == "")
 				return;
 			
+			string file_path = launcher;
+			if (launcher.has_prefix ("file://")) {
+				try {
+					file_path = Filename.from_uri (launcher);
+				} catch (Error e) {
+					var gfile = File.new_for_uri (launcher);
+					var p = gfile.get_path ();
+					if (p != null)
+						file_path = p;
+				}
+			}
+			
 			KeyFile file;
 			
 			try {
 				file = new KeyFile ();
-				file.load_from_file (Filename.from_uri (launcher), 0);
+				file.load_from_file (file_path, 0);
 			} catch (Error e) {
 				critical ("%s: %s", launcher, e.message);
 				return;
@@ -544,6 +569,21 @@ namespace Plank
 									desktop_action_ids.set (action_name, action);
 								else
 									desktop_action_ids.unset (action_name);
+							}
+						}
+					}
+					
+					if (actions.size == 0 && file_path != "") {
+						var desktop_info = new DesktopAppInfo.from_filename (file_path);
+						if (desktop_info != null) {
+							foreach (unowned string act in desktop_info.list_actions ()) {
+								var act_name = desktop_info.get_action_name (act);
+								if (act_name != null && act_name != "") {
+									actions.add (act_name);
+									actions_map.set (act_name, ";;");
+									if (desktop_action_ids != null)
+										desktop_action_ids.set (act_name, act);
+								}
 							}
 						}
 					}

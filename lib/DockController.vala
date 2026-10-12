@@ -229,10 +229,22 @@ namespace Plank
 		{
 			DockItemProvider provider;
 			
-			// If we made the default-launcher-directory,
-			// assume a first run and pre-populate with launchers
-			if (Paths.ensure_directory_exists (launchers_folder)) {
-				debug ("Adding default dock items...");
+			// If we made the default-launcher-directory or it is empty,
+			// assume a first run and pre-populate with modern launchers
+			bool is_first_run = Paths.ensure_directory_exists (launchers_folder);
+			if (!is_first_run) {
+				try {
+					var enumerator = launchers_folder.enumerate_children (FileAttribute.STANDARD_NAME, 0);
+					if (enumerator.next_file (null) == null)
+						is_first_run = true;
+				} catch { }
+			}
+			
+			if (is_first_run) {
+				debug ("First run or empty launchers detected: initializing modern defaults...");
+				prefs.CategorizeItems = true;
+				prefs.AccordionDocklets = true;
+				prefs.ShowDockItem = false;
 				Factory.item_factory.make_default_items ();
 				debug ("done.");
 			}
