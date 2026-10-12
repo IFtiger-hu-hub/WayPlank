@@ -7,13 +7,13 @@
 > Developed by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Release: v0.5.4](https://img.shields.io/badge/Release-v0.5.4-orange.svg)](Changelogs/CHANGELOG_v0.5.4.md)
+> [![Release: v0.5.5](https://img.shields.io/badge/Release-v0.5.5-orange.svg)](Changelogs/CHANGELOG_v0.5.5.md)
 
 ![Wayplank v0.5.4 Release Banner](Release%20Pic.png)
 
 ---
 
-🚀 CURRENT RUNTIME: Full Wayland with KWin, Labwc (wlroots) & GNOME (Mutter) support | 🎯 MILESTONE: Release v0.5.4 (Drag & Drop Delivery, Spring-Loaded Hover & Side Dock Fix)
+🚀 CURRENT RUNTIME: Full Wayland with KWin, Labwc (wlroots) & GNOME (Mutter) support | 🎯 MILESTONE: Release v0.5.5 (Launcher Deduplication, Atomic Item Reuse & Ghost Window Filtering)
 
 ---
 
@@ -299,6 +299,17 @@ wayplank -d
 ---
 
 # Change log
+
+## V0.5.5: 2026-10-12
+
+**Launcher Deduplication, Atomic Item Reuse, Ghost Window Filtering & Reboot Stability**:
+
+- **(Core Engine) Result-Aware Launcher Deduplication**: Overhauled `load_elements()` in `ItemFactory.vala` to deduplicate dock items against accumulated items during ordering and fallback passes. Preserves the user's arranged position and automatically deletes orphan/duplicate `.dockitem` files from disk.
+- **(Core Engine) Atomic Launcher File Reuse**: Enhanced `make_dock_item()` to inspect existing `.dockitem` files and reuse any launcher matching the requested URI, eliminating duplicate numbered copies (`-1`, `-2`).
+- **(KWin HAL) Background Daemon Window Filtering**: Integrated `skipTaskbar: true` and `specialWindow: true` filtering into the KWin ECMAScript bridge (`KWinBridge.vala`), blacklisting `xwaylandvideobridge` from rogue transient appearance.
+- **(HAL) Centralized Application Filter**: Added `ApplicationDiscovery.is_ignored_app()` to prevent background daemons and bridge tools from being captured into transient dock slots across all supported Wayland compositors.
+
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.5.md`](Changelogs/CHANGELOG_v0.5.5.md).
 
 ## V0.5.4: 2026-10-11
 

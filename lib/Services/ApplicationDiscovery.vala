@@ -121,8 +121,23 @@ namespace Plank
 			return null;
 		}
 
+		public static bool is_ignored_app (string? app_id)
+		{
+			if (app_id == null || app_id == "")
+				return false;
+			var lower = app_id.down ();
+			return lower.contains ("xwaylandvideobridge")
+				|| lower == "wayplank";
+		}
+
 		public File? best_desktop_file_for_window (WindowInfo window)
 		{
+			if (is_ignored_app (window.ApplicationId)
+				|| is_ignored_app (window.ResourceClass)
+				|| is_ignored_app (window.ResourceName)
+				|| is_ignored_app (window.DesktopFileName))
+				return null;
+
 			var best_score = 0;
 			string? best_id = null;
 			foreach (var entry in identities.entries) {

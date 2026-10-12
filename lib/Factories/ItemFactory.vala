@@ -223,12 +223,7 @@ namespace Plank
 					if (item == null)
 						continue;
 					
-					unowned DockItem? dupe;
-					if ((dupe = find_item_for_uri (result, item.Launcher)) != null) {
-						warning ("The launcher '%s' in dock item '%s' is already managed by dock item '%s'. Removing '%s'.",
-							item.Launcher, file.get_path (), dupe.DockItemFilename, item.DockItemFilename);
-						item.delete ();
-					} else if (!item.is_valid ()) {
+					if (!item.is_valid ()) {
 						warning ("The launcher '%s' in dock item '%s' does not exist. Removing '%s'.", item.Launcher, file.get_path (), item.DockItemFilename);
 						item.delete ();
 					} else {
@@ -239,15 +234,40 @@ namespace Plank
 				critical ("Error loading dock elements from '%s'. (%s)", source_dir.get_path () ?? "", e.message);
 			}
 			
-			if (ordering != null)
+			if (ordering != null) {
 				foreach (unowned string dockitem in ordering) {
 					DockElement? element;
 					elements.unset (dockitem, out element);
-					if (element != null)
-						result.add (element);
+					if (element == null)
+						continue;
+
+					unowned DockItem? item = (element as DockItem);
+					if (item != null && item.Launcher != "") {
+						unowned DockItem? dupe = find_item_for_uri (result, item.Launcher);
+						if (dupe != null) {
+							warning ("The launcher '%s' in dock item '%s' is already managed by dock item '%s'. Removing '%s'.",
+								item.Launcher, item.DockItemFilename, dupe.DockItemFilename, item.DockItemFilename);
+							item.delete ();
+							continue;
+						}
+					}
+					result.add (element);
 				}
+			}
 			
-			result.add_all (elements.values);
+			foreach (var element in elements.values) {
+				unowned DockItem? item = (element as DockItem);
+				if (item != null && item.Launcher != "") {
+					unowned DockItem? dupe = find_item_for_uri (result, item.Launcher);
+					if (dupe != null) {
+						warning ("The launcher '%s' in dock item '%s' is already managed by dock item '%s'. Removing '%s'.",
+							item.Launcher, item.DockItemFilename, dupe.DockItemFilename, item.DockItemFilename);
+						item.delete ();
+						continue;
+					}
+				}
+				result.add (element);
+			}
 			elements.clear ();
 			
 			return result;
@@ -404,8 +424,21 @@ namespace Plank
 						try { dockitem_file.delete (null); } catch { }
 					}
 					
+					if (dockitem_file.query_exists ()) {
+						var existing_launcher = get_launcher_from_dockitem (dockitem_file);
+						if (existing_launcher == uri) {
+							debug ("Reusing existing dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
+							return dockitem_file;
+						}
+					}
+					
 					var counter = 1;
 					while (dockitem_file.query_exists ()) {
+						var existing_launcher = get_launcher_from_dockitem (dockitem_file);
+						if (existing_launcher == uri) {
+							debug ("Reusing existing dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
+							return dockitem_file;
+						}
 						dockitem = "%s-%d.dockitem".printf (launcher_base, counter++);
 						dockitem_file = target_dir.get_child (dockitem);
 					}
