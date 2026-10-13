@@ -16,7 +16,7 @@ This manual provides an in-depth reference for all features, configuration optio
    - [Adding and Managing Applications](#adding-and-managing-applications)
    - [Customizing Icons (Launchers, Folders & Docklets)](#customizing-icons-launchers-folders--docklets)
 4. [Built-in Docklets & Accordion Mode](#4-built-in-docklets--accordion-mode)
-   - [Complete List of 14 Docklets](#complete-list-of-14-docklets)
+   - [Complete List of 15 Docklets](#complete-list-of-15-docklets)
    - [Accordion Mode (Space-Saving Collapsible Docklets)](#accordion-mode-space-saving-collapsible-docklets)
    - [Configuring the Weather Docklet](#configuring-the-weather-docklet)
 5. [Categorization & Dynamic Separators](#5-categorization--dynamic-separators)
@@ -27,7 +27,7 @@ This manual provides an in-depth reference for all features, configuration optio
    - [Click Actions](#click-actions)
    - [Scroll Gestures](#scroll-gestures)
    - [Drag & Drop Interactions](#drag--drop-interactions)
-   - [Quick Settings Access](#quick-settings-access)
+   - [Quick Settings Access & In-App Help](#quick-settings-access--in-app-help)
 7. [Multi-Monitor & Wayland Desktop Integration](#7-multi-monitor--wayland-desktop-integration)
    - [Monitor Selection & Alignment](#monitor-selection--alignment)
    - [Intelligent Hide & Edge Pressure](#intelligent-hide--edge-pressure)
@@ -123,15 +123,16 @@ WayPlank provides an integrated, one-click icon personalization system directly 
 
 ## 4. Built-in Docklets & Accordion Mode
 
-WayPlank includes 14 built-in docklets that provide live system controls and status indicators.
+WayPlank includes 15 built-in docklets that provide live system controls and status indicators.
 
-### Complete List of 14 Docklets
+### Complete List of 15 Docklets
 
 | Docklet URI | Description |
 | :--- | :--- |
 | `docklet://trash` | Trash can indicator with fill status, empty action, and drag-to-delete. |
 | `docklet://desktop` | Show/Hide Desktop toggle (minimizes or unminimizes all windows). |
 | `docklet://preferences` | One-click access to WayPlank Preferences dialog. |
+| `docklet://network` | Live network connectivity monitor (Wi-Fi / Ethernet), signal strength, IP address inspection, and quick launch to network settings. |
 | `docklet://volume` | Audio volume level with scroll-to-adjust and mute toggle. |
 | `docklet://brightness` | Screen brightness control with scroll-to-adjust. |
 | `docklet://battery` | Battery charge percentage and charging status for laptops. |
@@ -146,9 +147,12 @@ WayPlank includes 14 built-in docklets that provide live system controls and sta
 
 ### Accordion Mode (Space-Saving Collapsible Docklets)
 When **Accordion Mode** is enabled (`accordion-docklets = true`), multiple docklets are collapsed into a single compact master slot on the dock.
-- Only the primary docklet is visible in idle mode.
-- When you hover over or drag across the docklet section, the accordion smoothly expands to reveal all active docklets.
-- Moving your mouse away automatically collapses the docklets back into a single icon after a short delay.
+- **Hover Expansion**: In standard mode, hovering over or dragging across the docklet section smoothly expands all active docklets. Moving the pointer away collapses them back into a single icon after the configured delay.
+- **Click to Expand Mode**: In Preferences -> Appearance, enable **Click to Expand**. In this mode, hovering does not expand the docklets; instead, a single click on the master Preferences anchor toggles expansion, and a second click opens the Preferences dialog.
+- **Configurable Collapse Delay**: Adjust the collapse countdown timer (0.5s to 20.0s) using the slider in Preferences -> Appearance.
+- **Directional Indicators**: The Preferences anchor tooltip dynamically shows directional arrows (`▸` / `◂`) indicating whether the accordion is collapsed or expanded.
+- **Intelligent Retention**: If the dock autohides or dodges while the accordion is expanded, returning within the delay window preserves the expanded state.
+- **Modal Interaction Invalidation**: The accordion collapse timer is automatically paused while any dialog (Preferences, Shortcuts & Gestures, Icon Chooser, Weather) or popup menu is active.
 
 To toggle Accordion Mode:
 - Open **Preferences** (`Ctrl + Right-Click` on the dock $\rightarrow$ *Preferences*).
@@ -215,8 +219,11 @@ WayPlank offers an extensive set of mouse gestures and keyboard shortcuts design
 - **Drop file onto an icon**: Directly open the dropped file in the target application.
 - **Drop `.desktop` file or directory**: Pin a new application launcher or folder drawer.
 
-### Quick Settings Access
+### Quick Settings Access & In-App Help
+- **Right Click (Any Item or Background)**: Instant access to **Shortcuts & Gestures...**, **Preferences...**, and **Quit**.
 - **Ctrl + Right Click (Anywhere)**: Opens the WayPlank Preferences dialog directly, even when clicking over an active launcher icon.
+- **Shortcuts & Gestures Dialog**: Visual reference dialog (`HelpWindow`) with categorized tabs explaining dock operations, gestures, and keyboard combinations.
+- **Terminal CLI Cheatsheet**: Run `wayplank --help` in the terminal for a full, colorized quick-reference guide.
 - **Right Click on empty dock space**: Opens the dock context menu.
 - **Ctrl + Alt + Shift + Right Click**: Opens Developer Inspection Tools (launcher URI inspector, reload theme, inspect configuration).
 

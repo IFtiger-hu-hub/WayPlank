@@ -1,9 +1,12 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: aaaa-mm-dd
-Milestone: V0.x.x
-Author & Tester: 
+Date: 2026-10-11
+Milestone: V0.6.0 (Modern First-Run Autoconfiguration, 4 English Folders
+           Drawers, Smart Pinned Apps, Integrated User Guide with Chrome
+           Anchor Navigation, Embedded GResource Release Banner,
+           Multi-Monitor Retention Suite)
+Author & Tester: Sergio Melas
 
 
 ================================================================================
@@ -19,10 +22,15 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 1.2 Unpinning via Menu:
         Right-click pinned item -> Uncheck "Keep in Dock"
    [  ] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+        - In Free Mode, dragging an app past Trash strictly clamps before
+          Trash; Trash is never displaced.
    [  ] 1.4 Pin via External Drag & Drop:
         Drag .desktop / app from menu/files onto dock
    [  ] 1.5 Drag-Off Removal (Poof):
-        Drag pinned icon away from dock -> poof animation
+        - Drag pinned icon away from dock -> poof animation.
+        - Drag a running pinned app off dock (or onto Trash): poof
+          animation plays, app unpins and moves to running transient
+          section BEFORE Trash (never past Trash or into trash zone).
    [  ] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
    [  ] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - In Categorized mode, dragging Folders is strictly clamped within
@@ -34,8 +42,12 @@ SESSION 1: GNOME (Mutter Backend)
           section pins the application.
         - Dragging apps cannot cross left into Docklets/Folders or right into
           Trash.
+        - Attempt to drag locked items (Preferences, Separator, Trash):
+          drag cleanly aborts with zero GLib terminal warnings.
    [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
-        - Left-click on a folder dock item toggles the Folder Launcher menu.
+        - Left-click on a folder dock item toggles the Folder Launcher menu:
+          BUG: The menu appear in the center of the screen.
+          Solution use tool-tips coordinates, Solved
         - Right-click on folder dock item is dedicated to dock management
           ("Keep in Dock", "Open in File Browser", "Preferences").
         - Menu is non-modal and non-grabbing (does not freeze dock or desktop).
@@ -49,6 +61,13 @@ SESSION 1: GNOME (Mutter Backend)
         - Subfolder drill-down with back button navigation, launcher execution,
           and document opening.
         - Auto-dismisses when hovering another dock item or on desktop leave.
+   [  ] 1.9  First-Run Onboarding & Default Drawers:
+        - Fresh config generates 4 categorized drawers (Internet, Office,
+          Media, Games/Utility), default pinned apps, and accordion defaults.
+   [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
+        - Right-click App -> 'Change Icon...': instant search, custom
+          icon applies cleanly, 'Restore Default' restores original.
+        - Folder drawers accept custom icons via GIO metadata.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
@@ -62,7 +81,11 @@ SESSION 1: GNOME (Mutter Backend)
         focused window in between cycles)
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
    [  ] 2.6 Context Menu (Right Click):
-        Shows window list, quicklists, and "Close"
+        - Shows window list, quicklists, and "Close".
+        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
+          in browser with working Table of Contents anchor jumps.
+        - [  ] Right-click on ANY item or dock background includes
+          '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
         in FAT folder
@@ -96,6 +119,10 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
    [  ] 3.7 Pressure / Hover Reveal:
         Mouse touching edge unhides dock immediately
+   [  ] 3.8  Accordion Retention on Dock Hide/Unhide:
+        - If dock closes (e.g. intellihide) and reopens before delay expires,
+          drawer remains open.
+        - Timer cancels upon cursor re-entry.
 
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
@@ -114,17 +141,23 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [  ] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [  ] 5.4 Layer-Shell Surface Isolation (No Active Window Focus Theft):
+   [  ] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
           100% active focus with zero cursor jump, bounce, or focus theft.
+        - Far-right icons and outer dock regions respond immediately to hover
+          zoom and clicks (input shape mask synchronizes dynamically to full
+          visible width with zero dead zones).
    [  ] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
           Running', '• Docklet').
         - In categorized mode: clean title is displayed without redundant
           badges.
+   [  ] 5.6  Accordion Directional Tooltip Indicator:
+        - Master Preferences anchor tooltip dynamically displays directional
+          arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
    [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
@@ -150,6 +183,8 @@ SESSION 1: GNOME (Mutter Backend)
           systemd
           LockSessions IPC without spawning broken CLI calls.
    [  ] 6.6  Preferences Docklet (docklet://preferences):
+        - Preferences anchor is permanently locked at index 0 (unmovable,
+          cannot be removed).
         - Left-click opens Preferences dialog immediately with icon bounce.
         - Displays classic Plank/Wayplank anchor icon (avoiding collision with
           system settings).
@@ -177,13 +212,17 @@ SESSION 1: GNOME (Mutter Backend)
         - Displays brightness icon with gold/amber gradient fallback.
         - Badge counter displays current brightness percentage (e.g. 75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps:
-          * Instantaneous UI badge update with 150ms trailing hardware debounce to protect multi-monitor DDC/CI I2C channels from packet loss.
-        - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
-          -> 100%).
+          * Instantaneous UI badge update with 150ms trailing hardware
+            debounce to protect multi-monitor DDC/CI I2C channels from
+            packet loss.
+        - Left-click cycles through quick brightness presets
+          (25% -> 50% -> 75% -> 100%).
         - Right-click context menu provides brightness presets (10%, 25%, 50%,
           75%, 100%) and launches system display settings.
         - Hardware control via org.freedesktop.login1.Session.SetBrightness
           (unprivileged) with fallback to brightnessctl/light.
+          BUG: The brightness jumped randomly to 100, added debauch of 3 sec
+          to avoid GPU override
    [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -203,20 +242,39 @@ SESSION 1: GNOME (Mutter Backend)
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
    [  ] 6.13 Network & Wi-Fi Docklet (docklet://network):
-        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a complete hardware monitor.
-        - Real-time network detection via GIO NetworkMonitor and NetworkManager DBus.
+        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a
+          complete hardware monitor.
+        - Real-time network detection via GIO NetworkMonitor and
+          NetworkManager DBus.
         - Dynamic state-driven icons:
-          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak, none).
+          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak,
+            none).
           * Ethernet: wired connection active icon.
           * Offline: disconnected icon.
-        - Informative tooltip displays connection type, SSID, signal strength %, and IP address.
-        - Left-click opens system Network Settings (KDE / GNOME / nm-connection-editor).
+        - Informative tooltip displays connection type, SSID, signal
+          strength %, and IP address.
+        - Left-click opens system Network Settings (KDE / GNOME /
+          nm-connection-editor).
         - Middle-click copies local IP address to clipboard.
-        - Right-click context menu displays connection details, Copy IP Address, Network Settings, and Remove from Dock.
+        - Right-click context menu displays connection details, Copy IP
+          Address, Network Settings, and Remove from Dock.
+
+   [  ] 6.14 Docklets Accordion & Expansion Modes:
+        - [  ] Accordion collapsed at rest: expands on hover. Enable 'Click to
+          Expand' in Preferences -> Appearance: hover no longer expands;
+          left-clicking Preferences expands docklets; second click opens
+          Preferences dialog.
+        - [  ] Universal Interaction Invalidation: Accordion collapse timer is
+          held/inhibited while any dialog (Preferences, Help, Icon Chooser,
+          Weather) or menu is open. On close, restarts full delay if cursor
+          is outside, or keeps drawer open if cursor is on dock.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
-   [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
+   [  ] 7.1 Window Opening & Foreground Raising:
+        - Preferences dialog opens centered without glitch.
+        - Preferences, Help, and About dialogs raise immediately to foreground
+          over other windows (Wayland focus bypass).
    [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
    [  ] 7.3 Alignment: Start, Center, End, Fill alignment works
    [  ] 7.4 Icon Size Slider Resiliency:
@@ -243,13 +301,30 @@ SESSION 1: GNOME (Mutter Backend)
         - Open Preferences -> Appearance tab -> toggle "Categorize Items".
         - When ON: dock arranges items into [Folders] | [Docklets] | [Pinned
           Apps] | [Unpinned Transients] | [Trash].
+        - Click 'Align by Type': dock immediately arranges in canonical order
+          [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
         - Separators dynamically hide when a category has 0 items (no phantom
           separators or empty gaps).
         - Dragging is strictly clamped within category boundaries (Folders
           within Folders, Docklets within Docklets, Apps within Apps).
         - Crossing the app divider pins/unpins items.
         - When OFF: dock cleanly restores original free-placement order from
-          FreeDockItems.
+          FreeDockItems with single separator after Preferences anchor.
+        - dconf serialization: verify Separators are strictly excluded from
+          stored item arrays.
+        - [  ] Free Mode & Accordion Toggle GC: Disabling 'Categorize Items'
+          or 'Accordion Docklets' immediately kills active collapse timers,
+          re-attaches and displays all docklets expanded ("spanzo") without
+          crashes.
+   [  ] 7.10 Accordion Collapse Delay Slider:
+        - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
+          Preferences -> Appearance (visible only when Accordion is active).
+   [  ] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+        - Interactive Shortcuts & Gestures window and terminal cheatsheet
+          ('wayplank --help') document Accordion controls, directional
+          indicators, retention, right-click shortcuts, and icon chooser.
+   [  ] 7.12 Shortcuts & Gestures Centering:
+        - Shortcuts & Gestures window opens centered on screen.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -278,35 +353,6 @@ SESSION 1: GNOME (Mutter Backend)
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
-10. V0.6.0 LOGICAL ACCEPTANCE PROOF (MINIMAL SUITE)
-   [  ] 10.1  First-Run Onboarding & Documentation:
-        - Fresh config generates 4 categorized drawers (Internet, Office, Media, Games/Utility), default pinned apps, and accordion defaults.
-        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html in browser with working Table of Contents anchor jumps.
-   [  ] 10.2  Master Anchor, Accordion & Wayland Input Mask:
-        - Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
-        - Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
-        - Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
-        - Master Preferences anchor tooltip dynamically displays directional arrow (▸ / ◂) indicating the docklet accordion expansion state.
-        - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in Preferences -> Appearance (visible only when Accordion is active).
-        - Accordion collapse retention on dock hide/unhide: if dock closes (e.g. intellihide) and reopens before delay expires, drawer remains open. Timer cancels upon cursor re-entry.
-        - Universal Interaction Invalidation: Accordion collapse timer is held/inhibited while any dialog (Preferences, Help, Icon Chooser, Weather) or menu is open. On close, restarts full delay if cursor is outside, or keeps drawer open if cursor is on dock.
-        - Free Mode & Accordion Toggle Garbage Collection: Disabling 'Categorize Items' or 'Accordion Docklets' immediately kills active collapse timers, re-attaches and displays all docklets expanded ("spanzo") without crashes.
-   [  ] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
-        - Right-click on ANY item or dock background includes '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
-        - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
-        - Right-click App -> 'Change Icon...': instant search, custom icon applies cleanly, 'Restore Default' restores original. Folder drawers accept custom icons via GIO metadata.
-        - Interactive Shortcuts & Gestures window and terminal cheatsheet ('wayplank --help') document Accordion controls, directional indicators, retention, right-click shortcuts, and icon chooser.
-   [  ] 10.4  Mode Switching, 'Align by Type' & Separator Integrity:
-        - Disable 'Categorize Items' in Preferences: dock switches instantly to Free Mode with single separator after Preferences anchor.
-        - Click 'Align by Type': dock immediately arranges in canonical order [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
-        - Re-enable 'Categorize Items': dock immediately returns to categorized layout with zero duplicate or phantom separators.
-        - dconf serialization: verify Separators are strictly excluded from stored item arrays.
-   [  ] 10.5  Drag State Machine, Running App Unpinning & Pre-Trash Clamping:
-        - Attempt to drag locked items (Preferences, Separator, Trash): drag cleanly aborts with zero GLib terminal warnings.
-        - Drag a running pinned app off the dock (or onto Trash): poof animation plays, app unpins and moves to running transient section BEFORE Trash (never past Trash or into trash zone).
-        - Drag running app back across divider into pinned section: immediately re-pins.
-        - In Free Mode, dragging an app past Trash strictly clamps before Trash; Trash is never displaced.
-
 GNOME BUGS / NOTES:
 
 
@@ -324,10 +370,15 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 1.2 Unpinning via Menu:
         Right-click pinned item -> Uncheck "Keep in Dock"
    [  ] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+        - In Free Mode, dragging an app past Trash strictly clamps before
+          Trash; Trash is never displaced.
    [  ] 1.4 Pin via External Drag & Drop:
         Drag .desktop / app from menu/files onto dock
    [  ] 1.5 Drag-Off Removal (Poof):
-        Drag pinned icon away from dock -> poof animation
+        - Drag pinned icon away from dock -> poof animation.
+        - Drag a running pinned app off dock (or onto Trash): poof
+          animation plays, app unpins and moves to running transient
+          section BEFORE Trash (never past Trash or into trash zone).
    [  ] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
    [  ] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - In Categorized mode, dragging Folders is strictly clamped within
@@ -339,6 +390,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
           section pins the application.
         - Dragging apps cannot cross left into Docklets/Folders or right into
           Trash.
+        - Attempt to drag locked items (Preferences, Separator, Trash):
+          drag cleanly aborts with zero GLib terminal warnings.
    [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click on a folder dock item toggles the Folder Launcher menu.
         - Right-click on folder dock item is dedicated to dock management
@@ -354,6 +407,13 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Subfolder drill-down with back button navigation, launcher execution,
           and document opening.
         - Auto-dismisses when hovering another dock item or on desktop leave.
+   [  ] 1.9  First-Run Onboarding & Default Drawers:
+        - Fresh config generates 4 categorized drawers (Internet, Office,
+          Media, Games/Utility), default pinned apps, and accordion defaults.
+   [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
+        - Right-click App -> 'Change Icon...': instant search, custom
+          icon applies cleanly, 'Restore Default' restores original.
+        - Folder drawers accept custom icons via GIO metadata.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
@@ -367,7 +427,11 @@ SESSION 2: KDE PLASMA (KWin Backend)
         focused window in between cycles)
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
    [  ] 2.6 Context Menu (Right Click):
-        Shows window list, quicklists, and "Close"
+        - Shows window list, quicklists, and "Close".
+        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
+          in browser with working Table of Contents anchor jumps.
+        - [  ] Right-click on ANY item or dock background includes
+          '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
         in FAT folder
@@ -401,6 +465,10 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
    [  ] 3.7 Pressure / Hover Reveal:
         Mouse touching edge unhides dock immediately
+   [  ] 3.8  Accordion Retention on Dock Hide/Unhide:
+        - If dock closes (e.g. intellihide) and reopens before delay expires,
+          drawer remains open.
+        - Timer cancels upon cursor re-entry.
 
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
@@ -419,17 +487,23 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [  ] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [  ] 5.4 Layer-Shell Surface Isolation (No Active Window Focus Theft):
+   [  ] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
           100% active focus with zero cursor jump, bounce, or focus theft.
+        - Far-right icons and outer dock regions respond immediately to hover
+          zoom and clicks (input shape mask synchronizes dynamically to full
+          visible width with zero dead zones).
    [  ] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
           Running', '• Docklet').
         - In categorized mode: clean title is displayed without redundant
           badges.
+   [  ] 5.6  Accordion Directional Tooltip Indicator:
+        - Master Preferences anchor tooltip dynamically displays directional
+          arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
    [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
@@ -450,6 +524,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
           screens.
         - Verify right-click context menu shortcuts.
    [  ] 6.6  Preferences Docklet (docklet://preferences):
+        - Preferences anchor is permanently locked at index 0 (unmovable,
+          cannot be removed).
         - Left-click opens Preferences window immediately.
         - Displays classic Plank/Wayplank anchor icon.
         - Right-click menu contains direct links to 4 sections followed by
@@ -476,9 +552,11 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Displays brightness icon with gold/amber gradient fallback.
         - Badge counter displays current brightness percentage (e.g. 75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps:
-          * Instantaneous UI badge update with 150ms trailing hardware debounce to protect multi-monitor DDC/CI I2C channels from packet loss.
-        - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
-          -> 100%).
+          * Instantaneous UI badge update with 150ms trailing hardware
+            debounce to protect multi-monitor DDC/CI I2C channels from
+            packet loss.
+        - Left-click cycles through quick brightness presets
+          (25% -> 50% -> 75% -> 100%).
         - Right-click context menu provides brightness presets (10%, 25%, 50%,
           75%, 100%) and launches system display settings.
         - Hardware control via org.freedesktop.login1.Session.SetBrightness
@@ -502,20 +580,39 @@ SESSION 2: KDE PLASMA (KWin Backend)
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
    [  ] 6.13 Network & Wi-Fi Docklet (docklet://network):
-        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a complete hardware monitor.
-        - Real-time network detection via GIO NetworkMonitor and NetworkManager DBus.
+        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a
+          complete hardware monitor.
+        - Real-time network detection via GIO NetworkMonitor and
+          NetworkManager DBus.
         - Dynamic state-driven icons:
-          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak, none).
+          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak,
+            none).
           * Ethernet: wired connection active icon.
           * Offline: disconnected icon.
-        - Informative tooltip displays connection type, SSID, signal strength %, and IP address.
-        - Left-click opens system Network Settings (KDE / GNOME / nm-connection-editor).
+        - Informative tooltip displays connection type, SSID, signal
+          strength %, and IP address.
+        - Left-click opens system Network Settings (KDE / GNOME /
+          nm-connection-editor).
         - Middle-click copies local IP address to clipboard.
-        - Right-click context menu displays connection details, Copy IP Address, Network Settings, and Remove from Dock.
+        - Right-click context menu displays connection details, Copy IP
+          Address, Network Settings, and Remove from Dock.
+
+   [  ] 6.14 Docklets Accordion & Expansion Modes:
+        - [  ] Accordion collapsed at rest: expands on hover. Enable 'Click to
+          Expand' in Preferences -> Appearance: hover no longer expands;
+          left-clicking Preferences expands docklets; second click opens
+          Preferences dialog.
+        - [  ] Universal Interaction Invalidation: Accordion collapse timer is
+          held/inhibited while any dialog (Preferences, Help, Icon Chooser,
+          Weather) or menu is open. On close, restarts full delay if cursor
+          is outside, or keeps drawer open if cursor is on dock.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
-   [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
+   [  ] 7.1 Window Opening & Foreground Raising:
+        - Preferences dialog opens centered without glitch.
+        - Preferences, Help, and About dialogs raise immediately to foreground
+          over other windows (Wayland focus bypass).
    [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
    [  ] 7.3 Alignment: Start, Center, End, Fill alignment works
    [  ] 7.4 Icon Size Slider Resiliency:
@@ -542,13 +639,30 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Open Preferences -> Appearance tab -> toggle "Categorize Items".
         - When ON: dock arranges items into [Folders] | [Docklets] | [Pinned
           Apps] | [Unpinned Transients] | [Trash].
+        - Click 'Align by Type': dock immediately arranges in canonical order
+          [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
         - Separators dynamically hide when a category has 0 items (no phantom
           separators or empty gaps).
         - Dragging is strictly clamped within category boundaries (Folders
           within Folders, Docklets within Docklets, Apps within Apps).
         - Crossing the app divider pins/unpins items.
         - When OFF: dock cleanly restores original free-placement order from
-          FreeDockItems.
+          FreeDockItems with single separator after Preferences anchor.
+        - dconf serialization: verify Separators are strictly excluded from
+          stored item arrays.
+        - [  ] Free Mode & Accordion Toggle GC: Disabling 'Categorize Items'
+          or 'Accordion Docklets' immediately kills active collapse timers,
+          re-attaches and displays all docklets expanded ("spanzo") without
+          crashes.
+   [  ] 7.10 Accordion Collapse Delay Slider:
+        - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
+          Preferences -> Appearance (visible only when Accordion is active).
+   [  ] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+        - Interactive Shortcuts & Gestures window and terminal cheatsheet
+          ('wayplank --help') document Accordion controls, directional
+          indicators, retention, right-click shortcuts, and icon chooser.
+   [  ] 7.12 Shortcuts & Gestures Centering:
+        - Window opens properly centered on screen under KWin.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -579,32 +693,6 @@ SESSION 2: KDE PLASMA (KWin Backend)
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
-10. V0.6.0 LOGICAL ACCEPTANCE PROOF (MINIMAL SUITE)
-   [  ] 10.1  First-Run Onboarding & Documentation:
-        - Fresh config generates 4 categorized drawers (Internet, Office, Media, Games/Utility), default pinned apps, and accordion defaults.
-        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html in browser with working Table of Contents anchor jumps.
-   [  ] 10.2  Master Anchor, Accordion & Wayland Input Mask:
-        - Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
-        - Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
-        - Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
-        - Master Preferences anchor tooltip dynamically displays directional arrow (▸ / ◂) indicating the docklet accordion expansion state.
-        - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in Preferences -> Appearance (visible only when Accordion is active).
-        - Accordion collapse retention on dock hide/unhide: if dock closes (e.g. intellihide) and reopens before delay expires, drawer remains open. Timer cancels upon cursor re-entry.
-   [  ] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
-        - Right-click App, Folder, Docklet, and Dock background: context actions appear at top, followed by universal '_Preferences...' and '_Quit' at bottom.
-        - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
-        - Right-click App -> 'Change Icon...': instant search, custom icon applies cleanly, 'Restore Default' restores original. Folder drawers accept custom icons via GIO metadata.
-   [  ] 10.4  Mode Switching, 'Align by Type' & Separator Integrity:
-        - Disable 'Categorize Items' in Preferences: dock switches instantly to Free Mode with single separator after Preferences anchor.
-        - Click 'Align by Type': dock immediately arranges in canonical order [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
-        - Re-enable 'Categorize Items': dock immediately returns to categorized layout with zero duplicate or phantom separators.
-        - dconf serialization: verify Separators are strictly excluded from stored item arrays.
-   [  ] 10.5  Drag State Machine, Running App Unpinning & Pre-Trash Clamping:
-        - Attempt to drag locked items (Preferences, Separator, Trash): drag cleanly aborts with zero GLib terminal warnings.
-        - Drag a running pinned app off the dock (or onto Trash): poof animation plays, app unpins and moves to running transient section BEFORE Trash (never past Trash or into trash zone).
-        - Drag running app back across divider into pinned section: immediately re-pins.
-        - In Free Mode, dragging an app past Trash strictly clamps before Trash; Trash is never displaced.
-
 PLASMA BUGS / NOTES:
 
 
@@ -622,10 +710,15 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 1.2 Unpinning via Menu:
         Right-click pinned item -> Uncheck "Keep in Dock"
    [  ] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+        - In Free Mode, dragging an app past Trash strictly clamps before
+          Trash; Trash is never displaced.
    [  ] 1.4 Pin via External Drag & Drop:
         Drag .desktop / app from menu/files onto dock
    [  ] 1.5 Drag-Off Removal (Poof):
-        Drag pinned icon away from dock -> poof animation
+        - Drag pinned icon away from dock -> poof animation.
+        - Drag a running pinned app off dock (or onto Trash): poof
+          animation plays, app unpins and moves to running transient
+          section BEFORE Trash (never past Trash or into trash zone).
    [  ] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
    [  ] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - In Categorized mode, dragging Folders is strictly clamped within
@@ -637,6 +730,8 @@ SESSION 3: LABWC (wlroots Backend)
           section pins the application.
         - Dragging apps cannot cross left into Docklets/Folders or right into
           Trash.
+        - Attempt to drag locked items (Preferences, Separator, Trash):
+          drag cleanly aborts with zero GLib terminal warnings.
    [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click on a folder dock item toggles the Folder Launcher menu.
         - Right-click on folder dock item is dedicated to dock management
@@ -652,6 +747,13 @@ SESSION 3: LABWC (wlroots Backend)
         - Subfolder drill-down with back button navigation, launcher execution,
           and document opening.
         - Auto-dismisses when hovering another dock item or on desktop leave.
+   [  ] 1.9  First-Run Onboarding & Default Drawers:
+        - Fresh config generates 4 categorized drawers (Internet, Office,
+          Media, Games/Utility), default pinned apps, and accordion defaults.
+   [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
+        - Right-click App -> 'Change Icon...': instant search, custom
+          icon applies cleanly, 'Restore Default' restores original.
+        - Folder drawers accept custom icons via GIO metadata.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
@@ -665,7 +767,11 @@ SESSION 3: LABWC (wlroots Backend)
         focused window in between cycles)
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
    [  ] 2.6 Context Menu (Right Click):
-        Shows window list, quicklists, and "Close"
+        - Shows window list, quicklists, and "Close".
+        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
+          in browser with working Table of Contents anchor jumps.
+        - [  ] Right-click on ANY item or dock background includes
+          '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
         in FAT folder
@@ -699,6 +805,10 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
    [  ] 3.7 Pressure / Hover Reveal:
         Mouse touching edge unhides dock immediately
+   [  ] 3.8  Accordion Retention on Dock Hide/Unhide:
+        - If dock closes (e.g. intellihide) and reopens before delay expires,
+          drawer remains open.
+        - Timer cancels upon cursor re-entry.
 
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
@@ -719,17 +829,23 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [  ] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [  ] 5.4 Layer-Shell Surface Isolation (No Active Window Focus Theft):
+   [  ] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
           100% active focus with zero cursor jump, bounce, or focus theft.
+        - Far-right icons and outer dock regions respond immediately to hover
+          zoom and clicks (input shape mask synchronizes dynamically to full
+          visible width with zero dead zones).
    [  ] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
           Running', '• Docklet').
         - In categorized mode: clean title is displayed without redundant
           badges.
+   [  ] 5.6  Accordion Directional Tooltip Indicator:
+        - Master Preferences anchor tooltip dynamically displays directional
+          arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
    [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
@@ -742,6 +858,8 @@ SESSION 3: LABWC (wlroots Backend)
         Click triggers rectangular selection (stationary animation,
         AnimationType.NONE - no mid-air leap); context menu triggers
         area/full/window/folder
+        Bug no screenshot is take
+        Solution reimplemented trought grim & slurp
    [  ] 6.5  Session & Power Docklet (docklet://session):
         - Left-click opens Centered Session Dialog (SessionWindow).
         - Test Lock Screen (loginctl / swaylock fallback).
@@ -750,6 +868,8 @@ SESSION 3: LABWC (wlroots Backend)
           screens.
         - Verify right-click context menu shortcuts.
    [  ] 6.6  Preferences Docklet (docklet://preferences):
+        - Preferences anchor is permanently locked at index 0 (unmovable,
+          cannot be removed).
         - Left-click opens Preferences window immediately.
         - Displays classic Plank/Wayplank anchor icon.
         - Right-click menu contains direct links to 4 sections followed by
@@ -776,9 +896,11 @@ SESSION 3: LABWC (wlroots Backend)
         - Displays brightness icon with gold/amber gradient fallback.
         - Badge counter displays current brightness percentage (e.g. 75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps:
-          * Instantaneous UI badge update with 150ms trailing hardware debounce to protect multi-monitor DDC/CI I2C channels from packet loss.
-        - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
-          -> 100%).
+          * Instantaneous UI badge update with 150ms trailing hardware
+            debounce to protect multi-monitor DDC/CI I2C channels from
+            packet loss.
+        - Left-click cycles through quick brightness presets
+          (25% -> 50% -> 75% -> 100%).
         - Right-click context menu provides brightness presets (10%, 25%, 50%,
           75%, 100%) and launches system display settings.
         - Hardware control via org.freedesktop.login1.Session.SetBrightness
@@ -802,20 +924,39 @@ SESSION 3: LABWC (wlroots Backend)
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
    [  ] 6.13 Network & Wi-Fi Docklet (docklet://network):
-        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a complete hardware monitor.
-        - Real-time network detection via GIO NetworkMonitor and NetworkManager DBus.
+        - Fills the 14th slot in the Preferences Docklets 2x7 grid with a
+          complete hardware monitor.
+        - Real-time network detection via GIO NetworkMonitor and
+          NetworkManager DBus.
         - Dynamic state-driven icons:
-          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak, none).
+          * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak,
+            none).
           * Ethernet: wired connection active icon.
           * Offline: disconnected icon.
-        - Informative tooltip displays connection type, SSID, signal strength %, and IP address.
-        - Left-click opens system Network Settings (KDE / GNOME / nm-connection-editor).
+        - Informative tooltip displays connection type, SSID, signal
+          strength %, and IP address.
+        - Left-click opens system Network Settings (KDE / GNOME /
+          nm-connection-editor).
         - Middle-click copies local IP address to clipboard.
-        - Right-click context menu displays connection details, Copy IP Address, Network Settings, and Remove from Dock.
+        - Right-click context menu displays connection details, Copy IP
+          Address, Network Settings, and Remove from Dock.
+
+   [  ] 6.14 Docklets Accordion & Expansion Modes:
+        - [  ] Accordion collapsed at rest: expands on hover. Enable 'Click to
+          Expand' in Preferences -> Appearance: hover no longer expands;
+          left-clicking Preferences expands docklets; second click opens
+          Preferences dialog.
+        - [  ] Universal Interaction Invalidation: Accordion collapse timer is
+          held/inhibited while any dialog (Preferences, Help, Icon Chooser,
+          Weather) or menu is open. On close, restarts full delay if cursor
+          is outside, or keeps drawer open if cursor is on dock.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
-   [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
+   [  ] 7.1 Window Opening & Foreground Raising:
+        - Preferences dialog opens centered without glitch.
+        - Preferences, Help, and About dialogs raise immediately to foreground
+          over other windows (Wayland focus bypass).
    [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
    [  ] 7.3 Alignment: Start, Center, End, Fill alignment works
    [  ] 7.4 Icon Size Slider Resiliency:
@@ -842,13 +983,30 @@ SESSION 3: LABWC (wlroots Backend)
         - Open Preferences -> Appearance tab -> toggle "Categorize Items".
         - When ON: dock arranges items into [Folders] | [Docklets] | [Pinned
           Apps] | [Unpinned Transients] | [Trash].
+        - Click 'Align by Type': dock immediately arranges in canonical order
+          [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
         - Separators dynamically hide when a category has 0 items (no phantom
           separators or empty gaps).
         - Dragging is strictly clamped within category boundaries (Folders
           within Folders, Docklets within Docklets, Apps within Apps).
         - Crossing the app divider pins/unpins items.
         - When OFF: dock cleanly restores original free-placement order from
-          FreeDockItems.
+          FreeDockItems with single separator after Preferences anchor.
+        - dconf serialization: verify Separators are strictly excluded from
+          stored item arrays.
+        - [  ] Free Mode & Accordion Toggle GC: Disabling 'Categorize Items'
+          or 'Accordion Docklets' immediately kills active collapse timers,
+          re-attaches and displays all docklets expanded ("spanzo") without
+          crashes.
+   [  ] 7.10 Accordion Collapse Delay Slider:
+        - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
+          Preferences -> Appearance (visible only when Accordion is active).
+   [  ] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+        - Interactive Shortcuts & Gestures window and terminal cheatsheet
+          ('wayplank --help') document Accordion controls, directional
+          indicators, retention, right-click shortcuts, and icon chooser.
+   [  ] 7.12 Shortcuts & Gestures Centering:
+        - Does not apply (no window positioning possible in Labwc).
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -858,10 +1016,14 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 9.1 Sleep & Resume Wakeup:
         Suspend machine -> resume; Labwc remains 100% responsive
    [  ] 9.2 Monitor Hotplug / Cable Reconnect:
-        Screen layout storm absorbed by debouncer
+        Screen layout storm absorbed by 250ms debouncer & physical
+        coordinate matching
    [  ] 9.3 Rapid Geometry Storm:
         Rapidly move/maximize/restore windows -> updates throttled smoothly
-   [  ] 9.4 Process Lifecycle (--replace / kill):
+   [  ] 9.4 Single Script Instance:
+        Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
+        exactly ONE instance alive (N/A on wlroots/Labwc - native C bridge)
+   [  ] 9.5 Process Lifecycle (--replace / kill):
         Restart dock via 'wayplank --replace' -> cleanly takes over
    [  ] 9.6 Signal Disconnect Safety:
         Opening and closing Preferences multiple times leaves no dangling
@@ -873,34 +1035,6 @@ SESSION 3: LABWC (wlroots Backend)
         Rapid burst of window title changes or fast open/close cycle -> absorbed
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
-
-10. V0.6.0 LOGICAL ACCEPTANCE PROOF (MINIMAL SUITE)
-   [  ] 10.1  First-Run Onboarding & Documentation:
-        - Fresh config generates 4 categorized drawers (Internet, Office, Media, Games/Utility), default pinned apps, and accordion defaults.
-        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html in browser with working Table of Contents anchor jumps.
-   [  ] 10.2  Master Anchor, Accordion & Wayland Input Mask:
-        - Preferences anchor is permanently locked at index 0 (unmovable, cannot be removed).
-        - Accordion collapsed at rest: expands on hover. Enable 'Click to Expand' in Preferences -> Appearance: hover no longer expands; left-clicking Preferences expands docklets; second click opens Preferences dialog.
-        - Far-right icons and outer dock regions respond immediately to hover zoom and clicks (input shape mask synchronizes dynamically to full visible width with zero dead zones).
-        - Master Preferences anchor tooltip dynamically displays directional arrow (▸ / ◂) indicating the docklet accordion expansion state.
-        - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in Preferences -> Appearance (visible only when Accordion is active).
-        - Accordion collapse retention on dock hide/unhide: if dock closes (e.g. intellihide) and reopens before delay expires, drawer remains open. Timer cancels upon cursor re-entry.
-        - Universal Interaction Invalidation: Accordion collapse timer is held/inhibited while any dialog (Preferences, Help, Icon Chooser, Weather) or menu is open. On close, restarts full delay if cursor is outside, or keeps drawer open if cursor is on dock.
-        - Free Mode & Accordion Toggle Garbage Collection: Disabling 'Categorize Items' or 'Accordion Docklets' immediately kills active collapse timers, re-attaches and displays all docklets expanded ("spanzo") without crashes.
-   [  ] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
-        - Right-click App, Folder, Docklet, and Dock background: context actions appear at top, followed by universal '_Preferences...' and '_Quit' at bottom.
-        - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
-        - Right-click App -> 'Change Icon...': instant search, custom icon applies cleanly, 'Restore Default' restores original. Folder drawers accept custom icons via GIO metadata.
-   [  ] 10.4  Mode Switching, 'Align by Type' & Separator Integrity:
-        - Disable 'Categorize Items' in Preferences: dock switches instantly to Free Mode with single separator after Preferences anchor.
-        - Click 'Align by Type': dock immediately arranges in canonical order [Plank] | [Folders] [Docklets] [Pinned Apps] [Transients] [Trash].
-        - Re-enable 'Categorize Items': dock immediately returns to categorized layout with zero duplicate or phantom separators.
-        - dconf serialization: verify Separators are strictly excluded from stored item arrays.
-   [  ] 10.5  Drag State Machine, Running App Unpinning & Pre-Trash Clamping:
-        - Attempt to drag locked items (Preferences, Separator, Trash): drag cleanly aborts with zero GLib terminal warnings.
-        - Drag a running pinned app off the dock (or onto Trash): poof animation plays, app unpins and moves to running transient section BEFORE Trash (never past Trash or into trash zone).
-        - Drag running app back across divider into pinned section: immediately re-pins.
-        - In Free Mode, dragging an app past Trash strictly clamps before Trash; Trash is never displaced.
 
 LABWC BUGS / NOTES:
 

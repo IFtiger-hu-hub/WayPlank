@@ -15,7 +15,9 @@
 
 Plank was completely unmaintained and broken on Wayland. Wayplank brings it back to life with a native Wayland architecture using `gtk-layer-shell`, modular bridges for different compositors, while preserving the fast and clean Cairo rendering engine we all loved.
 
-Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL) working out of the box with **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)**. It auto-detects your compositor at startup without messy configs. Feedback, testing, and pull requests across different setups are very welcome!
+Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL) working out of the box with **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)**. It auto-detects your compositor at startup without messy configs. 
+
+**A huge thank you to the community for all the support, testing, and bug communications! Feedback, testing, and pull requests across different setups are very welcome!**
 
 * 📚 [User Guide & Reference Manual](Documentation/USER_GUIDE.md)
 * 📖 [Technical migration report](Documentation/wayplank_x11_to_wayland_report_en.md)

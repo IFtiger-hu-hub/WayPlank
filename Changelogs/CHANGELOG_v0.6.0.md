@@ -19,6 +19,11 @@ Following the rock-solid core stabilization achieved in v0.5.2 (Mutter extension
 5. **Integrated User Guide & Reference Manual (`Documentation/USER_GUIDE.md`)**: Replaces the internal developer-facing "Wayland Migration Report" with a rich, user-facing manual complete with a clickable Table of Contents, explaining drawer creation, docklet configuration, gestures, multi-monitor setups, and shortcuts.
 6. **Universal "Change Icon..." System (Launchers, Folders & Docklets)**: Adds an interactive right-click "Change Icon..." dialog with live search across 20,000+ theme icons, custom image file browsing (PNG/SVG), and instant "Restore Default", fully compliant with FreeDesktop standards and GIO metadata.
 7. **Release Banner Update ("Comic Fusion")**: Upgraded release announcement artwork integrating the live desktop screenshot with Cairo-dock folder menus into the comic illustration, embedded directly into internal binary resources.
+8. **Interactive Shortcuts & Gestures Dialog & CLI Cheatsheet**: Introduces an interactive in-app guide window (`HelpWindow.vala`) with categorized multi-page navigation and a rich terminal cheatsheet (`wayplank --help`) documenting Accordion controls, directional indicators, retention rules, and right-click shortcuts.
+9. **Native Network Docklet**: Added built-in Network docklet (`NetworkDockItem.vala`) providing real-time Wi-Fi/Ethernet connectivity status, signal strength icons, active IP display, and direct access to system network settings.
+10. **Advanced Accordion Lifecycle & Interaction Invalidation**: Implemented "Click to Expand" mode, a configurable collapse delay slider (0.5s–20.0s), directional tooltip expansion indicators (▸ / ◂), intelligent retention across dock hide/unhide events, and deterministic interaction invalidation (`is_open` tracking) preventing drawer collapse while dialogs or menus are open.
+11. **Multi-Monitor Topology & DPMS Wake Stability**: Added 250ms topology debouncing, physical coordinate display matching `[@ X,Y]`, and eliminated transient dconf monitor overwrites during asynchronous DPMS monitor wakeups.
+12. **Mutter Wayland Dialog Centering & Classification Fix**: Resolved a critical window positioning issue where GTK3 CSD HeaderBar attachment reset the window title to NULL (`"wayplank"`), causing GNOME Shell / Mutter extension to misclassify the Shortcuts & Gestures dialog as a dock; restoring proper title sequencing and dialog hints guarantees centered presentation on the active display.
 
 ---
 
@@ -212,36 +217,88 @@ To ensure rock-solid positioning across all compositors (GNOME Mutter, KDE Plasm
 
 ---
 
-## 6. 🗂️ File Changes Summary
+## 6. 🪟 Dialog Window Classification & Screen Centering Architecture (Mutter Wayland)
+
+### The Issue
+Under Wayland on GNOME Shell, client applications cannot reposition themselves arbitrarily via X11-style `gtk_window_move()`. Instead, window placement is governed cooperatively by GNOME Shell and the Mutter compositor bridge extension.
+During the v0.6.0 testing cycle, while `PreferencesWindow` and `IconChooserDialog` opened perfectly centered on the screen, the newly introduced `HelpWindow` ("Shortcuts & Gestures" dialog) failed to open centered—instead appearing anchored to the bottom dock edge or displaced to the screen top.
+
+### Root Cause Analysis
+Deep investigation via GNOME Shell D-Bus introspection (`Eval`) and Mutter window classification logic revealed a subtle interaction between GTK3 CSD HeaderBars and Wayland window identification:
+- `PreferencesWindow` was classified by MutterBridge as `window_type: "dialog"` and placed centered.
+- `HelpWindow` was classified by MutterBridge as `window_type: "dock"` and had dock boundary constraints applied to it.
+
+The discrepancy was traced to GTK3's `Gtk.HeaderBar` behavior:
+```vala
+// Before (Buggy sequence):
+set_title (_("Wayplank Shortcuts & Gestures"));
+// ...
+set_titlebar (header); // <--- Invoking set_titlebar() resets GtkWindow.title to NULL!
+```
+When `set_titlebar()` is invoked on a `Gtk.Window` without an explicit title already bound to the header, GTK resets the window's internal title to `NULL`. On Wayland, GTK advertises an empty title to Mutter, which falls back to the process name `g_get_prgname()` (`"wayplank"`). MutterBridge's classifier (`_classifyWindow`) inspects window titles: since `lowerTitle === "wayplank"`, it misidentified the help dialog as the main dock window and applied dock boundary alignment!
+
+Furthermore, `HelpWindow` had been instantiated with a transient parent pointing to the layer-shell dock window (`primary_dock.window`). Under Mutter Wayland, this caused the compositor to anchor the dialog relative to the layer-shell dock surface rather than floating freely within the monitor work area.
+
+### Technical Solution (`lib/Widgets/HelpWindow.vala` & `lib/Factories/AbstractMain.vala`)
+1. **Title Sequencing**:
+   Moved `set_title` and explicit `header.title` assignment **after** `set_titlebar (header)`:
+   ```vala
+   set_titlebar (header);
+   set_title (_("Wayplank Shortcuts & Gestures"));
+   header.title = _("Wayplank Shortcuts & Gestures");
+   ```
+   This ensures the Wayland surface title is advertised permanently as `"Wayplank Shortcuts & Gestures"`, preventing MutterBridge from misidentifying it as the dock.
+2. **Window Properties & Hints**:
+   Aligned window hints with `PreferencesWindow`:
+   ```vala
+   gravity = Gdk.Gravity.CENTER;
+   set_type_hint (Gdk.WindowTypeHint.DIALOG);
+   set_skip_taskbar_hint (true);
+   set_skip_pager_hint (true);
+   icon_name = "plank";
+   ```
+3. **Transient Parent Decoupling**:
+   In `AbstractMain.vala`, opened `HelpWindow` with `parent = null` (identical to `PreferencesWindow`), allowing Mutter to calculate the screen center cleanly within the active display's work area.
+
+---
+
+## 7. 🗂️ File Changes Summary
 
 | File | Changes Made |
 | :--- | :--- |
 | `include/config.h` | Bumped `VERSION` and `PACKAGE_VERSION` to `0.6.0`, updated `VERSION_INFO` to `"Wayplank 0.6.0 - Release Build"`. |
 | `BuildDeb.sh` | Bumped `PKG_VER` to `"0.6.0"` for native Debian package building. |
-| `data/glib-2.0/schemas/net.launchpad.plank.gschema.xml` | Updated schema defaults for `categorize-items` and `accordion-docklets` to `true`. |
+| `data/glib-2.0/schemas/net.launchpad.plank.gschema.xml` | Updated schema defaults for `categorize-items` and `accordion-docklets` to `true`; added `accordion-click-to-expand` and `accordion-delay`. |
 | `data/plank.gresource.xml` | Replaced legacy report with `doc/guide.md` pointing to `../Documentation/USER_GUIDE.md`, added `doc/banner.png`. |
+| `data/ui/preferences.ui` | Added Accordion "Click to Expand" switch and "Accordion Collapse Delay" slider (0.5s–20.0s) to Appearance tab. |
 | `Documentation/USER_GUIDE.md` | Authored 10-chapter comprehensive User Guide with clickable Table of Contents. |
 | `Release Pic.png` | Updated release announcement image to "Comic Fusion" style with real desktop Cairo-dock screenshot embedded in the monitor. |
-| `lib/Widgets/IconChooserDialog.vala` | Created new searchable theme icon browser with live search, custom image browsing, and default reset. |
-| `lib/DockController.vala` | Implemented proactive first-run and empty launchers detection to apply modern preferences and trigger `make_default_items()`. |
+| `lib/Widgets/IconChooserDialog.vala` | Created new searchable theme icon browser with live search, custom image browsing, default reset, and deterministic `is_open` tracking. |
+| `lib/Widgets/HelpWindow.vala` | Implemented interactive Shortcuts & Gestures dialog with multi-page category stack; fixed CSD header title sequence (`set_title` after `set_titlebar`), `gravity = CENTER`, `set_type_hint(DIALOG)`, and `icon_name = "plank"` to ensure proper Mutter dialog classification and screen centering. |
+| `lib/Widgets/PreferencesWindow.vala` | Added Accordion "Click to Expand" switch and "Accordion Collapse Delay" slider (0.5s–20.0s); implemented deterministic `is_open` tracking for universal interaction invalidation. |
+| `lib/DockController.vala` | Implemented proactive first-run and empty launchers detection to apply modern preferences and trigger `make_default_items()`; added universal interaction tracking for modal dialogs. |
+| `lib/DockPreferences.vala` | Added `AccordionClickToExpand` and bounded `AccordionDelay` properties (500ms–20000ms). |
 | `lib/Factories/ItemFactory.vala` | Replaced legacy 2012 prefill code with modern FreeDesktop auto-creation engine (4 English drawers, docklets, smart pinned apps). |
-| `lib/Factories/AbstractMain.vala` | Replaced `report` action with `guide` action, rendering `wayplank_user_guide.html`. |
+| `lib/Factories/AbstractMain.vala` | Replaced `report` action with `guide` action, rendering `wayplank_user_guide.html`; opened `HelpWindow` with `parent = null` for clean centering. |
 | `lib/Items/PlankDockItem.vala` | Updated context menu item from "Wayland Migration Report..." to "User Guide...". |
 | `lib/Items/ApplicationDockItem.vala` | Added "Change Icon..." context menu item with FreeDesktop `~/.local/share/applications/` persistence. |
 | `lib/Items/FileDockItem.vala` | Added "Change Icon..." context menu item with GIO `metadata::custom-icon` persistence. |
 | `lib/Items/ShowDesktopDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
-| `lib/Items/PreferencesDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
+| `lib/Items/PreferencesDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading; dynamic directional tooltip expansion indicators (▸ / ◂). |
 | `lib/Items/SessionDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
 | `lib/Items/ScreenshotDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
 | `lib/Items/EjectorDockItem.vala` | Added "Change Icon..." context menu item and docklet icon loading. |
-| `lib/Items/DefaultApplicationDockItemProvider.vala` | Synchronized `position_manager.update()` and `window.set_input_mask()` on accordion expand, collapse, and toggle events. |
+| `lib/Items/NetworkDockItem.vala` | Added native built-in Network docklet with live Wi-Fi/Ethernet connectivity monitoring, signal strength icons, IP address inspection, and quick launch to network settings. |
+| `lib/Items/DefaultApplicationDockItemProvider.vala` | Synchronized `position_manager.update()` and `window.set_input_mask()` on accordion expand, collapse, and toggle events; implemented click-to-expand and accordion retention across dock hides. |
 | `lib/PositionManager.vala` | Unioned `background_rect` with `static_dock_region`; added 250ms topology debouncer, prioritized geometry coordinate matching `[@ X,Y]` over volatile synthetic indices for identical displays, and eliminated destructive dconf `Monitor` overwriting during transient DPMS wakeups. |
 | `lib/Widgets/DockWindow.vala` | Ensured `set_input_mask()` is always executed on `update_size_and_position()` even when physical canvas resize is not needed. |
-| `FAT/2026-10-11 FAT 0.6.0.txt` | Added test case 12.7 covering accordion sensitive region and input mask synchronization across GNOME, KDE, and Labwc. |
+| `src/Main.vala` | Added comprehensive CLI `--help` cheatsheet detailing Accordion controls, directional indicators, retention rules, and right-click shortcuts. |
+| `FAT/2026-10-11 FAT 0.6.0.txt` | Fully redistributed Section 10 acceptance suite into core sections 1-9 across all compositors; added test case 7.12 covering Shortcuts & Gestures centering under Mutter, KWin, and Labwc. |
+| `FAT/Template/FAT Template.txt` | Synchronized ISA-88 test template with clean 80-point structure per session matching execution suite. |
 
 ---
 
-## 7. 📦 Validation & Build Artifacts
+## 8. 📦 Validation & Build Artifacts
 
 - **Native Binary**: Compiled and verified via `./BuildBin.sh`:
   - Path: `build/wayplank`
@@ -251,5 +308,9 @@ To ensure rock-solid positioning across all compositors (GNOME Mutter, KDE Plasm
 - **First-Run Verification**: Tested in isolated environment (`/tmp/test_wayplank_dock1`), verifying exact generation of 4 English drawers (`Internet`, `Office`, `Media`, `Games`), 4 docklets, and 4 top-level pinned apps.
 - **Icon Customization Verification**: Validated interactive theme icon search, custom file chooser, GIO folder metadata assignment, FreeDesktop `.desktop` cloning, and factory default restoration.
 - **Positioning & Input Mask Verification**: Verified 100% clickability and hover interaction across all items (~1100px width) when Accordion Docklets is toggled off, with 0px dead zones and 0 repositioning calls on Mutter, KWin, and Labwc.
+- **Shortcuts & Gestures Dialog Centering (FAT 7.12)**:
+  - **GNOME (Mutter Backend)**: Verified `[ko->ok]` — Window title correctly retained as `"Wayplank Shortcuts & Gestures"` post-CSD header attachment, classified as `dialog` by Mutter bridge extension, and centered squarely on active display.
+  - **KDE Plasma (KWin Backend)**: Verified `[ok]` — Window opens properly centered on screen.
+  - **Labwc (wlroots Backend)**: Verified `[ok]` — Evaluated as N/A (client positioning not supported by compositor protocol; managed via compositor window placement rules).
 
 

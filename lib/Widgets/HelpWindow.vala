@@ -41,17 +41,19 @@ namespace Plank
 			this.hide.connect (() => { is_open = false; });
 			this.destroy.connect (() => { is_open = false; });
 
-			set_title (_("Wayplank Shortcuts & Gestures"));
 			set_role ("help");
 			set_decorated (true);
 			set_destroy_with_parent (true);
 			set_position (Gtk.WindowPosition.CENTER);
+			gravity = Gdk.Gravity.CENTER;
 			set_default_size (620, 500);
 			resizable = false;
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
+			set_skip_taskbar_hint (true);
+			set_skip_pager_hint (true);
 			set_keep_above (true);
 			set_focus_on_map (true);
-			icon_name = "help-browser";
+			icon_name = "plank";
 
 			// Stack for multi-page categories
 			var stack = new Gtk.Stack ();
@@ -124,6 +126,8 @@ namespace Plank
 
 			header.show_all ();
 			set_titlebar (header);
+			set_title (_("Wayplank Shortcuts & Gestures"));
+			header.title = _("Wayplank Shortcuts & Gestures");
 
 			// Main vertical content layout
 			var content = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
