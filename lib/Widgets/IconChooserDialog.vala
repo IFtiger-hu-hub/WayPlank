@@ -21,6 +21,8 @@ namespace Plank
 {
 	public class IconChooserDialog : Gtk.Dialog
 	{
+		public static bool is_open { get; private set; default = false; }
+
 		private const int ICON_DISPLAY_SIZE = 36;
 		private const int MAX_VISIBLE_ICONS = 180;
 
@@ -50,6 +52,10 @@ namespace Plank
 				window_position: Gtk.WindowPosition.CENTER
 			);
 
+			is_open = true;
+			this.show.connect (() => { is_open = true; });
+			this.hide.connect (() => { is_open = false; });
+
 			this.original_icon = current_icon;
 			this.item_name = item_name;
 			this.selected_icon = current_icon;
@@ -60,6 +66,7 @@ namespace Plank
 
 		public override void destroy ()
 		{
+			is_open = false;
 			if (search_debounce_id > 0) {
 				GLib.Source.remove (search_debounce_id);
 				search_debounce_id = 0;

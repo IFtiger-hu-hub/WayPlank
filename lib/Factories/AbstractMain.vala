@@ -137,6 +137,16 @@ namespace Plank
 		
 		string dock_name = "";
 		
+		public static bool is_about_open { get; private set; default = false; }
+		public static unowned AbstractMain? app_instance = null;
+
+		public static void check_collapse_all_docks (Gtk.Window? closing_win = null)
+		{
+			if (app_instance != null && app_instance.primary_dock != null) {
+				app_instance.primary_dock.check_collapse_after_interaction (closing_win);
+			}
+		}
+
 		Gtk.AboutDialog? about_dlg;
 		PreferencesWindow? preferences_dlg;
 		HelpWindow? help_dlg;
@@ -145,6 +155,7 @@ namespace Plank
 		
 		construct
 		{
+			app_instance = this;
 			flags = ApplicationFlags.HANDLES_COMMAND_LINE;
 			docks = new Gee.ArrayList<DockController> ();
 			
@@ -434,6 +445,7 @@ namespace Plank
 			}
 			
 			about_dlg = new Gtk.AboutDialog ();
+			is_about_open = true;
 			about_dlg.window_position = Gtk.WindowPosition.CENTER;
 			about_dlg.gravity = Gdk.Gravity.CENTER;
 			about_dlg.set_transient_for (primary_dock.window);
@@ -480,11 +492,16 @@ namespace Plank
 			});
 			
 			about_dlg.hide.connect (() => {
+				is_about_open = false;
 				Gtk.Window? old = about_dlg;
 				about_dlg.destroy ();
 				about_dlg = null;
 				if (primary_dock != null)
 					primary_dock.check_collapse_after_interaction (old);
+			});
+
+			about_dlg.destroy.connect (() => {
+				is_about_open = false;
 			});
 			
 			raise_and_focus_window (about_dlg);

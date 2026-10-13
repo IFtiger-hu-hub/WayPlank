@@ -29,6 +29,11 @@ namespace Plank
 
 		static SessionWindow? active_instance = null;
 
+		public static bool is_open ()
+		{
+			return (active_instance != null && active_instance.get_visible ());
+		}
+
 		public static void toggle_window ()
 		{
 			if (active_instance != null) {
@@ -256,6 +261,13 @@ namespace Plank
 			destroy.connect (() => {
 				if (active_instance == this)
 					active_instance = null;
+				AbstractMain.check_collapse_all_docks (this);
+			});
+
+			hide.connect (() => {
+				if (active_instance == this)
+					active_instance = null;
+				AbstractMain.check_collapse_all_docks (this);
 			});
 		}
 

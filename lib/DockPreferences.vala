@@ -118,8 +118,16 @@ namespace Plank
 		[Description(nick = "accordion-click-to-expand", blurb = "Whether to expand docklets accordion only on click instead of hover.")]
 		public bool AccordionClickToExpand { get; set; }
 		
+		uint _accordion_delay = 1000U;
 		[Description(nick = "accordion-delay", blurb = "Time (in ms) to wait before auto-collapsing docklets.")]
-		public uint AccordionDelay { get; set; }
+		public uint AccordionDelay {
+			get {
+				return (_accordion_delay >= 500U) ? _accordion_delay : 1000U;
+			}
+			set {
+				_accordion_delay = value.clamp (500U, 20000U);
+			}
+		}
 		
 		/**
 		 * {@inheritDoc}

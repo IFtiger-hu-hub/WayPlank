@@ -23,6 +23,11 @@ namespace Plank
 	{
 		public static WeatherWindow? active_instance = null;
 
+		public static bool is_open ()
+		{
+			return (active_instance != null && active_instance.get_visible ());
+		}
+
 		public static void toggle_window (WeatherDockItem item)
 		{
 			if (active_instance != null) {
@@ -82,6 +87,19 @@ namespace Plank
 			destroy.connect (() => {
 				if (active_instance == this)
 					active_instance = null;
+				if (weather_item != null)
+					weather_item.get_dock ()?.check_collapse_after_interaction (this);
+				else
+					AbstractMain.check_collapse_all_docks (this);
+			});
+
+			hide.connect (() => {
+				if (active_instance == this)
+					active_instance = null;
+				if (weather_item != null)
+					weather_item.get_dock ()?.check_collapse_after_interaction (this);
+				else
+					AbstractMain.check_collapse_all_docks (this);
 			});
 
 			var main_vbox = new Gtk.Box (Gtk.Orientation.VERTICAL, 14);

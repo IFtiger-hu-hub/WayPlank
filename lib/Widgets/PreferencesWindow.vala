@@ -23,6 +23,8 @@ namespace Plank
 	[GtkTemplate (ui = "/net/launchpad/plank/ui/preferences.ui")]
 	public class PreferencesWindow : Gtk.Window
 	{
+		public static bool is_open { get; private set; default = false; }
+
 		/**
 		 * The controller for this dock.
 		 */
@@ -249,20 +251,27 @@ namespace Plank
 			connect_signals ();
 			
 			this.map.connect (() => {
+				is_open = true;
 				update_accordion_visibility ();
 			});
 			this.show.connect (() => {
+				is_open = true;
 				update_accordion_visibility ();
+			});
+			this.hide.connect (() => {
+				is_open = false;
 			});
 			
 			notify["controller"].connect (controller_changed);
 			destroy.connect (() => {
+				is_open = false;
 				disconnect_signals ();
 			});
 		}
 
 		~PreferencesWindow ()
 		{
+			is_open = false;
 			disconnect_signals ();
 			if (popup_css_screen != null && popup_css != null)
 				Gtk.StyleContext.remove_provider_for_screen (popup_css_screen, popup_css);

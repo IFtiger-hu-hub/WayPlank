@@ -22,17 +22,25 @@ namespace Plank
 {
 	public class HelpWindow : Gtk.Window
 	{
+		public static bool is_open { get; private set; default = false; }
+
 		Gtk.CssProvider? css_provider = null;
 		Gdk.Screen? css_screen = null;
 
 		~HelpWindow ()
 		{
+			is_open = false;
 			if (css_screen != null && css_provider != null)
 				Gtk.StyleContext.remove_provider_for_screen (css_screen, css_provider);
 		}
 
 		public HelpWindow ()
 		{
+			is_open = true;
+			this.show.connect (() => { is_open = true; });
+			this.hide.connect (() => { is_open = false; });
+			this.destroy.connect (() => { is_open = false; });
+
 			set_title (_("Wayplank Shortcuts & Gestures"));
 			set_role ("help");
 			set_decorated (true);

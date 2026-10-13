@@ -21,6 +21,8 @@ namespace Plank
 {
 	public class WeatherCityDialog : Gtk.Dialog
 	{
+		public static bool is_open { get; private set; default = false; }
+
 		private Gtk.Entry city_entry;
 		private Gtk.Label lbl_status;
 		private Gtk.RadioButton unit_c_radio;
@@ -114,14 +116,19 @@ namespace Plank
 			save_btn.get_style_context ().add_class ("suggested-action");
 
 			show_all ();
+			is_open = true;
+			this.show.connect (() => { is_open = true; });
+			this.hide.connect (() => { is_open = false; });
 
 			destroy.connect (() => {
+				is_open = false;
 				weather_item.get_dock ()?.check_collapse_after_interaction (this);
 			});
 		}
 
 		~WeatherCityDialog ()
 		{
+			is_open = false;
 			if (search_timer_id != 0) {
 				GLib.Source.remove (search_timer_id);
 				search_timer_id = 0;

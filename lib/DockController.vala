@@ -508,13 +508,22 @@ namespace Plank
 			if (drag_manager != null && (drag_manager.InternalDragActive || drag_manager.ExternalDragActive))
 				return true;
 
-			GLib.List<weak Gtk.Window> toplevels = Gtk.Window.list_toplevels ();
-			foreach (var win in toplevels) {
-				if (win is DockWindow || win is HoverWindow || win is PoofWindow || win == closing_win)
-					continue;
-				if (win.get_visible ())
-					return true;
-			}
+			if (PreferencesWindow.is_open && (closing_win == null || !(closing_win is PreferencesWindow)))
+				return true;
+			if (HelpWindow.is_open && (closing_win == null || !(closing_win is HelpWindow)))
+				return true;
+			if (IconChooserDialog.is_open && (closing_win == null || !(closing_win is IconChooserDialog)))
+				return true;
+			if (WeatherCityDialog.is_open && (closing_win == null || !(closing_win is WeatherCityDialog)))
+				return true;
+			if (AbstractMain.is_about_open && (closing_win == null || !(closing_win is Gtk.AboutDialog)))
+				return true;
+			if (CalendarWindow.is_open () && (closing_win == null || !(closing_win is CalendarWindow)))
+				return true;
+			if (WeatherWindow.is_open () && (closing_win == null || !(closing_win is WeatherWindow)))
+				return true;
+			if (SessionWindow.is_open () && (closing_win == null || !(closing_win is SessionWindow)))
+				return true;
 
 			return false;
 		}

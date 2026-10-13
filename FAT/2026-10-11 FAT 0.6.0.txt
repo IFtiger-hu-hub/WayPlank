@@ -893,6 +893,8 @@ SESSION 3: LABWC (wlroots Backend)
         - [  ] Master Preferences anchor tooltip dynamically displays directional arrow (▸ / ◂) indicating the docklet accordion expansion state.
         - [  ] Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in Preferences -> Appearance (visible only when Accordion is active).
         - [  ] Accordion collapse retention on dock hide/unhide: if dock closes (e.g. intellihide) and reopens before delay expires, drawer remains open. Timer cancels upon cursor re-entry.
+        - [  ] Universal Interaction Invalidation: Accordion collapse timer is held/inhibited while any dialog (Preferences, Help, Icon Chooser, Weather) or menu is open. On close, restarts full delay if cursor is outside, or keeps drawer open if cursor is on dock.
+        - [  ] Free Mode & Accordion Toggle Garbage Collection: Disabling 'Categorize Items' or 'Accordion Docklets' immediately kills active collapse timers, re-attaches and displays all docklets expanded ("spanzo") without crashes.
    [ok] 10.3  Universal Context Menus, Dialog Raising & Change Icon:
         - Right-click App, Folder, Docklet, and Dock background: context actions appear at top, followed by universal '_Preferences...' and '_Quit' at bottom.
         - Preferences, Help, and About dialogs raise immediately to foreground over other windows (Wayland focus bypass).
