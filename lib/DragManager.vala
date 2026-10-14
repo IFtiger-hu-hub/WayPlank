@@ -378,9 +378,9 @@ namespace Plank
 			
 			bool handled = false;
 			bool item_can_drop = (item != null && item.can_accept_drop (drag_data));
-			if (item_can_drop && (item is TrashDockItem || item is FileDockItem || (!contains_directory && DragNeedsCheck)))
+			if (item_can_drop && (item is TrashDockItem || item is FileDockItem || (!contains_directory && DragNeedsCheck) || (item is ApplicationDockItem && (!contains_directory || ((ApplicationDockItem) item).can_accept_directory ()) && DragNeedsCheck)))
 				handled = item.accept_drop (drag_data);
-			else if (!controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data))
+			else if ((item == null || !DragNeedsCheck) && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data))
 				handled = provider.accept_drop (drag_data);
 			
 			Gtk.drag_finish (context, handled, false, time_);

@@ -216,8 +216,9 @@ WayPlank offers an extensive set of mouse gestures and keyboard shortcuts design
 ### Drag & Drop Interactions
 - **Drag icon off the dock**: Unpin and remove a launcher with a classic cartoon smoke ("poof") animation.
 - **Drag icon along the dock**: Reorder launchers within their category.
-- **Drop file onto an icon**: Directly open the dropped file in the target application.
-- **Drop `.desktop` file or directory**: Pin a new application launcher or folder drawer.
+- **Drop file onto an application icon**: Directly opens the dropped file in the target application (supports 0-byte files, multi-file payloads, full FreeDesktop `%U`/`%F` parameters, icon bounce feedback, and automatic window activation). If an application does not support the dropped file type, the drop is cleanly rejected without polluting the dock.
+- **Drop folder onto a folder or directory-aware application**: Drops into a folder drawer to copy files, or onto a code editor/file manager (like Kate, Dolphin, VSCode) to open the project folder.
+- **Drop onto empty dock space**: Pins files or folders as new dock items, or adds new application launchers from `.desktop` files.
 
 ### Quick Settings Access & In-App Help
 - **Right Click (Any Item or Background)**: Instant access to **Shortcuts & Gestures...**, **Preferences...**, and **Quit**.

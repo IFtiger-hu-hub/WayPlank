@@ -952,7 +952,20 @@ Wayplank v0.6.1 standardizes all 14 docklets onto a clean two-tier resolution mo
 - **Pressure Reveal Edge Trigger Unification:** Removed obsolete `!is_wayland` check from `PreferencesWindow.vala`, enabling the `PressureReveal` switch on startup across all Wayland compositors (KWin, Labwc, Mutter) to control the 5px vs 1px edge barrier input region for smooth cursor unhiding.
 - **Workspace Only Wayland Dormancy:** Explicitly set `sw_workspace_only` to insensitive (`sensitive = false`) and attached an informative tooltip (`"Workspace filtering is not yet supported under Wayland"`) across both the switch and label, preventing placebo toggling until universal cross-compositor workspace tracking is integrated in v0.7.0.
 
-### 17.5. Strict HAL Protection & Compositor Safety Guarantee
+### 17.5. Application Drag & Drop Payload Delivery & 0-Byte MIME Resolution
+- **0-Byte GIO MIME Classification Failure**: When dropping empty files (e.g. `è@à.txt` created with 0 bytes), GIO's `query_info(FileAttribute.STANDARD_CONTENT_TYPE)` returns `application/x-zerosize` instead of detecting the file extension (`text/plain`). Applications with explicit `MimeType=` entries (such as Kate) rejected the drop via `ContentType.is_a(...)`.
+- **Incomplete FreeDesktop Payload Detection**: Applications declaring `%f`, `%F`, `%u`, or `%U` in their `Exec` line accept files and URIs under FreeDesktop specifications even when specific file types are omitted from `MimeType=`. Plank previously contained an unfinished `// FIXME also check if the Exec key has %F/%f/%U/%u in it` check.
+- **Accidental Dock Pinning Fallthrough**: In `DragManager.vala` (`accept_external_drop`), if a hovered dock item rejected the drop (`item.can_accept_drop == false`), execution fell through to `provider.accept_drop(drag_data)`. Wayplank misinterpreted the rejected payload as a request to pin a new `FileDockItem` onto the dock. Under `CategorizeItems = true`, these pinned files were sorted into the far-left Folders section, rendering as large card/folder tiles.
+- **Payload Architecture (`ApplicationDockItem.vala`)**:
+  - Dynamically evaluates `app_info.supports_files() || app_info.supports_uris()` or inspects the `Exec` line for `%f`, `%F`, `%u`, `%U` (`accepts_payload`). Applications supporting payloads immediately accept dropped files.
+  - Implemented 0-byte MIME fallback using `ContentType.guess(uri)`: empty files with known extensions (e.g. `.txt`, `.py`, `.c`, `.md`) are accurately resolved to their respective MIME types rather than failing on `application/x-zerosize`.
+  - Added `can_accept_directory()`: Applications explicitly declaring `inode/directory` in `MimeType=` (e.g. Kate, Dolphin, VSCode) can accept dropped folders to open projects or directories.
+  - Enhanced `accept_drop`: Dispatches file launch via `System.get_default().launch_with_files(...)`, triggers immediate visual icon bounce (`ClickedAnimation = AnimationType.BOUNCE`), and raises any running window of the target application to the foreground (`activate`).
+- **Strict Hover Drop Isolation (`DragManager.vala`)**:
+  - Rewrote `accept_external_drop` so that if the user drops onto an existing item (`item != null`), the drop is handled exclusively by that item. If the item cannot accept the drop, it is safely rejected without falling back to `provider.accept_drop`.
+  - Pinning non-desktop files is strictly reserved for drops onto empty dock space (`item == null`). Pinning `.desktop` application launchers remains supported anywhere along the dock.
+
+### 17.6. Strict HAL Protection & Compositor Safety Guarantee
 - **Protected Backend Layer:** `lib/Services/*` remained 100% untouched throughout all v0.6.1 updates. All adjustments were strictly contained within dock items, preferences UI, drawing fallbacks, and compiled vector assets.
 
 ---

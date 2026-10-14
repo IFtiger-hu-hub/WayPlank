@@ -55,6 +55,7 @@ namespace Plank
 		Gee.ArrayList<string> actions;
 		Gee.HashMap<string, string> actions_map;
 		Gee.HashMap<string, string> desktop_action_ids;
+		public bool accepts_payload { get; private set; default = false; }
 		
 		string? unity_dbusname = null;
 		int prev_window_count = 0;
@@ -368,27 +369,63 @@ namespace Plank
 		}
 		
 		/**
+		 * Whether this application explicitly supports opening directories.
+		 */
+		public bool can_accept_directory ()
+		{
+			if (supported_mime_types != null) {
+				foreach (var ct in supported_mime_types) {
+					if (ct == "inode/directory")
+						return true;
+				}
+			}
+			return false;
+		}
+
+		/**
 		 * {@inheritDoc}
 		 */
 		public override bool can_accept_drop (Gee.ArrayList<string> uris)
 		{
-			if (uris == null || is_window ())
+			if (uris == null || uris.size == 0 || is_window ())
 				return false;
 			
-			// if they dont specify mimes but have '%F' etc in their Exec, assume any file allowed
-			// FIXME also check if the Exec key has %F/%f/%U/%u in it
-			if (supported_mime_types.size == 0 /* && .. */)
+			// 1. If application declares file or URI payload support in its Exec line (%f, %F, %u, %U)
+			if (accepts_payload)
 				return true;
 			
-			try {
-				foreach (var uri in uris) {
-					var info = File.new_for_uri (uri).query_info (FileAttribute.STANDARD_CONTENT_TYPE, FileQueryInfoFlags.NONE);
-					unowned string uri_content_type = info.get_content_type ();
-					foreach (var content_type in supported_mime_types)
-						if (ContentType.is_a (uri_content_type, content_type) || ContentType.equals (uri_content_type, content_type))
+			// 2. If no MIME types specified, assume allowed
+			if (supported_mime_types == null || supported_mime_types.size == 0)
+				return true;
+			
+			foreach (var uri in uris) {
+				if (uri.has_prefix ("http://") || uri.has_prefix ("https://")) {
+					foreach (var content_type in supported_mime_types) {
+						if (content_type.contains ("html") || content_type.contains ("http") || content_type.contains ("url"))
 							return true;
+					}
+				} else {
+					var file = File.new_for_uri (uri);
+					string? uri_content_type = null;
+					try {
+						var info = file.query_info (FileAttribute.STANDARD_CONTENT_TYPE, FileQueryInfoFlags.NONE);
+						uri_content_type = info.get_content_type ();
+					} catch {}
+					
+					// If empty 0-byte file (application/x-zerosize) or query failed, guess MIME from filename
+					if (uri_content_type == null || uri_content_type == "application/x-zerosize") {
+						bool uncertain;
+						uri_content_type = ContentType.guess (uri, null, out uncertain);
+					}
+					
+					if (uri_content_type != null) {
+						foreach (var content_type in supported_mime_types) {
+							if (ContentType.is_a (uri_content_type, content_type) || ContentType.equals (uri_content_type, content_type))
+								return true;
+						}
+					}
 				}
-			} catch {}
+			}
 			
 			return false;
 		}
@@ -398,11 +435,29 @@ namespace Plank
 		 */
 		public override bool accept_drop (Gee.ArrayList<string> uris)
 		{
+			if (uris == null || uris.size == 0)
+				return false;
+			
 			var files = new Gee.ArrayList<File> ();
 			foreach (var uri in uris)
 				files.add (File.new_for_uri (uri));
 			
-			System.get_default ().launch_with_files (File.new_for_uri (Prefs.Launcher), files.to_array ());
+			ClickedAnimation = AnimationType.BOUNCE;
+			LastClicked = GLib.get_monotonic_time ();
+			needs_redraw ();
+			
+			File? app_file = null;
+			if (Prefs.Launcher.has_prefix ("file://"))
+				app_file = File.new_for_uri (Prefs.Launcher);
+			else
+				app_file = File.new_for_path (Prefs.Launcher);
+			
+			System.get_default ().launch_with_files (app_file, files.to_array ());
+			
+			var windows = WindowManager.get_default ().matching_windows (Launcher);
+			if (windows.size > 0) {
+				WindowControl.queue_command (windows[0].Id, "activate");
+			}
 			
 			return true;
 		}
@@ -420,6 +475,35 @@ namespace Plank
 			Icon = icon;
 			ForcePixbuf = null;
 			Text = text;
+
+			accepts_payload = false;
+			try {
+				string launcher_path = Prefs.Launcher;
+				if (launcher_path.has_prefix ("file://")) {
+					try {
+						launcher_path = Filename.from_uri (launcher_path);
+					} catch (Error e) {
+						var gfile = File.new_for_uri (launcher_path);
+						var p = gfile.get_path ();
+						if (p != null)
+							launcher_path = p;
+					}
+				}
+				var app_info = new DesktopAppInfo.from_filename (launcher_path);
+				if (app_info != null && (app_info.supports_files () || app_info.supports_uris ())) {
+					accepts_payload = true;
+				} else {
+					var kf = new KeyFile ();
+					kf.load_from_file (launcher_path, KeyFileFlags.NONE);
+					if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
+						var exec_str = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC);
+						if (exec_str.contains ("%f") || exec_str.contains ("%F") || 
+						    exec_str.contains ("%u") || exec_str.contains ("%U")) {
+							accepts_payload = true;
+						}
+					}
+				}
+			} catch {}
 		}
 		
 		/**

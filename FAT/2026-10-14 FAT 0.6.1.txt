@@ -31,6 +31,10 @@ SESSION 1: GNOME (Mutter Backend)
           animation plays, app unpins and moves to running transient
           section BEFORE Trash (never past Trash or into trash zone).
    [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+        - Verified 0-byte files (application/x-zerosize filename fallback),
+          payloads with %F/%U, bounce feedback and window activation.
+        - Verified dropping an incompatible file onto an icon cleanly rejects
+          the drop without falling back to pinning the file to the dock.
    [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - In Categorized mode, dragging Folders is strictly clamped within
           Folders section.
@@ -408,6 +412,10 @@ SESSION 2: KDE PLASMA (KWin Backend)
           animation plays, app unpins and moves to running transient
           section BEFORE Trash (never past Trash or into trash zone).
    [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+        - Verified 0-byte files (application/x-zerosize filename fallback),
+          payloads with %F/%U, bounce feedback and window activation.
+        - Verified dropping an incompatible file onto an icon cleanly rejects
+          the drop without falling back to pinning the file to the dock.
    [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - In Categorized mode, dragging Folders is strictly clamped within
           Folders section.
@@ -776,6 +784,10 @@ SESSION 3: LABWC (wlroots Backend)
           animation plays, app unpins and moves to running transient
           section BEFORE Trash (never past Trash or into trash zone).
    [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+        - Verified 0-byte files (application/x-zerosize filename fallback),
+          payloads with %F/%U, bounce feedback and window activation.
+        - Verified dropping an incompatible file onto an icon cleanly rejects
+          the drop without falling back to pinning the file to the dock.
    [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - In Categorized mode, dragging Folders is strictly clamped within
           Folders section.

@@ -130,7 +130,26 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
 
 ---
 
-## 6. 🛡️ Architectural Safety & Zero HAL Touches Guarantee
+## 6. 🎯 Application Drag & Drop Payload Delivery & 0-Byte MIME Resolution
+
+### 6.1. The Root Cause
+- **0-Byte GIO MIME Classification Failure**: When dropping empty files (e.g. `è@à.txt` created with 0 bytes), GIO's `query_info(FileAttribute.STANDARD_CONTENT_TYPE)` returns `application/x-zerosize` instead of detecting the extension type (e.g. `text/plain`). Consequently, applications with explicit `MimeType=` entries (such as Kate's `MimeType=text/plain;inode/directory;`) rejected the drop via `ContentType.is_a(...)`.
+- **Incomplete FreeDesktop Payload Detection**: Applications declaring `%f`, `%F`, `%u`, or `%U` in their `Exec` line accept files and URIs under FreeDesktop specifications even when specific file types are omitted from `MimeType=`. Plank previously contained an unfinished `// FIXME also check if the Exec key has %F/%f/%U/%u in it` check.
+- **Accidental Dock Pinning Fallthrough**: In `DragManager.vala` (`accept_external_drop`), if a hovered dock item rejected the drop (`item.can_accept_drop == false`), execution fell through to `provider.accept_drop(drag_data)`. Wayplank misinterpreted the rejected payload as a request to pin a new `FileDockItem` onto the dock. Under `CategorizeItems = true`, these pinned files were sorted into the far-left Folders section, rendering as large card/folder tiles.
+
+### 6.2. The Solution
+- **`ApplicationDockItem.vala` Payload Support (`accepts_payload`)**:
+  - Dynamically evaluates `app_info.supports_files() || app_info.supports_uris()` or inspects the `Exec` line for `%f`, `%F`, `%u`, `%U`. Applications supporting payloads immediately accept dropped files.
+  - Implemented 0-byte MIME fallback using `ContentType.guess(uri)`: empty files with known extensions (e.g. `.txt`, `.py`, `.c`, `.md`) are accurately resolved to their respective MIME types rather than failing on `application/x-zerosize`.
+  - Added `can_accept_directory()`: Applications explicitly declaring `inode/directory` in `MimeType=` (e.g. Kate, Dolphin, VSCode) can accept dropped folders to open projects or directories.
+  - Enhanced `accept_drop`: Dispatches file launch via `System.get_default().launch_with_files(...)`, triggers immediate visual icon bounce (`ClickedAnimation = AnimationType.BOUNCE`), and raises any running window of the target application to the foreground (`activate`).
+- **`DragManager.vala` Strict Hover Drop Isolation**:
+  - Rewrote `accept_external_drop` so that if the user drops onto an existing item (`item != null`), the drop is handled exclusively by that item. If the item cannot accept the drop, it is safely rejected without falling back to `provider.accept_drop`.
+  - Pinning non-desktop files is strictly reserved for drops onto empty dock space (`item == null`). Pinning `.desktop` application launchers remains supported anywhere along the dock.
+
+---
+
+## 7. 🛡️ Architectural Safety & Zero HAL Touches Guarantee
 
 - **Hardware Abstraction Layer Protected**: Strict policy adhered to throughout v0.6.1 development. `lib/Services/*` (`WindowControl.vala`, `WindowBackend.vala`, `KWinBackend.vala`, `LabwcBackend.vala`, `MutterBackend.vala`, `WindowManager.vala`, `ApplicationDiscovery.vala`, `ApplicationIdentity.vala`, `Matcher.vala`) was **not modified in any way**.
 - **Compositor Portability**: Changes strictly confined to docklet items (`lib/Items/*`), preferences UI (`lib/Widgets/PreferencesWindow.vala`, `data/ui/preferences.ui`), drawing fallbacks (`lib/Drawing/DrawingService.vala`), and resource bundle (`data/plank.gresource.xml`).
@@ -138,12 +157,14 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
 
 ---
 
-## 7. 🗂️ Detailed File Changes Summary
+## 8. 🗂️ Detailed File Changes Summary
 
 | File | Changes Made |
 | :--- | :--- |
 | `include/config.h` | Bumped `VERSION` and `PACKAGE_VERSION` to `0.6.1`, updated `VERSION_INFO` to `"Wayplank 0.6.1 - Release Build"`. |
 | `BuildDeb.sh` | Bumped `PKG_VER` to `"0.6.1"` for native Debian package building. |
+| `lib/DragManager.vala` | Isolated `accept_external_drop` so hovering over an existing item never falls back to dock pinning, and allowed directory-aware applications to accept folder drops. |
+| `lib/Items/ApplicationDockItem.vala` | Added `accepts_payload` property (`%f`, `%F`, `%u`, `%U`), 0-byte `application/x-zerosize` filename MIME guessing fallback, `can_accept_directory()`, icon bounce feedback, and window activation upon payload drop. |
 | `lib/Items/BrightnessDockItem.vala` | Implemented `refresh_kscreen_outputs()` with `kscreen-doctor -j` JSON parsing, connected `Gdk.Display.monitor_added` and `monitor_removed` signals, and added atomic multi-output `kscreen-doctor` execution in `apply_hardware_brightness()`. |
 | `lib/Items/CpuDockItem.vala` | Implemented Disk I/O sampling via `/proc/diskstats` and multi-resource pressure metric: $0.60 \times \max + 0.40 \times \text{mean}$. Removed custom Cairo dual-gauge card override (`draw_icon`); wired up native numeric badge (`Count = system_pressure`) over theme icon `utilities-system-monitor;;cpu`. |
 | `lib/Items/BatteryDockItem.vala` | Removed custom Cairo capsule override (`draw_icon`). Wired up native badge counter (`Count = percentage`) over standard theme/fallback battery icons, and eliminated flat preemption fallbacks in charging/discharging states. |
@@ -156,12 +177,12 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
 | `data/plank.gresource.xml` | Registered all new graded brightness and weather SVG fallback assets. |
 | `data/docklets/` | Populated and refreshed fallback SVG assets: `brightness*.svg` (4 files), `weather-*.svg` (7 files), `trash*.svg` (2 files), and `mpris.svg`. |
 | `README.md` | Updated release badge to v0.6.1, streamlined changelog recap (strictly under 4 lines), and documented new fallback asset scale. |
-| `Documentation/wayplank_x11_to_wayland_report_en.md` | Added Section 17 documenting multi-monitor brightness sync, Global System Pressure algorithm, and docklet icon standardization. |
+| `Documentation/wayplank_x11_to_wayland_report_en.md` | Added Section 17 documenting multi-monitor brightness sync, Global System Pressure algorithm, docklet icon standardization, and Section 17.5 on drag & drop payload delivery. |
 | `FAT/2026-10-14 FAT 0.6.1.txt` | Created the Factory Acceptance Test protocol for v0.6.1 covering all new features and regressions across all 3 compositors. |
 
 ---
 
-## 8. 📦 Validation & Build Artifacts
+## 9. 📦 Validation & Build Artifacts
 
 - **Native Binary**: Compiled and verified via `BuildDeb.sh`:
   - Path: `build/wayplank`
