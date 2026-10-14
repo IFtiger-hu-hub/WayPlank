@@ -39,6 +39,9 @@ namespace Plank
 		private int kde_max_brightness = 0;
 		private bool kde_available = false;
 		private bool gnome_available = false;
+		private Gee.ArrayList<string> kscreen_outputs = new Gee.ArrayList<string> ();
+		private ulong mon_add_id = 0;
+		private ulong mon_rem_id = 0;
 
 		public BrightnessDockItem ()
 		{
@@ -58,7 +61,14 @@ namespace Plank
 
 			init_dbus ();
 			detect_backlight_device ();
+			refresh_kscreen_outputs ();
 			refresh_brightness ();
+
+			var display = Gdk.Display.get_default ();
+			if (display != null) {
+				mon_add_id = display.monitor_added.connect ((m) => { refresh_kscreen_outputs (); });
+				mon_rem_id = display.monitor_removed.connect ((m) => { refresh_kscreen_outputs (); });
+			}
 
 			timer_id = GLib.Timeout.add_seconds (2, on_timer_tick);
 		}
@@ -84,6 +94,18 @@ namespace Plank
 			if (apply_timer_id != 0) {
 				GLib.Source.remove (apply_timer_id);
 				apply_timer_id = 0;
+			}
+
+			var display = Gdk.Display.get_default ();
+			if (display != null) {
+				if (mon_add_id != 0) {
+					display.disconnect (mon_add_id);
+					mon_add_id = 0;
+				}
+				if (mon_rem_id != 0) {
+					display.disconnect (mon_rem_id);
+					mon_rem_id = 0;
+				}
 			}
 
 			if (session_bus != null) {
@@ -235,6 +257,45 @@ namespace Plank
 					max_raw_brightness = 100;
 			} catch (GLib.Error e) {
 				max_raw_brightness = 100;
+			}
+		}
+
+		private void refresh_kscreen_outputs ()
+		{
+			kscreen_outputs.clear ();
+			if (!kde_available && !(GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ().contains ("kde"))
+				return;
+
+			if (GLib.Environment.find_program_in_path ("kscreen-doctor") == null)
+				return;
+
+			try {
+				string json_out;
+				int exit_code;
+				if (GLib.Process.spawn_command_line_sync ("kscreen-doctor -j", out json_out, null, out exit_code) && exit_code == 0) {
+					var parser = new Json.Parser ();
+					parser.load_from_data (json_out);
+					var root = parser.get_root ();
+					if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
+						var obj = root.get_object ();
+						if (obj.has_member ("outputs")) {
+							var arr = obj.get_array_member ("outputs");
+							for (uint i = 0; i < arr.get_length (); i++) {
+								var out_obj = arr.get_object_element (i);
+								bool connected = out_obj.has_member ("connected") ? out_obj.get_boolean_member ("connected") : false;
+								bool enabled = out_obj.has_member ("enabled") ? out_obj.get_boolean_member ("enabled") : true;
+								if (connected && enabled && out_obj.has_member ("name")) {
+									string name = out_obj.get_string_member ("name");
+									if (name != null && name.length > 0) {
+										kscreen_outputs.add (name);
+									}
+								}
+							}
+						}
+					}
+				}
+			} catch (GLib.Error e) {
+				warning ("Failed to query kscreen-doctor outputs: %s", e.message);
 			}
 		}
 
@@ -416,7 +477,26 @@ namespace Plank
 
 		private void apply_hardware_brightness (int target)
 		{
-			// 1. Try KDE Solid PowerManagement D-Bus
+			// 1. Try kscreen-doctor on KDE to atomically adjust all connected displays
+			if (GLib.Environment.find_program_in_path ("kscreen-doctor") != null &&
+			    (kde_available || (GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ().contains ("kde"))) {
+				if (kscreen_outputs.is_empty) {
+					refresh_kscreen_outputs ();
+				}
+				if (!kscreen_outputs.is_empty) {
+					var sb = new StringBuilder ("kscreen-doctor");
+					foreach (var out_name in kscreen_outputs) {
+						sb.append_printf (" output.%s.brightness.%d", out_name, target);
+					}
+					try {
+						GLib.Process.spawn_command_line_async (sb.str);
+					} catch (GLib.Error e) {
+						warning ("Failed to invoke kscreen-doctor: %s", e.message);
+					}
+				}
+			}
+
+			// 2. Try KDE Solid PowerManagement D-Bus
 			if (session_bus != null) {
 				if (kde_max_brightness <= 0) {
 					try {

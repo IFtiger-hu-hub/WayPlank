@@ -5,7 +5,7 @@
 > Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Release: v0.6.0](https://img.shields.io/badge/Release-v0.6.0-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.0.md)
+> [![Release: v0.6.1](https://img.shields.io/badge/Release-v0.6.1-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.1.md)
 
 ![Wayplank Release Banner](Release%20Pic.png)
 
@@ -233,6 +233,7 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
+* 💡 **v0.6.1 — 2026-10-13:** Atomic multi-monitor brightness synchronization under KDE Plasma (KWin) via kscreen-doctor.
 * ✨ **v0.6.0 — 2026-10-11:** Smart first-run auto-configuration (categorized English app drawers, auto-detected pinned apps, docklets & trash), universal "Change Icon..." dialog with FreeDesktop & GIO metadata, integrated User Guide, and clean release polish.
 * 🚀 **v0.5.2 (Alpha) — 2026-10-09:** Cairo folder launcher menu, 14 built-in docklets, category layout grouping and deep audit fixing stack overflows & GObject assertions.
 * 🛠️ **v0.5.1 — 2026-10-08:** Fixed KWin resume freeze on Plasma 6 with 50ms debouncer, native screenshot docklet and 100% FAT pass rate.
