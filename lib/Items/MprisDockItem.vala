@@ -41,7 +41,7 @@ namespace Plank
 		construct
 		{
 			Text = _("Media Player");
-			Icon = "multimedia-player;;audio-player;;applications-multimedia";
+			Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
 			Button = PopupButton.RIGHT;
 			
 			refresh_player_state ();
@@ -252,22 +252,22 @@ namespace Plank
 					}
 					
 					if (playback_status == "Playing")
-						Icon = "media-playback-start;;media-playback-start-symbolic;;player_play;;multimedia-player;;audio-player";
+						Icon = "media-playback-start;;media-playback-start-symbolic;;player_play";
 					else if (playback_status == "Paused")
-						Icon = "media-playback-pause;;media-playback-pause-symbolic;;player_pause;;multimedia-player;;audio-player";
+						Icon = "media-playback-pause;;media-playback-pause-symbolic;;player_pause";
 					else
-						Icon = "multimedia-player;;audio-player;;applications-multimedia";
+						Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
 				} else {
 					playback_status = "Stopped";
 					track_title = "";
 					track_artist = "";
 					Text = _("Media Player (Inactive)");
-					Icon = "multimedia-player;;audio-player;;applications-multimedia";
+					Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
 				}
 			} catch (Error e) {
 				playback_status = "Stopped";
 				Text = _("Media Player");
-				Icon = "multimedia-player;;audio-player";
+				Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
 			}
 		}
 		

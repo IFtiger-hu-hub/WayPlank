@@ -822,6 +822,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Workspace Only:</property>
                 <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Workspace filtering is not yet supported under Wayland</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -831,9 +832,11 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
             <child>
               <object class="GtkSwitch" id="sw_workspace_only">
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Workspace filtering is not yet supported under Wayland</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -1050,7 +1053,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <child>
                   <object class="GtkImage" id="img_docklet_trash">
                     <property name="visible">True</property>
-                    <property name="icon_name">user-trash</property>
+                    <property name="icon_name">trashcan_empty</property>
                     <property name="pixel_size">35</property>
                     <property name="valign">center</property>
                   </object>
@@ -1307,7 +1310,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <child>
                   <object class="GtkImage" id="img_docklet_mpris">
                     <property name="visible">True</property>
-                    <property name="icon_name">multimedia-player</property>
+                    <property name="icon_name">gnome-mplayer</property>
                     <property name="pixel_size">35</property>
                     <property name="valign">center</property>
                   </object>
@@ -1564,7 +1567,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <child>
                   <object class="GtkImage" id="img_docklet_brightness">
                     <property name="visible">True</property>
-                    <property name="icon_name">display-brightness-high</property>
+                    <property name="icon_name">notification-display-brightness-high</property>
                     <property name="pixel_size">35</property>
                     <property name="valign">center</property>
                   </object>

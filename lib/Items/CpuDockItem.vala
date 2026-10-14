@@ -24,8 +24,12 @@ namespace Plank
 		uint timer_id = 0;
 		uint64 prev_total = 0;
 		uint64 prev_idle = 0;
+		uint64 prev_io_ticks = 0;
+		int64 prev_io_time_ms = 0;
 		int cpu_pct = 0;
 		int ram_pct = 0;
+		int io_pct = 0;
+		int system_pressure = 0;
 		double ram_used_gb = 0.0;
 		double ram_total_gb = 0.0;
 		
@@ -147,7 +151,53 @@ namespace Plank
 				}
 			} catch (Error e) { }
 
-			Text = _("CPU: %d%% | RAM: %d%% (%.1f / %.1f GB)").printf (cpu_pct, ram_pct, ram_used_gb, ram_total_gb);
+			// 3. Disk I/O Usage via /proc/diskstats
+			string disk_content;
+			try {
+				if (FileUtils.get_contents ("/proc/diskstats", out disk_content)) {
+					uint64 current_io_ticks = 0;
+					foreach (unowned string line in disk_content.split ("\n")) {
+						var parts = line.strip ().split (" ");
+						Gee.ArrayList<string> tokens = new Gee.ArrayList<string> ();
+						foreach (unowned string p in parts) {
+							if (p != "") tokens.add (p);
+						}
+						if (tokens.size >= 13) {
+							string dev = tokens[2];
+							if ((dev.has_prefix ("sd") && dev.length == 3) ||
+							    (dev.has_prefix ("vd") && dev.length == 3) ||
+							    (dev.has_prefix ("nvme") && !dev.contains ("p")) ||
+							    (dev.has_prefix ("mmcblk") && !dev.contains ("p"))) {
+								current_io_ticks += (uint64) uint64.parse (tokens[12]);
+							}
+						}
+					}
+					
+					int64 now_ms = GLib.get_monotonic_time () / 1000;
+					if (prev_io_time_ms > 0 && now_ms > prev_io_time_ms && current_io_ticks >= prev_io_ticks) {
+						int64 elapsed_ms = now_ms - prev_io_time_ms;
+						uint64 diff_ticks = current_io_ticks - prev_io_ticks;
+						io_pct = (int) Math.round (100.0 * (double) diff_ticks / (double) elapsed_ms);
+						if (io_pct < 0) io_pct = 0;
+						if (io_pct > 100) io_pct = 100;
+					}
+					prev_io_ticks = current_io_ticks;
+					prev_io_time_ms = now_ms;
+				}
+			} catch (Error e) { }
+
+			// 4. Bottleneck-Dominant Global System Pressure
+			int max_comp = int.max (cpu_pct, int.max (ram_pct, io_pct));
+			double mean_comp = (cpu_pct + ram_pct + io_pct) / 3.0;
+			system_pressure = (int) Math.round (0.60 * (double) max_comp + 0.40 * mean_comp);
+			if (system_pressure < 0) system_pressure = 0;
+			if (system_pressure > 100) system_pressure = 100;
+
+			Count = system_pressure;
+			CountVisible = true;
+
+			Text = _("System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Disk: %d%%").printf (
+				system_pressure, cpu_pct, ram_pct, ram_used_gb, ram_total_gb, io_pct);
 		}
 		
 		bool on_timer_tick ()
@@ -155,117 +205,6 @@ namespace Plank
 			update_stats ();
 			reset_icon_buffer ();
 			return true;
-		}
-		
-		void draw_gauge (Cairo.Context cr, double cx, double cy, double r, int percent, string label, bool is_cpu)
-		{
-			double start_angle = 135.0 * (Math.PI / 180.0);
-			double end_angle = 405.0 * (Math.PI / 180.0);
-			double total_angle = end_angle - start_angle;
-			double sweep = start_angle + total_angle * (percent / 100.0);
-			
-			// Background Track
-			cr.save ();
-			cr.set_line_width (r * 0.22);
-			cr.set_line_cap (Cairo.LineCap.ROUND);
-			cr.set_source_rgba (1.0, 1.0, 1.0, 0.16);
-			cr.arc (cx, cy, r, start_angle, end_angle);
-			cr.stroke ();
-			cr.restore ();
-			
-			// Active Filled Arc
-			if (percent > 0) {
-				cr.save ();
-				cr.set_line_width (r * 0.22);
-				cr.set_line_cap (Cairo.LineCap.ROUND);
-				
-				if (is_cpu) {
-					// CPU: Emerald Green -> Amber -> Ruby Red
-					if (percent < 50) cr.set_source_rgba (0.18, 0.80, 0.44, 0.95);
-					else if (percent < 80) cr.set_source_rgba (0.95, 0.70, 0.12, 0.95);
-					else cr.set_source_rgba (0.92, 0.22, 0.20, 0.95);
-				} else {
-					// RAM: Electric Cyan -> Purple -> Coral
-					if (percent < 60) cr.set_source_rgba (0.16, 0.75, 0.98, 0.95);
-					else if (percent < 85) cr.set_source_rgba (0.68, 0.38, 0.92, 0.95);
-					else cr.set_source_rgba (0.92, 0.25, 0.40, 0.95);
-				}
-				
-				cr.arc (cx, cy, r, start_angle, sweep);
-				cr.stroke ();
-				cr.restore ();
-			}
-			
-			// Gauge Text Labels
-			cr.save ();
-			cr.select_font_face ("Sans", Cairo.FontSlant.NORMAL, Cairo.FontWeight.BOLD);
-			
-			// Value text (e.g. 42%)
-			string val_str = "%d%%".printf (percent);
-			cr.set_font_size (r * 0.58);
-			Cairo.TextExtents te_val;
-			cr.text_extents (val_str, out te_val);
-			cr.set_source_rgba (1.0, 1.0, 1.0, 0.95);
-			cr.move_to (cx - te_val.width / 2.0 - te_val.x_bearing, cy + (r * 0.12));
-			cr.show_text (val_str);
-			
-			// Subtitle label (CPU / RAM)
-			cr.set_font_size (r * 0.38);
-			Cairo.TextExtents te_lbl;
-			cr.text_extents (label, out te_lbl);
-			cr.set_source_rgba (0.75, 0.82, 0.90, 0.85);
-			cr.move_to (cx - te_lbl.width / 2.0 - te_lbl.x_bearing, cy + (r * 0.75));
-			cr.show_text (label);
-			
-			cr.restore ();
-		}
-		
-		protected override void draw_icon (Surface surface)
-		{
-			unowned Cairo.Context cr = surface.Context;
-			double w = surface.Width;
-			double h = surface.Height;
-			double cx = w / 2.0;
-			double cy = h / 2.0;
-			double radius = (double.min (w, h) / 2.0) - (w * 0.04);
-			
-			if (radius < 8.0)
-				return;
-			
-			// 1. Sleek Dashboard Card
-			cr.save ();
-			double box_w = radius * 1.92;
-			double box_h = radius * 1.84;
-			double r_corner = radius * 0.35;
-			double x0 = cx - box_w / 2.0;
-			double y0 = cy - box_h / 2.0;
-			
-			cr.new_sub_path ();
-			cr.arc (x0 + box_w - r_corner, y0 + r_corner, r_corner, -Math.PI_2, 0);
-			cr.arc (x0 + box_w - r_corner, y0 + box_h - r_corner, r_corner, 0, Math.PI_2);
-			cr.arc (x0 + r_corner, y0 + box_h - r_corner, r_corner, Math.PI_2, Math.PI);
-			cr.arc (x0 + r_corner, y0 + r_corner, r_corner, Math.PI, 3 * Math.PI_2);
-			cr.close_path ();
-			
-			var pat = new Cairo.Pattern.linear (cx, y0, cx, y0 + box_h);
-			pat.add_color_stop_rgba (0.0, 0.12, 0.14, 0.19, 0.94);
-			pat.add_color_stop_rgba (1.0, 0.07, 0.08, 0.11, 0.94);
-			cr.set_source (pat);
-			cr.fill_preserve ();
-			
-			cr.set_source_rgba (1.0, 1.0, 1.0, 0.25);
-			cr.set_line_width (radius * 0.04);
-			cr.stroke ();
-			cr.restore ();
-			
-			// 2. Dual Side-by-Side Meters
-			double meter_r = radius * 0.38;
-			double left_cx = cx - (radius * 0.48);
-			double right_cx = cx + (radius * 0.48);
-			double meter_cy = cy - (radius * 0.05);
-			
-			draw_gauge (cr, left_cx, meter_cy, meter_r, cpu_pct, "CPU", true);
-			draw_gauge (cr, right_cx, meter_cy, meter_r, ram_pct, "RAM", false);
 		}
 		
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)

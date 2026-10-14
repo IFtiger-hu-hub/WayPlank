@@ -5,7 +5,7 @@
 > Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Release: v0.6.1](https://img.shields.io/badge/Release-v0.6.1-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.1.md)
+> [![Release: v0.6.1 (Alpha)](https://img.shields.io/badge/Release-v0.6.1_(Alpha)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.1.md)
 
 ![Wayplank Release Banner](Release%20Pic.png)
 
@@ -17,7 +17,7 @@ Plank was completely unmaintained and broken on Wayland. Wayplank brings it back
 
 Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL) working out of the box with **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)**. It auto-detects your compositor at startup without messy configs. 
 
-**A huge thank you to the community for all the support, testing, and bug communications! Feedback, testing, and pull requests across different setups are very welcome!**
+**A huge thank you to our 300+ community users: with 750+ clones and real-world feedback, 65+ bugs have been squashed across 240+ validation points! Testing, bug reports, and pull requests are warmly welcome.**
 
 * 📚 [User Guide & Reference Manual](Documentation/USER_GUIDE.md)
 * 📖 [Technical migration report](Documentation/wayplank_x11_to_wayland_report_en.md)
@@ -147,9 +147,9 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
 # Install with automatic dependency resolution:
-sudo apt install ./build/wayplank_0.6.0_amd64.deb
+sudo apt install ./build/wayplank_0.6.1_amd64.deb
 # Or via dpkg:
-# sudo dpkg -i build/wayplank_0.6.0_amd64.deb && sudo apt install -f
+# sudo dpkg -i build/wayplank_0.6.1_amd64.deb && sudo apt install -f
 ```
 
 ---
@@ -233,18 +233,18 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
-* 💡 **v0.6.1 — 2026-10-13:** Atomic multi-monitor brightness synchronization under KDE Plasma (KWin) via kscreen-doctor.
-* ✨ **v0.6.0 — 2026-10-11:** Smart first-run auto-configuration (categorized English app drawers, auto-detected pinned apps, docklets & trash), universal "Change Icon..." dialog with FreeDesktop & GIO metadata, integrated User Guide, and clean release polish.
+* 💡 **v0.6.1 (Alpha) — 2026-10-14:** The Bug Hunting Release — Multi-monitor KWin brightness sync, unified Global System Pressure engine (CPU/RAM/Disk I/O), full theme-graded docklet icon standardization, and 100% Preferences visual consistency.
+* ✨ **v0.6.0 (Alpha) — 2026-10-11:** Smart first-run auto-configuration (categorized English app drawers, auto-detected pinned apps, docklets & trash), universal "Change Icon..." dialog with FreeDesktop & GIO metadata, integrated User Guide, and clean release polish.
 * 🚀 **v0.5.2 (Alpha) — 2026-10-09:** Cairo folder launcher menu, 14 built-in docklets, category layout grouping and deep audit fixing stack overflows & GObject assertions.
-* 🛠️ **v0.5.1 — 2026-10-08:** Fixed KWin resume freeze on Plasma 6 with 50ms debouncer, native screenshot docklet and 100% FAT pass rate.
-* 🖥️ **v0.5.0 — 2026-10-07:** Solved multi-monitor duplicate ID collisions, live monitor hotplugging and Mutter drag race fixes.
-* 🧩 **v0.4.3 — 2026-10-05:** Modular Multi-Compositor HAL: dynamic auto-probing for KWin, Labwc (via `zwlr_foreign_toplevel`) and GNOME Shell bridge.
-* 📦 **v0.4.2 — 2026-10-02:** First 8 monolithic docklets (Trash, Clock, Battery, etc.), total purge of X11 libs and `--replace` flag.
-* ⚙️ **v0.4.1 — 2026-09-25:** Multi-monitor config persistence, secondary display tooltip fix and smooth zoom without micro-stutters.
-* 🪟 **v0.4.0 — 2026-09-24:** KWin D-Bus scripting bridge, real-time window Dodge/Intellihide and layer-shell input region negotiation.
-* 📌 **v0.3.0 — 2026-09-23:** Drag-and-drop icon pinning, running app dots and native compositor-safe window tracking.
-* 🏗️ **v0.2.0 — 2026-09-22:** Native `gtk-layer-shell` integration, `/proc` process scanner and standalone packaging scripts.
-* 🌱 **v0.1.0 — 2026-09-19:** Initial standalone fork from Plank, clean namespace migration to `wayplank` and XDG isolated paths.
+* 🛠️ **v0.5.1 (Alpha) — 2026-10-08:** Fixed KWin resume freeze on Plasma 6 with 50ms debouncer, native screenshot docklet and 100% FAT pass rate.
+* 🖥️ **v0.5.0 (Alpha) — 2026-10-07:** Solved multi-monitor duplicate ID collisions, live monitor hotplugging and Mutter drag race fixes.
+* 🧩 **v0.4.3 (Pre-Alpha) — 2026-10-05:** Modular Multi-Compositor HAL: dynamic auto-probing for KWin, Labwc (via `zwlr_foreign_toplevel`) and GNOME Shell bridge.
+* 📦 **v0.4.2 (Pre-Alpha) — 2026-10-02:** First 8 monolithic docklets (Trash, Clock, Battery, etc.), total purge of X11 libs and `--replace` flag.
+* ⚙️ **v0.4.1 (Pre-Alpha) — 2026-09-25:** Multi-monitor config persistence, secondary display tooltip fix and smooth zoom without micro-stutters.
+* 🪟 **v0.4.0 (Pre-Alpha) — 2026-09-24:** KWin D-Bus scripting bridge, real-time window Dodge/Intellihide and layer-shell input region negotiation.
+* 📌 **v0.3.0 (Pre-Alpha) — 2026-09-23:** Drag-and-drop icon pinning, running app dots and native compositor-safe window tracking.
+* 🏗️ **v0.2.0 (Pre-Alpha) — 2026-09-22:** Native `gtk-layer-shell` integration, `/proc` process scanner and standalone packaging scripts.
+* 🌱 **v0.1.0 (Pre-Alpha) — 2026-09-19:** Initial standalone fork from Plank, clean namespace migration to `wayplank` and XDG isolated paths.
 
 👉 *Read the full detailed commits and milestone notes in [`Changelogs/`](Changelogs/).*
 
@@ -262,10 +262,12 @@ Wayplank is free software licensed under the **GNU General Public License v3.0 o
 ### 2. Integrated Fallback Assets & Vector Artwork
 Wayplank incorporates high-definition vector assets compiled directly into the binary executable via GLib GResources (`/net/launchpad/plank/docklets/`) to provide self-contained, standalone operation on any desktop or minimal distribution:
 * **Docklet Fallback Icons** (`data/docklets/`):
-  * **Volume Scale**: High, Medium, Low, Muted (`volume-*.svg`).
+  * **Volume Scale**: Overamplified (>100%), High, Medium, Low, Muted (`volume-*.svg`).
   * **Battery Scale**: Full, Good, Low, Caution, Empty, Full-Charging, Good-Charging, Low-Charging, Caution-Charging, Empty-Charging, AC-Adapter, Missing (`battery-*.svg`).
+  * **Brightness Scale**: High, Medium, Low, Base (`brightness-*.svg`).
+  * **Weather Forecast Scale**: Clear, Few Clouds, Overcast, Showers, Snow, Storm, Fog (`weather-*.svg`).
   * **Clock & Time**: Analog Clock (`clock.svg`), Digital LED Clock (`digital-clock.svg`).
-  * **System & Hardware**: Trash empty/full (`trash.svg`, `trash-full.svg`), CPU/RAM Monitor (`cpu.svg`), Show Desktop (`desktop.svg`), MPRIS play/pause (`mpris-*.svg`), Screenshot (`screenshot.svg`), Session/Power (`session.svg`), Wayplank Preferences (`preferences.svg`), Removable Drive Ejector (`ejector.svg`), Screen Brightness (`brightness.svg`), Weather Forecast (`weather.svg`).
+  * **System & Hardware**: Trash empty/full (`trash.svg`, `trash-full.svg`), Global System Pressure Monitor (`cpu.svg`), Show Desktop (`desktop.svg`), MPRIS Media Player (`mpris.svg`), Screenshot (`screenshot.svg`), Session/Power (`session.svg`), Wayplank Preferences (`preferences.svg`), Removable Drive Ejector (`ejector.svg`).
 * **Attribution & Upstream**: Derived from FreeDesktop & KDE Breeze icon specifications © KDE Community / Breeze Icon Artists, licensed under **LGPL-3.0-or-later** / **GPL-3.0-or-later**.
 * **Zero Host Pollution**: All fallback icons are strictly compiled into the internal executable binary; no extra icon files are installed into `/usr/share/icons/hicolor/`, ensuring pure standalone behavior and complete distribution independence.
 

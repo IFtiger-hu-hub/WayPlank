@@ -310,15 +310,18 @@ namespace Plank
 						Text = _("Wi-Fi: %s (%d%%)").printf (connection_name, wifi_strength);
 
 					if (wifi_strength >= 80)
-						Icon = "network-wireless-signal-excellent;;network-wireless-connected;;network-wireless";
+						Icon = "network-wireless-signal-excellent;;network-wireless-signal-excellent-symbolic;;network-wireless-connected-100";
 					else if (wifi_strength >= 55)
-						Icon = "network-wireless-signal-good;;network-wireless-connected;;network-wireless";
+						Icon = "network-wireless-signal-good;;network-wireless-signal-good-symbolic;;network-wireless-connected-75";
 					else if (wifi_strength >= 30)
-						Icon = "network-wireless-signal-ok;;network-wireless-connected;;network-wireless";
+						Icon = "network-wireless-signal-ok;;network-wireless-signal-ok-symbolic;;network-wireless-connected-50";
 					else if (wifi_strength >= 10)
-						Icon = "network-wireless-signal-weak;;network-wireless-connected;;network-wireless";
+						Icon = "network-wireless-signal-weak;;network-wireless-signal-weak-symbolic;;network-wireless-connected-25";
 					else
-						Icon = "network-wireless-signal-none;;network-wireless-connected;;network-wireless";
+						Icon = "network-wireless-signal-none;;network-wireless-signal-none-symbolic;;network-wireless-disconnected";
+
+					Count = wifi_strength;
+					CountVisible = true;
 				} else {
 					if (ip_address != "")
 						Text = _("Ethernet: %s - %s").printf (connection_name != "" ? connection_name : _("Connected"), ip_address);
@@ -326,10 +329,12 @@ namespace Plank
 						Text = _("Ethernet: %s").printf (connection_name != "" ? connection_name : _("Connected"));
 
 					Icon = "network-wired-activated;;network-wired;;network-workgroup";
+					CountVisible = false;
 				}
 			} else {
 				Text = _("Network: Disconnected");
 				Icon = "network-offline;;network-idle;;network-error;;network-wired-disconnected";
+				CountVisible = false;
 			}
 		}
 

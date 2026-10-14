@@ -1,43 +1,167 @@
 # Wayplank V0.6.1 Detailed Technical Changelog
 
-Release Milestone: **V0.6.1 (KWin Multi-Monitor Brightness Synchronization & Display Output Hardening)**  
-Release Date: 2026-10-13  
+Release Milestone: **V0.6.1 (KWin Multi-Monitor Brightness Synchronization, Global System Pressure & Docklet Icon Standardization)**  
+Release Date: 2026-10-14  
 Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)  
 
 ---
 
 ## 1. 📋 Overview & Motivation
 
-Wayplank **V0.6.1** addresses a critical multi-monitor hardware integration bug under **KDE Plasma (KWin)**, where adjusting the brightness via the Screen Brightness docklet (`docklet://brightness`) only adjusted a subset of connected monitors (e.g. 2 out of 3 displays).
+Wayplank **V0.6.1** represents a comprehensive stability and visual polish release focusing on four core areas:
+1. **Multi-Monitor Hardware Brightness Synchronization under KDE Plasma (KWin)**: Resolves an issue where external secondary displays (DDC/CI monitors on DisplayPort/HDMI) were not synchronized by user-space D-Bus interfaces.
+2. **Unified Global System Pressure Engine**: Replaces the custom CPU/RAM dual-gauge card with a scientifically balanced multi-resource metric combining CPU, RAM, and Disk I/O utilization into a single holistic system pressure score ($0–100\%$) displayed cleanly on Plank's native numeric badge over standard system theme icons.
+3. **Docklet Icon Standardization & Two-Tier Resolution Architecture**: Transitions all 14 docklets away from ad-hoc custom Cairo rendering hacks (such as custom drawn battery capsules and volume cones) in favor of the unified two-tier resolution model: **System Theme Graded Icons First $\to$ High-Definition GResource Fallback Vectors Second**.
+4. **100% Visual Parity Between Dock & Preferences**: Ensures every docklet icon displayed in the dock matches its counterpart in the Preferences *Docklets* tab under any desktop theme.
+
+---
+
+## 2. 🖥️ Multi-Monitor Brightness Synchronization (KWin)
 
 ### The Root Cause
-1. **PowerDevil User-Space Limitation**: Under KDE Plasma 6, Wayplank previously relied on calling `org.kde.Solid.PowerManagement.Actions.BrightnessControl.setBrightness(...)` via D-Bus. In user space, PowerDevil attempts to open direct I2C DDC/CI buses (`/dev/i2c-*`). When user permissions are not granted (e.g. user not in `i2c` group), PowerDevil fails with `EACCES (-13: Permission denied)` and silently drops DDC support for external secondary monitors (such as HDMI/DisplayPort QHD/4K screens). As a result, PowerDevil only registers and adjusts internal panels and the primary display.
-2. **KWin Compositor DRM Privileges**: Unlike user-space PowerDevil, the KWin Wayland compositor operates with direct kernel DRM privileges, retaining full native brightness control across all connected outputs (`kscreen-doctor -o` reports `Brightness control: supported` across all displays).
-3. **Atomic Multi-Output Adjustment**: In v0.6.1, Wayplank introduces dynamic output discovery via `kscreen-doctor -j`, dynamically caching all active display outputs (`DP-5`, `DP-6`, `eDP-1`, etc.) and issuing an atomic multi-output brightness adjustment command via `kscreen-doctor output.<name1>.brightness.<val> output.<name2>.brightness.<val> ...` whenever brightness changes, while concurrently updating PowerDevil D-Bus to maintain power profile synchronization and OSD indicators.
+- **PowerDevil User-Space Limitation**: Under KDE Plasma 6, Wayplank previously relied on calling `org.kde.Solid.PowerManagement.Actions.BrightnessControl.setBrightness(...)` via D-Bus. In user space, PowerDevil attempts to open direct I2C DDC/CI buses (`/dev/i2c-*`). When user permissions are not granted (e.g. user not in `i2c` group), PowerDevil fails with `EACCES (-13: Permission denied)` and silently drops DDC support for external secondary monitors (such as HDMI/DisplayPort QHD/4K screens). As a result, PowerDevil only registers and adjusts internal panels and the primary display.
+- **KWin Compositor DRM Privileges**: Unlike user-space PowerDevil, the KWin Wayland compositor operates with direct kernel DRM privileges, retaining full native brightness control across all connected outputs (`kscreen-doctor -o` reports `Brightness control: supported` across all displays).
+
+### The Solution
+- **Dynamic Output Discovery**: Wayplank queries `kscreen-doctor -j` on startup and dynamically refreshes its output cache on `Gdk.Display.monitor_added` and `monitor_removed` signals.
+- **Atomic Multi-Output Adjustment**: Whenever brightness changes, Wayplank executes an atomic multi-output command:
+  ```bash
+  kscreen-doctor output.<name1>.brightness.<val> output.<name2>.brightness.<val> ...
+  ```
+  Concurrently, it signals PowerDevil D-Bus to maintain power profile synchronization and native KDE OSD indicators.
+- **Strict Compositor Isolation**: Guarded behind `if (kde_available && GLib.Environment.find_program_in_path ("kscreen-doctor") != null)`. On GNOME (Mutter) and Labwc (wlroots), native D-Bus and `brightnessctl` pathways remain active and unaffected.
 
 ---
 
-## 2. 🛡️ Architectural Safety & Compositor Isolation
+## 3. ⚙️ Global System Pressure Engine (`CpuDockItem.vala`)
 
-- **KWin Specificity**: The `kscreen-doctor` execution path is strictly guarded with `if (kde_available && GLib.Environment.find_program_in_path ("kscreen-doctor") != null)`.
-- **GNOME (Mutter) Immunity**: On GNOME sessions, `kde_available` evaluates to `false`. Wayplank continues using the native `org.gnome.SettingsDaemon.Power` D-Bus interface without invoking external binaries.
-- **Labwc (wlroots) Immunity**: On Labwc sessions, `kde_available` evaluates to `false`. Wayplank continues utilizing `brightnessctl`, `light`, or direct logind D-Bus methods.
-- **HAL Zero-Touch Guarantee**: No Hardware Abstraction Layer or backend files (`lib/Services/*`) were modified. All logic is strictly encapsulated within `lib/Items/BrightnessDockItem.vala`.
+### Architectural Problem
+Previously, the CPU & RAM docklet relied on a custom Cairo drawing override (`draw_icon`) that drew a dual-gauge card with separate micro-bars for CPU and RAM. This introduced several limitations:
+- Broke visual consistency with system icon themes.
+- Rendered poorly at non-standard dock icon sizes (e.g. 24px–36px).
+- Ignored Disk I/O contention, which is frequently the true bottleneck in modern desktop workloads.
+
+### Multi-Resource Pressure Formulation
+To provide a holistic view of system stress without visual clutter, Wayplank v0.6.1 adopts a **bottleneck-dominant combined pressure metric** incorporating CPU, Memory, and Disk I/O utilization:
+
+$$\text{Pressure} = 0.60 \times \max(\text{CPU}, \text{RAM}, \text{Disk}) + 0.40 \times \text{mean}(\text{CPU}, \text{RAM}, \text{Disk})$$
+
+Where:
+- $\text{CPU} \in [0, 100\%]$: Sampled from `/proc/stat` active vs. idle jiffies delta.
+- $\text{RAM} \in [0, 100\%]$: Sampled from `/proc/meminfo` via $\frac{\text{MemTotal} - \text{MemAvailable}}{\text{MemTotal}} \times 100$.
+- $\text{Disk} \in [0, 100\%]$: Real-time `%util` calculated from `/proc/diskstats` active device sectors read/written across physical drives (`nvme*`, `sd*`) over sample intervals.
+
+### Characteristics & Benefits
+- **Strictly Bounded**: Guaranteed mathematically to remain strictly within $[0, 100\%]$.
+- **Bottleneck Sensitivity**: If any single resource saturates (e.g. intensive disk paging, compile storm, or memory leak), the pressure metric spikes appropriately (at least $60\% + 0.40 \times \text{mean}$), alerting the user immediately.
+- **Native Plank Numeric Badge Integration**: Displayed directly on Plank's native badge counter (`Count = pressure; CountVisible = true;`), rendered cleanly in vector typography by `DockRenderer.vala`.
+- **Standard Themed Icon**: Uses standard theme icon `utilities-system-monitor;;cpu`, adapting seamlessly to the user's active desktop icon theme.
+- **Informative Multi-Line Tooltip**: Hovering displays exact per-resource breakdown:
+  ```text
+  System Pressure: 42%
+  CPU: 28% • RAM: 58% • Disk: 14%
+  ```
 
 ---
 
-## 3. 🗂️ File Changes Summary
+## 4. 🎨 Docklet Icon Standardization & Two-Tier Resolution Architecture
+
+Wayplank v0.6.1 standardizes all 14 docklets onto a uniform two-tier icon resolution architecture:
+1. **Tier 1 (Theme-First)**: Look up standard FreeDesktop theme icon names according to current state.
+2. **Tier 2 (Internal GResource Fallback)**: If the icon theme does not provide the requested state icon, fall back to high-definition, hand-crafted vector SVGs compiled directly into the binary ELF (`/net/launchpad/plank/docklets/`).
+
+### Standardized Docklet Matrix
+
+| Docklet | Theme Query Specification | Embedded GResource Fallback Asset | Notes |
+| :--- | :--- | :--- | :--- |
+| **Trash** | `trashcan_empty;;user-trash` / `trashcan_full;;user-trash-full` | `trash.svg`, `trash-full.svg` | Unified blue trash can styling matching Haptic-SML. |
+| **Volume Control** | `audio-volume-overamplified;;audio-volume-high-warning;;audio-volume-high;;medium;;low;;muted` | `volume-overamplified.svg`, `volume-high.svg`, `volume-medium.svg`, `volume-low.svg`, `volume-muted.svg` | Retired custom Cairo cone; dynamic theme icons + graded fallbacks, overamplified tier (>100% up to 150%), and native numeric badge (`Count = volume`). |
+| **Battery & Power** | `battery-level-*-symbolic` / `battery-*` | `battery-*.svg` (13 graded state SVGs) | Retired custom Cairo capsule; eliminated flat preemption fallbacks in charging/discharging states; percentage displayed on native top badge (`Count = percentage`). |
+| **Network & Wi-Fi** | `network-wireless-signal-excellent;;good;;ok;;weak;;none` | `network.svg` | Cleaned signal tiers from flat preemption fallbacks; added native numeric badge for Wi-Fi signal strength (`Count = wifi_strength`). |
+| **Screen Brightness** | `notification-display-brightness-high;;brightness-high` / `...medium` / `...low` | `brightness-high.svg`, `brightness-medium.svg`, `brightness-low.svg`, `brightness.svg` | Atomic Graded Set Completeness Engine; graded fallback monitor SVGs; percentage displayed on native badge. |
+| **Weather Forecast** | `weather-clear;;weather-few-clouds;;weather-overcast;;weather-showers;;weather-snow;;weather-storm;;weather-fog` | `weather-*.svg` (7 graded condition SVGs) | Graded fallback SVGs matching Haptic-SML weather symbols. |
+| **System Pressure** | `utilities-system-monitor;;cpu` | `cpu.svg` | Standard theme system monitor icon + native numeric pressure badge. |
+| **Media Player** | `gnome-mplayer;;applications-multimedia;;multimedia-player` | `mpris.svg` | Standard media player visual icon; eliminated phone/iPod mismatch. |
+| **Clock (Analog)** | `clock;;preferences-system-time` | `clock.svg` | Vector analog dial fallback. |
+| **Digital Clock** | `digital-clock;;alarm-clock` | `digital-clock.svg` | Distinct LED tile fallback. |
+| **Screenshot** | `applets-screenshooter;;accessories-screenshot` | `screenshot.svg` | Multi-mode screenshot trigger. |
+| **Session & Power** | `system-shutdown;;system-log-out` | `session.svg` | Centered session dialog trigger. |
+| **Drive Ejector** | `media-eject;;drive-removable-media` | `ejector.svg` | Removable volume unmount manager. |
+| **Preferences** | `plank;;wayplank` | `preferences.svg` | Classic Plank anchor launcher. |
+| **Show Desktop** | `user-desktop;;desktop` | `desktop.svg` | Atomic window minimize/restore toggle. |
+
+### 4.1. The Atomic Graded Set Completeness Engine (`BrightnessDockItem.vala`)
+- **The Semicolon Fallback Trap**: In GTK's `IconTheme.lookup_icon()`, query lists separated by `;;` are evaluated left-to-right against the active icon theme *before* Wayplank's internal GResource fallback vector handler is invoked. If a theme provides a generic/flat fallback icon (such as `display-brightness.svg` in Haptic-Kore-Blue—a static dark disc with a crescent moon), and that generic name is appended to graded query strings (`ICON_NAMES_HIGH`, `ICON_NAMES_MED`, `ICON_NAMES_LOW`), GTK immediately intercepts the query with the theme's flat icon. Consequently, the docklet displays the un-graded flat disc regardless of brightness level, suppressing the internal graded vector fallbacks (`brightness-high.svg`, `brightness-medium.svg`, `brightness-low.svg`).
+- **The Completeness Rule**: For state-graded docklets, icon sets must be validated as an atomic trio. Wayplank inspects candidate theme sets (`notification-display-brightness-*`, `display-brightness-*`, `brightness-*`):
+  - If any candidate set is **100% complete** (all 3 levels: `high`, `medium`, and `low` exist in the active theme), that theme set is utilized.
+  - If all theme sets are missing or incomplete (or if only an un-graded flat fallback like `display-brightness` exists in the theme), the docklet completely bypasses the theme set and falls back **100% to internal high-definition vector SVGs** (`brightness-high.svg`, `brightness-medium.svg`, `brightness-low.svg`).
+- **Complete Symmetry**: The same logic is mirrored in `PreferencesWindow.vala` and `preferences.ui`, guaranteeing that brightness icons always display clear, graded, illuminated monitor vectors in both the dock and preferences.
+
+### 4.2. Eradication of Flat Preemption Fallbacks Across Docklets
+- **Battery Docklet (`BatteryDockItem.vala`)**:
+  - Removed generic `;;battery-full-charging` and `;;battery-full` overrides from low, caution, and empty charging query chains.
+  - In partial themes lacking specific charging levels, a 5% charging battery now cleanly renders the high-definition red caution charging vector fallback rather than being preempted by a full green theme battery.
+- **Network Docklet (`NetworkDockItem.vala`)**:
+  - Removed flat generic fallback `;;network-wireless` from the 5 signal tiers (`network-wireless-signal-excellent`, etc.).
+  - Added native numeric badge for Wi-Fi signal strength (`Count = wifi_strength; CountVisible = true;`), providing clear at-a-glance reception metrics.
+- **MPRIS Media Player (`MprisDockItem.vala`)**:
+  - Removed generic `;;gnome-mplayer;;applications-multimedia` overrides from playback state queries (`media-playback-start`, `media-playback-pause`), ensuring themes lacking play/pause symbols fall back cleanly to `mpris-play.svg` and `mpris-pause.svg`.
+- **Volume Control (`VolumeDockItem.vala`)**:
+  - Removed generic `;;audio-volume-high` fallback from the overamplified tier (>100% up to 150%), ensuring themes lacking `audio-volume-overamplified` fall back to the dedicated warning vector `volume-overamplified.svg`.
+
+---
+
+## 5. 🪟 100% Visual Parity: Preferences Window & Docklet Grid
+
+### Prioritized Multi-Specifier Resolution
+In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse prioritized semicolon-delimited icon specifications (`;;`). This matches the dock item's runtime icon resolution chain:
+- When a user opens Preferences $\to$ Docklets tab, the 7×2 grid entries resolve using the exact same prioritized icon names and fallback SVGs as the running dock items.
+- Trash displays identical empty trashcan artwork in both Preferences and Dock.
+- Media Player displays identical media player artwork in both Preferences and Dock.
+- Screen Brightness displays identical monitor-with-sun artwork in both Preferences and Dock.
+
+### 5.1. Pressure Reveal Startup Sensitivity & Wayland Edge Zone
+- **Issue**: In `PreferencesWindow.vala`, `sw_pressure_reveal.sensitive` was previously guarded behind `!is_wayland`, disabling the switch on startup with an obsolete tooltip under Wayland sessions, while toggling "Hide Dock" off/on unlocked it.
+- **Resolution**: Under Wayland, `PressureReveal` is natively utilized by `PositionManager.vala` to expand the edge trigger input region from 1px to 5px for responsive cursor unhiding across KWin, Labwc, and Mutter. Removed the legacy `!is_wayland` restriction in `init_controls()`, ensuring the switch is immediately sensitive and accurately reflects the configured state on startup.
+
+### 5.2. Workspace Only Wayland Dormancy & Informative Tooltip
+- **Context**: In X11 Plank, `CurrentWorkspaceOnly` utilized `libwnck` to filter dock items per desktop workspace. Under Wayland, cross-compositor workspace querying is not yet standardized across Mutter, KWin, and wlroots/Labwc (slated for v0.7.0).
+- **Resolution**: In `PreferencesWindow.vala` and `data/ui/preferences.ui`, `sw_workspace_only` is set to insensitive (`sensitive = false`) and annotated with the honest, informative tooltip `_("Workspace filtering is not yet supported under Wayland")` on both the switch and its label. This eliminates placebo switch confusion while preserving settings schema compatibility.
+
+---
+
+## 6. 🛡️ Architectural Safety & Zero HAL Touches Guarantee
+
+- **Hardware Abstraction Layer Protected**: Strict policy adhered to throughout v0.6.1 development. `lib/Services/*` (`WindowControl.vala`, `WindowBackend.vala`, `KWinBackend.vala`, `LabwcBackend.vala`, `MutterBackend.vala`, `WindowManager.vala`, `ApplicationDiscovery.vala`, `ApplicationIdentity.vala`, `Matcher.vala`) was **not modified in any way**.
+- **Compositor Portability**: Changes strictly confined to docklet items (`lib/Items/*`), preferences UI (`lib/Widgets/PreferencesWindow.vala`, `data/ui/preferences.ui`), drawing fallbacks (`lib/Drawing/DrawingService.vala`), and resource bundle (`data/plank.gresource.xml`).
+- **Memory & Resource Safety**: Zero heap allocations in tight render loops; disk I/O metrics sample `/proc/diskstats` with buffered line reads and minimal CPU overhead.
+
+---
+
+## 7. 🗂️ Detailed File Changes Summary
 
 | File | Changes Made |
 | :--- | :--- |
 | `include/config.h` | Bumped `VERSION` and `PACKAGE_VERSION` to `0.6.1`, updated `VERSION_INFO` to `"Wayplank 0.6.1 - Release Build"`. |
 | `BuildDeb.sh` | Bumped `PKG_VER` to `"0.6.1"` for native Debian package building. |
 | `lib/Items/BrightnessDockItem.vala` | Implemented `refresh_kscreen_outputs()` with `kscreen-doctor -j` JSON parsing, connected `Gdk.Display.monitor_added` and `monitor_removed` signals, and added atomic multi-output `kscreen-doctor` execution in `apply_hardware_brightness()`. |
-| `README.md` | Updated release badge to v0.6.1 and added concise v0.6.1 release note in Release Highlights. |
+| `lib/Items/CpuDockItem.vala` | Implemented Disk I/O sampling via `/proc/diskstats` and multi-resource pressure metric: $0.60 \times \max + 0.40 \times \text{mean}$. Removed custom Cairo dual-gauge card override (`draw_icon`); wired up native numeric badge (`Count = system_pressure`) over theme icon `utilities-system-monitor;;cpu`. |
+| `lib/Items/BatteryDockItem.vala` | Removed custom Cairo capsule override (`draw_icon`). Wired up native badge counter (`Count = percentage`) over standard theme/fallback battery icons, and eliminated flat preemption fallbacks in charging/discharging states. |
+| `lib/Items/VolumeDockItem.vala` | Removed custom Cairo cone override (`draw_icon`). Standardized display on theme icons (`audio-volume-*`) and high-definition fallback SVGs, added overamplified tier (>100% up to 150%) with warning fallback SVG, and wired up native numeric badge (`Count = volume`). |
+| `lib/Items/MprisDockItem.vala` | Prioritized `"gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player"` to eliminate iPod/phone icon mismatch, and cleaned play/pause state queries from preemption overrides. |
+| `lib/Items/NetworkDockItem.vala` | Cleaned Wi-Fi signal strength tiers from flat preemption fallbacks, and wired up native numeric badge (`Count = wifi_strength`) for connected Wi-Fi networks. |
+| `lib/Drawing/DrawingService.vala` | Added fallback routing for graded brightness (`brightness-high`, `medium`, `low`, base), overamplified volume (`volume-overamplified`), graded weather conditions (clear, clouds, overcast, showers, snow, storm, fog), and network icons. |
+| `lib/Widgets/PreferencesWindow.vala` | Enhanced `ensure_docklet_icon()` to resolve prioritized `;;` icon specifications matching runtime dock, enabled `PressureReveal` switch on startup across all Wayland compositors (controlling the 5px edge trigger zone), and deactivated dormant `Workspace Only` switch with an informative Wayland tooltip. |
+| `data/ui/preferences.ui` | Updated docklet icon names for Trash, Media Player, and Volume to match prioritized theme specifications, and disabled `Workspace Only` switch with explanatory tooltip. |
+| `data/plank.gresource.xml` | Registered all new graded brightness and weather SVG fallback assets. |
+| `data/docklets/` | Populated and refreshed fallback SVG assets: `brightness*.svg` (4 files), `weather-*.svg` (7 files), `trash*.svg` (2 files), and `mpris.svg`. |
+| `README.md` | Updated release badge to v0.6.1, streamlined changelog recap (strictly under 4 lines), and documented new fallback asset scale. |
+| `Documentation/wayplank_x11_to_wayland_report_en.md` | Added Section 17 documenting multi-monitor brightness sync, Global System Pressure algorithm, and docklet icon standardization. |
+| `FAT/2026-10-14 FAT 0.6.1.txt` | Created the Factory Acceptance Test protocol for v0.6.1 covering all new features and regressions across all 3 compositors. |
 
 ---
 
-## 4. 📦 Validation & Build Artifacts
+## 8. 📦 Validation & Build Artifacts
 
 - **Native Binary**: Compiled and verified via `BuildDeb.sh`:
   - Path: `build/wayplank`
@@ -45,4 +169,4 @@ Wayplank **V0.6.1** addresses a critical multi-monitor hardware integration bug 
 - **Debian Package**: Generated and verified via `BuildDeb.sh`:
   - Path: `build/wayplank_0.6.1_amd64.deb`
 - **Multi-Monitor Verification**: Tested across 3 connected displays (`DP-6` LG Ultra HD, `DP-5` LG HDR QHD, `eDP-1` Built-in Panel), verifying simultaneous 100% synchronization across all 3 displays with zero dropped I2C transactions.
-
+- **Zero Regression**: Verified across GNOME Shell (Mutter), KDE Plasma (KWin), and Labwc (wlroots).

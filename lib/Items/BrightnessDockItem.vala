@@ -21,9 +21,35 @@ namespace Plank
 {
 	public class BrightnessDockItem : DockItem
 	{
-		const string ICON_NAMES_HIGH = "display-brightness-high;;display-brightness;;brightness-high";
-		const string ICON_NAMES_MED = "display-brightness-medium;;display-brightness;;brightness-medium";
-		const string ICON_NAMES_LOW = "display-brightness-low;;display-brightness;;brightness-low";
+		public static string get_brightness_icon_name (int percent)
+		{
+			string tier = (percent >= 66) ? "high" : (percent >= 33) ? "medium" : "low";
+			var default_theme = Gtk.IconTheme.get_default ();
+
+			// Set 1: notification-display-brightness-* (Haptic-SML, GNOME notification spec)
+			if (default_theme.has_icon ("notification-display-brightness-high") &&
+			    default_theme.has_icon ("notification-display-brightness-medium") &&
+			    default_theme.has_icon ("notification-display-brightness-low")) {
+				return "notification-display-brightness-" + tier;
+			}
+
+			// Set 2: display-brightness-* (FreeDesktop status spec)
+			if (default_theme.has_icon ("display-brightness-high") &&
+			    default_theme.has_icon ("display-brightness-medium") &&
+			    default_theme.has_icon ("display-brightness-low")) {
+				return "display-brightness-" + tier;
+			}
+
+			// Set 3: brightness-* (Breeze / legacy status spec)
+			if (default_theme.has_icon ("brightness-high") &&
+			    default_theme.has_icon ("brightness-medium") &&
+			    default_theme.has_icon ("brightness-low")) {
+				return "brightness-" + tier;
+			}
+
+			// If no complete graded set exists in active theme, ALWAYS use our internal graded fallback set directly!
+			return "brightness-" + tier;
+		}
 
 		private string? backlight_device = null;
 		private uint32 max_raw_brightness = 100;
@@ -56,7 +82,7 @@ namespace Plank
 		construct
 		{
 			Text = _("Screen Brightness");
-			Icon = ICON_NAMES_HIGH;
+			Icon = get_brightness_icon_name (current_percent);
 			Button = PopupButton.RIGHT;
 
 			init_dbus ();
@@ -421,13 +447,7 @@ namespace Plank
 			CountVisible = true;
 			Text = _("Screen Brightness: %d%%").printf (current_percent);
 
-			if (current_percent >= 66) {
-				Icon = ICON_NAMES_HIGH;
-			} else if (current_percent >= 33) {
-				Icon = ICON_NAMES_MED;
-			} else {
-				Icon = ICON_NAMES_LOW;
-			}
+			Icon = get_brightness_icon_name (current_percent);
 
 			reset_icon_buffer ();
 		}

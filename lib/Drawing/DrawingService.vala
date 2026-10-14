@@ -361,6 +361,11 @@ namespace Plank
 					return Plank.G_RESOURCE_PATH + "/docklets/battery-missing.svg";
 				case "battery-ac-adapter":
 					return Plank.G_RESOURCE_PATH + "/docklets/battery-ac-adapter.svg";
+				case "audio-volume-overamplified":
+				case "audio-volume-high-warning":
+				case "audio-volume-high-danger":
+				case "xfce4-mixer-volume-very-high":
+					return Plank.G_RESOURCE_PATH + "/docklets/volume-overamplified.svg";
 				case "audio-volume-high":
 				case "stock_volume-max":
 					return Plank.G_RESOURCE_PATH + "/docklets/volume-high.svg";
@@ -394,25 +399,60 @@ namespace Plank
 				case "media-eject-symbolic":
 				case "drive-removable-media":
 					return Plank.G_RESOURCE_PATH + "/docklets/ejector.svg";
-				case "display-brightness":
+				case "notification-display-brightness-high":
 				case "display-brightness-high":
-				case "display-brightness-medium":
-				case "display-brightness-low":
-				case "display-brightness-symbolic":
 				case "brightness-high":
 				case "high-brightness":
+					return Plank.G_RESOURCE_PATH + "/docklets/brightness-high.svg";
+				case "notification-display-brightness-medium":
+				case "display-brightness-medium":
+				case "brightness-medium":
+					return Plank.G_RESOURCE_PATH + "/docklets/brightness-medium.svg";
+				case "notification-display-brightness-low":
+				case "display-brightness-low":
+				case "brightness-low":
+					return Plank.G_RESOURCE_PATH + "/docklets/brightness-low.svg";
+				case "display-brightness":
+				case "display-brightness-symbolic":
 					return Plank.G_RESOURCE_PATH + "/docklets/brightness.svg";
 				case "weather-clear":
 				case "weather-clear-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/weather-clear.svg";
 				case "weather-few-clouds":
 				case "weather-few-clouds-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/weather-few-clouds.svg";
 				case "weather-clouds":
 				case "weather-overcast":
+				case "weather-many-clouds":
+					return Plank.G_RESOURCE_PATH + "/docklets/weather-overcast.svg";
 				case "weather-showers":
+				case "weather-showers-scattered":
+				case "weather-rain":
+					return Plank.G_RESOURCE_PATH + "/docklets/weather-showers.svg";
 				case "weather-snow":
+				case "weather-snow-scattered":
+					return Plank.G_RESOURCE_PATH + "/docklets/weather-snow.svg";
 				case "weather-storm":
+				case "weather-severe-alert":
+					return Plank.G_RESOURCE_PATH + "/docklets/weather-storm.svg";
+				case "weather-fog":
+				case "weather-mist":
+					return Plank.G_RESOURCE_PATH + "/docklets/weather-fog.svg";
 				case "weather":
 					return Plank.G_RESOURCE_PATH + "/docklets/weather.svg";
+				case "network-wireless-signal-excellent":
+				case "network-wireless-signal-good":
+				case "network-wireless-signal-ok":
+				case "network-wireless-signal-weak":
+				case "network-wireless-signal-none":
+				case "network-wireless-connected":
+				case "network-wireless":
+				case "network-wired-activated":
+				case "network-wired":
+				case "network-offline":
+				case "network-idle":
+				case "network-error":
+					return Plank.G_RESOURCE_PATH + "/docklets/network.svg";
 				default:
 					return null;
 			}

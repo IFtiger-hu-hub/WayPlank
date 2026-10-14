@@ -130,16 +130,21 @@ namespace Plank
 			if (is_muted) {
 				Text = _("Volume: %d%% (Muted)").printf (volume);
 				Icon = "audio-volume-muted;;stock_volume-mute";
+				CountVisible = false;
 			} else {
 				Text = _("Volume: %d%%").printf (volume);
+				Count = volume;
+				CountVisible = true;
 				if (volume == 0)
 					Icon = "audio-volume-muted;;stock_volume-mute";
 				else if (volume < 35)
 					Icon = "audio-volume-low;;stock_volume-min";
 				else if (volume < 75)
 					Icon = "audio-volume-medium;;stock_volume-med";
-				else
+				else if (volume <= 100)
 					Icon = "audio-volume-high;;stock_volume-max";
+				else
+					Icon = "audio-volume-overamplified;;audio-volume-high-warning;;audio-volume-high-danger;;xfce4-mixer-volume-very-high";
 			}
 		}
 		
@@ -197,105 +202,7 @@ namespace Plank
 			update_display ();
 			reset_icon_buffer ();
 		}
-		
-		protected override void draw_icon (Surface surface)
-		{
-			unowned Cairo.Context cr = surface.Context;
-			double w = surface.Width;
-			double h = surface.Height;
-			double cx = w / 2.0;
-			double cy = h / 2.0;
-			double radius = (double.min (w, h) / 2.0) - (w * 0.08);
-			
-			if (radius < 8.0)
-				return;
-			
-			cr.save ();
-			
-			// 1. Vector Speaker Body & Flare Cone
-			cr.save ();
-			double base_w = radius * 0.28;
-			double base_h = radius * 0.44;
-			double cone_w = radius * 0.36;
-			double cone_h = radius * 0.88;
-			double x_base = cx - (radius * 0.35);
-			
-			cr.new_sub_path ();
-			cr.move_to (x_base, cy - base_h / 2.0);
-			cr.line_to (x_base + base_w, cy - base_h / 2.0);
-			cr.line_to (x_base + base_w + cone_w, cy - cone_h / 2.0);
-			cr.line_to (x_base + base_w + cone_w, cy + cone_h / 2.0);
-			cr.line_to (x_base + base_w, cy + base_h / 2.0);
-			cr.line_to (x_base, cy + base_h / 2.0);
-			cr.close_path ();
-			
-			var pat = new Cairo.Pattern.linear (x_base, cy - cone_h / 2.0, x_base + base_w + cone_w, cy + cone_h / 2.0);
-			pat.add_color_stop_rgba (0.0, 0.94, 0.96, 0.98, 0.96);
-			pat.add_color_stop_rgba (1.0, 0.74, 0.78, 0.84, 0.96);
-			cr.set_source (pat);
-			cr.fill_preserve ();
-			
-			cr.set_source_rgba (0.12, 0.14, 0.18, 0.45);
-			cr.set_line_width (radius * 0.04);
-			cr.stroke ();
-			cr.restore ();
-			
-			// 2. Sound Wave Arcs (when unmuted and volume > 0)
-			if (!is_muted && volume > 0) {
-				cr.save ();
-				cr.set_line_cap (Cairo.LineCap.ROUND);
-				double wave_cx = x_base + base_w + (cone_w * 0.22);
-				
-				// Arc 1 (> 0%)
-				cr.set_line_width (radius * 0.08);
-				cr.set_source_rgba (0.86, 0.90, 0.95, 0.92);
-				cr.arc (wave_cx, cy, radius * 0.44, -Math.PI / 4.0, Math.PI / 4.0);
-				cr.stroke ();
-				
-				// Arc 2 (> 35%)
-				if (volume > 35) {
-					cr.set_source_rgba (0.76, 0.84, 0.92, 0.92);
-					cr.arc (wave_cx, cy, radius * 0.66, -Math.PI / 4.0, Math.PI / 4.0);
-					cr.stroke ();
-				}
-				
-				// Arc 3 (> 75%)
-				if (volume > 75) {
-					cr.set_source_rgba (0.66, 0.78, 0.90, 0.92);
-					cr.arc (wave_cx, cy, radius * 0.88, -Math.PI / 4.0, Math.PI / 4.0);
-					cr.stroke ();
-				}
-				cr.restore ();
-			}
-			
-			// 3. Mute Red Slash (0ms instant, bold and ultra-visible)
-			if (is_muted || volume == 0) {
-				cr.save ();
-				cr.set_line_cap (Cairo.LineCap.ROUND);
-				double slash_len = radius * 0.72;
-				double x1 = cx - slash_len;
-				double y1 = cy - slash_len;
-				double x2 = cx + slash_len;
-				double y2 = cy + slash_len;
-				
-				// Drop shadow behind slash
-				cr.set_line_width (radius * 0.18);
-				cr.set_source_rgba (0.05, 0.06, 0.08, 0.55);
-				cr.move_to (x1 + 1.0, y1 + 1.0);
-				cr.line_to (x2 + 1.0, y2 + 1.0);
-				cr.stroke ();
-				
-				// Vibrant Red Slash
-				cr.set_line_width (radius * 0.14);
-				cr.set_source_rgba (0.92, 0.20, 0.18, 0.98);
-				cr.move_to (x1, y1);
-				cr.line_to (x2, y2);
-				cr.stroke ();
-				cr.restore ();
-			}
-			
-			cr.restore ();
-		}
+
 		
 		protected override AnimationType on_scrolled (Gdk.ScrollDirection direction, Gdk.ModifierType mod, uint32 event_time)
 		{

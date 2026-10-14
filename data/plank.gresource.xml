@@ -47,6 +47,7 @@
 		<file alias="docklets/volume-low.svg" compressed="true" preprocess="xml-stripblanks">docklets/volume-low.svg</file>
 		<file alias="docklets/volume-medium.svg" compressed="true" preprocess="xml-stripblanks">docklets/volume-medium.svg</file>
 		<file alias="docklets/volume-high.svg" compressed="true" preprocess="xml-stripblanks">docklets/volume-high.svg</file>
+		<file alias="docklets/volume-overamplified.svg" compressed="true" preprocess="xml-stripblanks">docklets/volume-overamplified.svg</file>
 		<file alias="docklets/mpris-play.svg" compressed="true" preprocess="xml-stripblanks">docklets/mpris-play.svg</file>
 		<file alias="docklets/mpris-pause.svg" compressed="true" preprocess="xml-stripblanks">docklets/mpris-pause.svg</file>
 		<file alias="docklets/screenshot.svg" compressed="true" preprocess="xml-stripblanks">docklets/screenshot.svg</file>
@@ -54,7 +55,17 @@
 		<file alias="docklets/preferences.svg" compressed="true" preprocess="xml-stripblanks">docklets/preferences.svg</file>
 		<file alias="docklets/ejector.svg" compressed="true" preprocess="xml-stripblanks">docklets/ejector.svg</file>
 		<file alias="docklets/brightness.svg" compressed="true" preprocess="xml-stripblanks">docklets/brightness.svg</file>
+		<file alias="docklets/brightness-high.svg" compressed="true" preprocess="xml-stripblanks">docklets/brightness-high.svg</file>
+		<file alias="docklets/brightness-medium.svg" compressed="true" preprocess="xml-stripblanks">docklets/brightness-medium.svg</file>
+		<file alias="docklets/brightness-low.svg" compressed="true" preprocess="xml-stripblanks">docklets/brightness-low.svg</file>
 		<file alias="docklets/weather.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather.svg</file>
+		<file alias="docklets/weather-clear.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-clear.svg</file>
+		<file alias="docklets/weather-few-clouds.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-few-clouds.svg</file>
+		<file alias="docklets/weather-overcast.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-overcast.svg</file>
+		<file alias="docklets/weather-showers.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-showers.svg</file>
+		<file alias="docklets/weather-snow.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-snow.svg</file>
+		<file alias="docklets/weather-storm.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-storm.svg</file>
+		<file alias="docklets/weather-fog.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-fog.svg</file>
 		<file alias="docklets/network.svg" compressed="true" preprocess="xml-stripblanks">docklets/network.svg</file>
 		<file compressed="true" preprocess="xml-stripblanks">ui/preferences.ui</file>
 		<file alias="doc/guide.md" compressed="true">../Documentation/USER_GUIDE.md</file>

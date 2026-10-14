@@ -1,11 +1,10 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-10-11
-Milestone: V0.6.0 (Modern First-Run Autoconfiguration, 4 English Folders
-           Drawers, Smart Pinned Apps, Integrated User Guide with Chrome
-           Anchor Navigation, Embedded GResource Release Banner,
-           Multi-Monitor Retention Suite)
+Date: 2026-10-14
+Milestone: V0.6.1 (KWin Multi-Monitor Brightness Synchronization, Global
+           System Pressure Engine, Docklet Icon Standardization & Preferences
+           Visual Parity)
 Author & Tester: Sergio Melas
 
 
@@ -118,7 +117,11 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 3.5 Dodge Maximized: Hides only when a window is maximized
    [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
    [  ] 3.7 Pressure / Hover Reveal:
-        Mouse touching edge unhides dock immediately
+        - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
+          immediately sensitive and correctly reflects configured state on startup
+          when Hide Dock is enabled (no longer disabled by legacy is_wayland check).
+        - When ON, expands edge trigger zone to 5px for fluid cursor unhide.
+        - Mouse touching edge unhides dock immediately.
    [  ] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -194,9 +197,10 @@ SESSION 1: GNOME (Mutter Backend)
         - Verify Digital Clock displays modern tile with digital numerals
           (01:18), NOT an analog clock dial with hands.
    [  ] 6.8  100% Internal Binary GResource Fallbacks:
-        - Volume scale: Muted, Low, Medium, High dynamic fallback icons render
-          properly from binary.
-        - Battery scale: 12 levels and charging states render properly.
+        - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
+          (12 levels) render properly from binary.
+        - Brightness scale (High, Med, Low, Base) and Weather scale (7 conditions)
+          render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
    [  ] 6.9 Drive Ejector Docklet (docklet://ejector):
@@ -208,21 +212,16 @@ SESSION 1: GNOME (Mutter Backend)
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [  ] 6.10 Screen Brightness Docklet (docklet://brightness):
-        - Displays brightness icon with gold/amber gradient fallback.
+   [  ] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
+        - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
+        - Displays brightness icon with graded vector artwork (high, medium, low).
         - Badge counter displays current brightness percentage (e.g. 75%).
-        - Mouse wheel over icon increases / decreases brightness by 5% steps:
-          * Instantaneous UI badge update with 150ms trailing hardware
-            debounce to protect multi-monitor DDC/CI I2C channels from
-            packet loss.
-        - Left-click cycles through quick brightness presets
-          (25% -> 50% -> 75% -> 100%).
-        - Right-click context menu provides brightness presets (10%, 25%, 50%,
-          75%, 100%) and launches system display settings.
-        - Hardware control via org.freedesktop.login1.Session.SetBrightness
-          (unprivileged) with fallback to brightnessctl/light.
-          BUG: The brightness jumped randomly to 100, added debauch of 3 sec
-          to avoid GPU override
+        - Mouse wheel over icon increases / decreases brightness by 5% steps.
+        - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
+        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
+          discovers all connected displays and adjusts brightness simultaneously
+          across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
+          Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
    [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -248,7 +247,9 @@ SESSION 1: GNOME (Mutter Backend)
           NetworkManager DBus.
         - Dynamic state-driven icons:
           * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak,
-            none).
+            none) free of generic flat preemption.
+          * Wi-Fi Signal Badge: Native numeric badge displays signal strength %
+            (Count = wifi_strength).
           * Ethernet: wired connection active icon.
           * Offline: disconnected icon.
         - Informative tooltip displays connection type, SSID, signal
@@ -268,6 +269,23 @@ SESSION 1: GNOME (Mutter Backend)
           held/inhibited while any dialog (Preferences, Help, Icon Chooser,
           Weather) or menu is open. On close, restarts full delay if cursor
           is outside, or keeps drawer open if cursor is on dock.
+   [  ] 6.15 Global System Pressure Engine (docklet://cpu):
+        - Replaces custom dual-gauge card with standard theme icon
+          (utilities-system-monitor;;cpu) and native numeric top badge.
+        - Badge counter displays combined system pressure [0-100%] calculated
+          as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
+        - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
+   [  ] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
+        - Volume and Battery docklets retire custom Cairo vector drawings; render
+          standard theme icons and embedded GResource vector fallbacks.
+        - Battery displays charge percentage on native numeric top badge; zero
+          generic flat preemption in charging/discharging states.
+        - Volume displays exact level on native numeric badge (Count = volume) and
+          switches to overamplified icon (audio-volume-overamplified / warning vector)
+          above 100% up to 150%; zero generic flat preemption in overamplified state.
+        - Media Player (docklet://mpris) renders dedicated player icon
+          (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
+          play/pause state queries free of generic flat overrides.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -285,7 +303,7 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
    [  ] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Icons:
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
           (7 items left column, 7 items right column):
@@ -293,8 +311,8 @@ SESSION 1: GNOME (Mutter Backend)
                 Preferences, Removable Drives (Ejector).
           Right: CPU & RAM, Show Desktop, Media Player (MPRIS), Volume Control,
                  Session & Power, Screen Brightness, Weather Forecast.
-        - Verify each docklet switch displays its native 35px vector icon
-          aligned to the left of the label.
+        - Verify 100% visual parity between the Preferences 7×2 switches
+          and running dock items (Trash, Media Player, Brightness, Volume).
         - Verify toggling any switch instantly adds or removes the docklet item
           from the dock.
    [  ] 7.9 Categorize Items Toggle & Layout Architecture:
@@ -325,6 +343,13 @@ SESSION 1: GNOME (Mutter Backend)
           indicators, retention, right-click shortcuts, and icon chooser.
    [  ] 7.12 Shortcuts & Gestures Centering:
         - Shortcuts & Gestures window opens centered on screen.
+   [  ] 7.13 Workspace Only Wayland Dormancy:
+        - Open Preferences -> Behaviour tab.
+        - Verify 'Workspace Only' switch is insensitive (greyed out).
+        - Verify hovering either the switch or label displays tooltip:
+          "Workspace filtering is not yet supported under Wayland".
+        - Verify dock remains stable and all running applications remain
+          accessible.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -464,7 +489,11 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 3.5 Dodge Maximized: Hides only when a window is maximized
    [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
    [  ] 3.7 Pressure / Hover Reveal:
-        Mouse touching edge unhides dock immediately
+        - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
+          immediately sensitive and correctly reflects configured state on startup
+          when Hide Dock is enabled (no longer disabled by legacy is_wayland check).
+        - When ON, expands edge trigger zone to 5px for fluid cursor unhide.
+        - Mouse touching edge unhides dock immediately.
    [  ] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -534,9 +563,10 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Verify Digital Clock displays modern tile with digital numerals
           (01:18), NOT an analog clock dial with hands.
    [  ] 6.8  100% Internal Binary GResource Fallbacks:
-        - Volume scale: Muted, Low, Medium, High dynamic fallback icons render
-          properly from binary.
-        - Battery scale: 12 levels and charging states render properly.
+        - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
+          (12 levels) render properly from binary.
+        - Brightness scale (High, Med, Low, Base) and Weather scale (7 conditions)
+          render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
    [  ] 6.9 Drive Ejector Docklet (docklet://ejector):
@@ -548,19 +578,16 @@ SESSION 2: KDE PLASMA (KWin Backend)
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [  ] 6.10 Screen Brightness Docklet (docklet://brightness):
-        - Displays brightness icon with gold/amber gradient fallback.
+   [  ] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
+        - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
+        - Displays brightness icon with graded vector artwork (high, medium, low).
         - Badge counter displays current brightness percentage (e.g. 75%).
-        - Mouse wheel over icon increases / decreases brightness by 5% steps:
-          * Instantaneous UI badge update with 150ms trailing hardware
-            debounce to protect multi-monitor DDC/CI I2C channels from
-            packet loss.
-        - Left-click cycles through quick brightness presets
-          (25% -> 50% -> 75% -> 100%).
-        - Right-click context menu provides brightness presets (10%, 25%, 50%,
-          75%, 100%) and launches system display settings.
-        - Hardware control via org.freedesktop.login1.Session.SetBrightness
-          (unprivileged) with fallback to brightnessctl/light.
+        - Mouse wheel over icon increases / decreases brightness by 5% steps.
+        - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
+        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
+          discovers all connected displays and adjusts brightness simultaneously
+          across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
+          Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
    [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -586,7 +613,9 @@ SESSION 2: KDE PLASMA (KWin Backend)
           NetworkManager DBus.
         - Dynamic state-driven icons:
           * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak,
-            none).
+            none) free of generic flat preemption.
+          * Wi-Fi Signal Badge: Native numeric badge displays signal strength %
+            (Count = wifi_strength).
           * Ethernet: wired connection active icon.
           * Offline: disconnected icon.
         - Informative tooltip displays connection type, SSID, signal
@@ -606,6 +635,23 @@ SESSION 2: KDE PLASMA (KWin Backend)
           held/inhibited while any dialog (Preferences, Help, Icon Chooser,
           Weather) or menu is open. On close, restarts full delay if cursor
           is outside, or keeps drawer open if cursor is on dock.
+   [  ] 6.15 Global System Pressure Engine (docklet://cpu):
+        - Replaces custom dual-gauge card with standard theme icon
+          (utilities-system-monitor;;cpu) and native numeric top badge.
+        - Badge counter displays combined system pressure [0-100%] calculated
+          as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
+        - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
+   [  ] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
+        - Volume and Battery docklets retire custom Cairo vector drawings; render
+          standard theme icons and embedded GResource vector fallbacks.
+        - Battery displays charge percentage on native numeric top badge; zero
+          generic flat preemption in charging/discharging states.
+        - Volume displays exact level on native numeric badge (Count = volume) and
+          switches to overamplified icon (audio-volume-overamplified / warning vector)
+          above 100% up to 150%; zero generic flat preemption in overamplified state.
+        - Media Player (docklet://mpris) renders dedicated player icon
+          (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
+          play/pause state queries free of generic flat overrides.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -623,7 +669,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
    [  ] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Icons:
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
           (7 items left column, 7 items right column):
@@ -631,8 +677,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
                 Preferences, Removable Drives (Ejector).
           Right: CPU & RAM, Show Desktop, Media Player (MPRIS), Volume Control,
                  Session & Power, Screen Brightness, Weather Forecast.
-        - Verify each docklet switch displays its native 35px vector icon
-          aligned to the left of the label.
+        - Verify 100% visual parity between the Preferences 7×2 switches
+          and running dock items (Trash, Media Player, Brightness, Volume).
         - Verify toggling any switch instantly adds or removes the docklet item
           from the dock.
    [  ] 7.9 Categorize Items Toggle & Layout Architecture:
@@ -663,6 +709,13 @@ SESSION 2: KDE PLASMA (KWin Backend)
           indicators, retention, right-click shortcuts, and icon chooser.
    [  ] 7.12 Shortcuts & Gestures Centering:
         - Window opens properly centered on screen under KWin.
+   [  ] 7.13 Workspace Only Wayland Dormancy:
+        - Open Preferences -> Behaviour tab.
+        - Verify 'Workspace Only' switch is insensitive (greyed out).
+        - Verify hovering either the switch or label displays tooltip:
+          "Workspace filtering is not yet supported under Wayland".
+        - Verify dock remains stable and all running applications remain
+          accessible.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -804,7 +857,11 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 3.5 Dodge Maximized: Hides only when a window is maximized
    [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
    [  ] 3.7 Pressure / Hover Reveal:
-        Mouse touching edge unhides dock immediately
+        - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
+          immediately sensitive and correctly reflects configured state on startup
+          when Hide Dock is enabled (no longer disabled by legacy is_wayland check).
+        - When ON, expands edge trigger zone to 5px for fluid cursor unhide.
+        - Mouse touching edge unhides dock immediately.
    [  ] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -878,9 +935,10 @@ SESSION 3: LABWC (wlroots Backend)
         - Verify Digital Clock displays modern tile with digital numerals
           (01:18), NOT an analog clock dial with hands.
    [  ] 6.8  100% Internal Binary GResource Fallbacks:
-        - Volume scale: Muted, Low, Medium, High dynamic fallback icons render
-          properly from binary.
-        - Battery scale: 12 levels and charging states render properly.
+        - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
+          (12 levels) render properly from binary.
+        - Brightness scale (High, Med, Low, Base) and Weather scale (7 conditions)
+          render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
    [  ] 6.9 Drive Ejector Docklet (docklet://ejector):
@@ -892,19 +950,16 @@ SESSION 3: LABWC (wlroots Backend)
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [  ] 6.10 Screen Brightness Docklet (docklet://brightness):
-        - Displays brightness icon with gold/amber gradient fallback.
+   [  ] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
+        - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
+        - Displays brightness icon with graded vector artwork (high, medium, low).
         - Badge counter displays current brightness percentage (e.g. 75%).
-        - Mouse wheel over icon increases / decreases brightness by 5% steps:
-          * Instantaneous UI badge update with 150ms trailing hardware
-            debounce to protect multi-monitor DDC/CI I2C channels from
-            packet loss.
-        - Left-click cycles through quick brightness presets
-          (25% -> 50% -> 75% -> 100%).
-        - Right-click context menu provides brightness presets (10%, 25%, 50%,
-          75%, 100%) and launches system display settings.
-        - Hardware control via org.freedesktop.login1.Session.SetBrightness
-          (unprivileged) with fallback to brightnessctl/light.
+        - Mouse wheel over icon increases / decreases brightness by 5% steps.
+        - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
+        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
+          discovers all connected displays and adjusts brightness simultaneously
+          across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
+          Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
    [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -930,7 +985,9 @@ SESSION 3: LABWC (wlroots Backend)
           NetworkManager DBus.
         - Dynamic state-driven icons:
           * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak,
-            none).
+            none) free of generic flat preemption.
+          * Wi-Fi Signal Badge: Native numeric badge displays signal strength %
+            (Count = wifi_strength).
           * Ethernet: wired connection active icon.
           * Offline: disconnected icon.
         - Informative tooltip displays connection type, SSID, signal
@@ -950,6 +1007,23 @@ SESSION 3: LABWC (wlroots Backend)
           held/inhibited while any dialog (Preferences, Help, Icon Chooser,
           Weather) or menu is open. On close, restarts full delay if cursor
           is outside, or keeps drawer open if cursor is on dock.
+   [  ] 6.15 Global System Pressure Engine (docklet://cpu):
+        - Replaces custom dual-gauge card with standard theme icon
+          (utilities-system-monitor;;cpu) and native numeric top badge.
+        - Badge counter displays combined system pressure [0-100%] calculated
+          as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
+        - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
+   [  ] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
+        - Volume and Battery docklets retire custom Cairo vector drawings; render
+          standard theme icons and embedded GResource vector fallbacks.
+        - Battery displays charge percentage on native numeric top badge; zero
+          generic flat preemption in charging/discharging states.
+        - Volume displays exact level on native numeric badge (Count = volume) and
+          switches to overamplified icon (audio-volume-overamplified / warning vector)
+          above 100% up to 150%; zero generic flat preemption in overamplified state.
+        - Media Player (docklet://mpris) renders dedicated player icon
+          (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
+          play/pause state queries free of generic flat overrides.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -967,7 +1041,7 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
    [  ] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Icons:
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
           (7 items left column, 7 items right column):
@@ -975,8 +1049,8 @@ SESSION 3: LABWC (wlroots Backend)
                 Preferences, Removable Drives (Ejector).
           Right: CPU & RAM, Show Desktop, Media Player (MPRIS), Volume Control,
                  Session & Power, Screen Brightness, Weather Forecast.
-        - Verify each docklet switch displays its native 35px vector icon
-          aligned to the left of the label.
+        - Verify 100% visual parity between the Preferences 7×2 switches
+          and running dock items (Trash, Media Player, Brightness, Volume).
         - Verify toggling any switch instantly adds or removes the docklet item
           from the dock.
    [  ] 7.9 Categorize Items Toggle & Layout Architecture:
@@ -1007,6 +1081,13 @@ SESSION 3: LABWC (wlroots Backend)
           indicators, retention, right-click shortcuts, and icon chooser.
    [  ] 7.12 Shortcuts & Gestures Centering:
         - Does not apply (no window positioning possible in Labwc).
+   [  ] 7.13 Workspace Only Wayland Dormancy:
+        - Open Preferences -> Behaviour tab.
+        - Verify 'Workspace Only' switch is insensitive (greyed out).
+        - Verify hovering either the switch or label displays tooltip:
+          "Workspace filtering is not yet supported under Wayland".
+        - Verify dock remains stable and all running applications remain
+          accessible.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix:

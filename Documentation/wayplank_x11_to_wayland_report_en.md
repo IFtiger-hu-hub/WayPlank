@@ -631,6 +631,13 @@ The following section covers every modified file across the codebase, documentin
 - **FreeDesktop & GIO Compliance**: Zero breaking changes for Plank migration—launchers use `~/.local/share/applications/` overrides, folders use standard GIO filesystem metadata (`metadata::custom-icon`), and docklets use clean `.dockitem` keys.
 - **Integrated In-App User Guide**: Replaces developer migration reports with a full-featured end-user guide (`Documentation/USER_GUIDE.md`) viewable directly in the default browser.
 
+### 8.6. Version 0.6.1: Multi-Monitor KWin Brightness Synchronization, Global System Pressure Engine & Docklet Icon Parity Suite
+- **KWin Multi-Monitor Brightness Synchronization**: Dynamically discovers all active display outputs (`DP-*`, `eDP-*`, `HDMI-*`) via `kscreen-doctor -j` and executes atomic multi-output brightness adjustments, eliminating user-space DDC/CI permission drops.
+- **Global System Pressure Metric**: Replaced the custom CPU/RAM dual-gauge card with a scientifically balanced multi-resource metric ($0.60 \times \max + 0.40 \times \text{mean}$) combining CPU, RAM, and Disk I/O (`/proc/diskstats`), rendered on Plank's native numeric badge over standard system theme icons.
+- **Docklet Icon Standardization Suite**: Removed all custom Cairo vector drawing overrides across Volume, Battery, and System Monitor docklets; standardized all 14 docklets on a unified two-tier architecture: Theme-graded icons first $\to$ embedded high-definition GResource vector fallbacks second.
+- **100% Visual Parity Across Preferences and Dock**: Updated `PreferencesWindow` icon resolution to handle prioritized semicolon-separated icon specifications (`;;`), guaranteeing identical visual appearance between the Preferences *Docklets* tab and the running dock under any icon theme.
+- **Zero HAL Touches**: All backend and abstraction layers in `lib/Services/*` remained 100% untouched and protected.
+
 ---
 
 ## 9. Multi-Compositor Hardware Abstraction Layer (HAL) & wlroots Architecture (v0.4.3)
@@ -906,17 +913,61 @@ Wayplank v0.6.0 transitions the project from a low-level Wayland port into a com
 
 ---
 
-## 17. Conclusion & Production Readiness (v0.6.0 Release)
+## 17. Multi-Monitor Brightness Synchronization, Global System Pressure & Docklet Icon Parity (v0.6.1)
 
-With the release of **WayPlank 0.6.0**, WayPlank reaches full out-of-the-box maturity:
+Wayplank v0.6.1 solidifies docklet architecture, system monitoring, and hardware display synchronization.
+
+### 17.1. KWin Multi-Monitor Hardware Brightness Synchronization (`BrightnessDockItem.vala`)
+- **Problem Statement:** In KDE Plasma 6 multi-head desktop setups, external secondary monitors communicating over DDC/CI (I2C) were frequently dropped by user-space PowerDevil due to permission restrictions on `/dev/i2c-*` devices. Adjusting brightness only affected the internal panel or a single primary monitor.
+- **Dynamic Output Discovery:** On startup and whenever display geometry changes (`Gdk.Display.monitor_added` / `monitor_removed`), Wayplank queries `kscreen-doctor -j` to obtain the complete topology of active DRM outputs.
+- **Atomic Multi-Output Adjustment:** When the user adjusts brightness via scroll wheel, preset cycling, or context menu, Wayplank constructs and executes an atomic multi-output command targeting all active displays simultaneously:
+  ```bash
+  kscreen-doctor output.<out1>.brightness.<val> output.<out2>.brightness.<val> ...
+  ```
+  Concurrently, D-Bus notifications are dispatched to PowerDevil to keep KDE's internal power profiles and on-screen display (OSD) in sync.
+- **Compositor Isolation:** The `kscreen-doctor` execution path is strictly guarded with `if (kde_available && GLib.Environment.find_program_in_path ("kscreen-doctor") != null)`. On GNOME (Mutter) and Labwc (wlroots), native unprivileged D-Bus and `brightnessctl` pathways continue uninterrupted.
+
+### 17.2. Bottleneck-Dominant Global System Pressure Metric (`CpuDockItem.vala`)
+- **Limitation of Legacy Gauge:** The previous CPU docklet used a custom Cairo override rendering two micro-bars for CPU and RAM. This ignored storage I/O bottlenecks and broke visual theme consistency.
+- **Bottleneck-Dominant Formulation:** Wayplank v0.6.1 implements a composite multi-resource metric combining CPU, RAM, and Disk I/O:
+  $$\text{Pressure} = 0.60 \times \max(\text{CPU}, \text{RAM}, \text{Disk}) + 0.40 \times \text{mean}(\text{CPU}, \text{RAM}, \text{Disk})$$
+  - **CPU Utilization:** Delta calculation between active and idle jiffies in `/proc/stat`.
+  - **Memory Utilization:** Evaluated from `/proc/meminfo` as $(\text{MemTotal} - \text{MemAvailable}) / \text{MemTotal} \times 100$.
+  - **Disk I/O Utilization (`%util`):** Evaluated from `/proc/diskstats` by measuring sector read/write activity across physical storage devices (`sd*`, `nvme*`) over sampling windows.
+- **Mathematical Bounding:** The metric is mathematically bounded in $[0, 100\%]$. When any single subsystem reaches peak capacity, the score spikes appropriately to reflect system strain.
+- **Native Numeric Badge Integration:** Replaced the custom Cairo dual-gauge card with Plank's native vector typography badge (`Count = system_pressure; CountVisible = true;`), rendered cleanly over standard system theme icons (`utilities-system-monitor;;cpu`).
+
+### 17.3. Docklet Icon Standardization & Two-Tier Resolution Architecture
+Wayplank v0.6.1 standardizes all 14 docklets onto a clean two-tier resolution model:
+1. **Tier 1 (Theme-First):** Query standard FreeDesktop theme icon names according to current state.
+2. **Tier 2 (GResource Fallback):** If the current theme lacks the specific icon, fall back to high-definition vector SVGs compiled directly into the binary ELF (`/net/launchpad/plank/docklets/`).
+- **Retired Cairo Overrides & Dynamic Volume / Battery / Network Badges:** Removed ad-hoc Cairo vector drawing loops in `BatteryDockItem.vala` (capsule gauge) and `VolumeDockItem.vala` (cone gauge). Both docklets now dynamically request standard theme icons (`battery-level-*-symbolic`, `audio-volume-*`), support overamplified states (>100% up to 150% via `audio-volume-overamplified` and fiery fallback vector), and cleanly render exact levels on Plank's native numeric badge (`Count = percentage/volume`). Connected Wi-Fi networks display signal percentage via numeric badge (`Count = wifi_strength`).
+- **Atomic Graded Set Completeness Engine (`BrightnessDockItem.vala`):** Solved the theme preemption trap where generic flat icons (e.g. `display-brightness` crescent moon disc in Haptic-Kore-Blue) preempted graded vector fallbacks. Brightness candidate sets (`notification-display-brightness-*`, `display-brightness-*`, `brightness-*`) are now inspected as an atomic trio; if incomplete in the active theme, Wayplank drops 100% to internal high-definition graded vector fallbacks (`brightness-high.svg`, `brightness-medium.svg`, `brightness-low.svg`), mirrored symmetrically in Preferences.
+- **Elimination of Flat Preemption Fallbacks Across Docklets:** Cleaned state-driven query lists across Battery (charging states), Network (signal strength tiers), Volume (overamplified tier), and MPRIS (play/pause indicators), eliminating generic flat fallbacks that previously intercepted queries in partial themes and prevented dedicated internal vector fallbacks from rendering.
+- **Graded Brightness & Weather Vectors:** Added graded vector fallbacks for screen brightness (`brightness-high`, `brightness-medium`, `brightness-low`, `brightness`) and weather conditions (`weather-clear`, `weather-few-clouds`, `weather-overcast`, `weather-showers`, `weather-snow`, `weather-storm`, `weather-fog`).
+
+### 17.4. Preferences Window & Docklet Grid Visual Parity
+- **Prioritized Multi-Specifier Resolution:** Enhanced `ensure_docklet_icon()` in `PreferencesWindow.vala` to parse prioritized semicolon-separated icon lists (`;;`).
+- **Identical Artwork:** Guaranteed 100% visual parity between the 7×2 grid in Preferences $\to$ Docklets and the dock runtime. Trash, Media Player, Volume, Brightness, and System Monitor icons match identically regardless of whether the user is on default Adwaita, Breeze, Haptic-SML, or custom themes.
+- **Pressure Reveal Edge Trigger Unification:** Removed obsolete `!is_wayland` check from `PreferencesWindow.vala`, enabling the `PressureReveal` switch on startup across all Wayland compositors (KWin, Labwc, Mutter) to control the 5px vs 1px edge barrier input region for smooth cursor unhiding.
+- **Workspace Only Wayland Dormancy:** Explicitly set `sw_workspace_only` to insensitive (`sensitive = false`) and attached an informative tooltip (`"Workspace filtering is not yet supported under Wayland"`) across both the switch and label, preventing placebo toggling until universal cross-compositor workspace tracking is integrated in v0.7.0.
+
+### 17.5. Strict HAL Protection & Compositor Safety Guarantee
+- **Protected Backend Layer:** `lib/Services/*` remained 100% untouched throughout all v0.6.1 updates. All adjustments were strictly contained within dock items, preferences UI, drawing fallbacks, and compiled vector assets.
+
+---
+
+## 18. Conclusion & Production Readiness (v0.6.1 Release)
+
+With the release of **WayPlank 0.6.1**, WayPlank delivers hardened hardware integration and complete visual standardization:
 - **100% Wayland Native:** Modular Multi-Compositor HAL supporting KWin (KDE Plasma 5 & 6), Labwc/wlroots, and GNOME Shell (Mutter v10 monolithic extension).
+- **Multi-Monitor Hardware Brightness:** Atomic multi-output display control under KWin Wayland with zero DDC/CI permission drops.
+- **Scientific Global System Pressure:** Bottleneck-dominant multi-resource monitoring (CPU, RAM, Disk I/O) on native vector badges.
+- **Standardized Docklet Icon Architecture:** Two-tier theme-first resolution with 33+ high-definition binary GResource vector fallbacks and 100% Preferences parity.
 - **Sub-Second Instant Boot:** 0.74s boot time with zero-latency proxy evaluation.
-- **Out-of-the-Box Onboarding:** Auto-created 4 English drawers, smart pinned essentials, and default accordion docklets.
-- **Universal Icon Customization:** 100% FreeDesktop and GIO metadata compliant icon personalization.
-- **Zero X11 Legacy:** Complete eradication of Wnck, BAMF, XFixes, and XI2 dependencies.
-- **14 Monolithic Docklets:** Full-featured desktop control suite backed by 33 self-contained binary vector assets.
-- **Factory Acceptance Testing (FAT):** Complete protocol pass across all compositors and display geometries.
-- **Production Performance:** 0.0% idle CPU, <25 MB RSS memory footprint, and instant sub-10ms window state updates.
+- **Out-of-the-Box Onboarding:** 4 English drawers, smart pinned essentials, and default accordion docklets.
+- **Production Performance:** 0.0% idle CPU, <25 MB RSS memory footprint, and sub-10ms window state updates.
+
 
 
 
