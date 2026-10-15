@@ -17,7 +17,7 @@ Plank was completely unmaintained and broken on Wayland. Wayplank brings it back
 
 Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL) working out of the box with **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)**. It auto-detects your compositor at startup without messy configs. 
 
-**A huge thank you to our 300+ community users: with 750+ clones and real-world feedback, 65+ bugs have been squashed across 240+ validation points! Testing, bug reports, and pull requests are warmly welcome.**
+**A huge thank you to our 300+ community users: with 750+ clones and real-world feedback, 75+ bugs have been squashed across 250+ validation points! Testing, bug reports, and pull requests are warmly welcome.**
 
 * 📚 [User Guide & Reference Manual](Documentation/USER_GUIDE.md)
 * 📖 [Technical migration report](Documentation/wayplank_x11_to_wayland_report_en.md)
@@ -233,7 +233,7 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
-* 💡 **v0.6.1 (Alpha) — 2026-10-15:** The Bug Hunting Release — Multi-monitor KWin brightness sync, unified Global System Pressure engine, drag-and-drop payload delivery & 0-byte MIME fix, and docklet icon standardization.
+* 💡 **v0.6.1 (Alpha) — 2026-10-15:** The Bug Hunting Release — Multi-monitor KWin brightness sync, unified Global System Pressure engine, drag-and-drop payload delivery & 0-byte MIME fix, docklet icon standardization & adaptive dynamic Gtk+ theme engine.
 * ✨ **v0.6.0 (Alpha) — 2026-10-11:** Smart first-run auto-configuration (categorized English app drawers, auto-detected pinned apps, docklets & trash), universal "Change Icon..." dialog with FreeDesktop & GIO metadata, integrated User Guide, and clean release polish.
 * 🚀 **v0.5.2 (Alpha) — 2026-10-09:** Cairo folder launcher menu, 14 built-in docklets, category layout grouping and deep audit fixing stack overflows & GObject assertions.
 * 🛠️ **v0.5.1 (Alpha) — 2026-10-08:** Fixed KWin resume freeze on Plasma 6 with 50ms debouncer, native screenshot docklet and 100% FAT pass rate.

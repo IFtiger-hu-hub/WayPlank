@@ -118,6 +118,8 @@ WayPlank provides an integrated, one-click icon personalization system directly 
 4. Click **Apply** to update the icon immediately with zero restart needed.
 
 > 💡 **Technical Note:** For application launchers, customizations follow the FreeDesktop standard (`~/.local/share/applications/`) without breaking Plank migration. For folders, icons are persisted using native GIO metadata (`metadata::custom-icon`), automatically recognized in Nautilus and Dolphin. For docklets, overrides are preserved in the `.dockitem` configuration.
+>
+> 🔄 **Theme Switching Resiliency:** When switching desktop icon themes, if an icon customized for a folder drawer does not exist in the new theme, WayPlank automatically restores the item to its default folder presentation (with 4-item card preview and folder styling), preventing missing/blank icon cards. Empty folder drawers also display a centered folder glyph so they are never rendered blank.
 
 ---
 
@@ -257,17 +259,22 @@ On GNOME Wayland sessions, WayPlank communicates with a dedicated, lightweight G
 ## 8. Themes & Visual Customization
 
 ### Built-in Themes
-WayPlank ships with five professionally designed themes:
+WayPlank ships with five built-in static themes and an adaptive dynamic GTK theme engine:
 1. **Arian Theme**: Modern dark translucent glass with subtle border illumination.
 2. **Arian Theme Light**: Clean frosted glass designed for light desktop environments.
 3. **Transparent**: Ultra-minimalist borderless design showing only floating icons.
 4. **Matte**: Flat, modern solid finish.
 5. **Default**: Classic Plank appearance.
+6. **Gtk+**: Adaptive dynamic theme engine that samples the active system GTK palette (background, accent, borders) and automatically synchronizes with Dark and Light desktop modes in real time.
 
-### Installing Custom Themes
-You can install third-party Plank themes simply by placing them in:
+### Installing Custom Themes (100% Plank Compatibility)
+WayPlank maintains 100% backward compatibility with Plank themes (`dock.theme` and `hover.theme`). You can install third-party Plank themes in any of the following standard directories:
 ```bash
+~/.local/share/wayplank/themes/<ThemeName>/dock.theme
 ~/.local/share/plank/themes/<ThemeName>/dock.theme
+~/.themes/<ThemeName>/dock.theme
+/usr/share/wayplank/themes/<ThemeName>/dock.theme
+/usr/share/plank/themes/<ThemeName>/dock.theme
 ```
 They will instantly appear in the **Preferences $\rightarrow$ Theme** dropdown menu.
 

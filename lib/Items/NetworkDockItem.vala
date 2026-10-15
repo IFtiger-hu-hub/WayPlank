@@ -321,6 +321,7 @@ namespace Plank
 						Icon = "network-wireless-signal-none;;network-wireless-signal-none-symbolic;;network-wireless-disconnected";
 
 					Count = wifi_strength;
+					BadgeText = "%d%%".printf (wifi_strength);
 					CountVisible = true;
 				} else {
 					if (ip_address != "")
@@ -329,11 +330,13 @@ namespace Plank
 						Text = _("Ethernet: %s").printf (connection_name != "" ? connection_name : _("Connected"));
 
 					Icon = "network-wired-activated;;network-wired;;network-workgroup";
+					BadgeText = null;
 					CountVisible = false;
 				}
 			} else {
 				Text = _("Network: Disconnected");
 				Icon = "network-offline;;network-idle;;network-error;;network-wired-disconnected";
+				BadgeText = null;
 				CountVisible = false;
 			}
 		}

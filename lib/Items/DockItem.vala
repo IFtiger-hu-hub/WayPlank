@@ -41,11 +41,27 @@ namespace Plank
 		 * The count for the dock item.
 		 */
 		public int64 Count { get; set; default = 0; }
+
+		/**
+		 * Optional custom text / unit for the badge (e.g. "24°C", "95%").
+		 * If null or empty, Count.to_string () is used.
+		 */
+		public string? BadgeText { get; set; default = null; }
 		
 		/**
 		 * Show the item's count or not.
 		 */
 		public bool CountVisible { get; set; default = false; }
+
+		/**
+		 * Gets the formatted text for the badge.
+		 */
+		public string get_badge_text ()
+		{
+			if (BadgeText != null && BadgeText.length > 0)
+				return BadgeText;
+			return Count.to_string ();
+		}
 		
 		/**
 		 * The progress for this dock item.
@@ -162,6 +178,7 @@ namespace Plank
 			notify["ForcePixbuf"].connect (icon_changed);
 			
 			notify["Count"].connect (reset_foreground_buffer);
+			notify["BadgeText"].connect (reset_foreground_buffer);
 			notify["CountVisible"].connect (reset_foreground_buffer);
 			notify["Progress"].connect (reset_foreground_buffer);
 			notify["ProgressVisible"].connect (reset_foreground_buffer);
@@ -189,6 +206,7 @@ namespace Plank
 			notify["ForcePixbuf"].disconnect (icon_changed);
 
 			notify["Count"].disconnect (reset_foreground_buffer);
+			notify["BadgeText"].disconnect (reset_foreground_buffer);
 			notify["CountVisible"].disconnect (reset_foreground_buffer);
 			notify["Progress"].disconnect (reset_foreground_buffer);
 			notify["ProgressVisible"].disconnect (reset_foreground_buffer);
@@ -274,11 +292,16 @@ namespace Plank
 			needs_redraw ();
 		}
 		
+		protected virtual void on_icon_theme_changed ()
+		{
+		}
+
 		void icon_theme_changed ()
 		{
 			// Put Gtk.IconTheme.changed emmitted signals in idle queue to avoid
 			// race conditions with concurrent handles
 			Gdk.threads_add_idle_full (GLib.Priority.LOW, () => {
+				on_icon_theme_changed ();
 				reset_icon_buffer ();
 				return false;
 			});

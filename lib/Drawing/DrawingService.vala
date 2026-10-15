@@ -69,15 +69,21 @@ namespace Plank
 				
 				// look for a custom icon-name
 				unowned string custom_icon_name = info.get_attribute_string (FILE_ATTRIBUTE_CUSTOM_ICON_NAME);
-				if (custom_icon_name != null && custom_icon_name != "")
-					return custom_icon_name;
+				if (custom_icon_name != null && custom_icon_name != "") {
+					if (has_icon (custom_icon_name))
+						return custom_icon_name;
+				}
 				
 				// look for a custom icon
 				unowned string custom_icon = info.get_attribute_string (FILE_ATTRIBUTE_CUSTOM_ICON);
 				if (custom_icon != null && custom_icon != "") {
+					string? path = null;
 					if (custom_icon.has_prefix ("file://"))
-						return custom_icon;
-					return file.get_child (custom_icon).get_path ();
+						path = custom_icon;
+					else
+						path = file.get_child (custom_icon).get_path ();
+					if (path != null && has_icon (path))
+						return path;
 				}
 				
 				// look for a thumbnail
@@ -92,6 +98,45 @@ namespace Plank
 			}
 			
 			return null;
+		}
+
+		/**
+		 * Checks whether at least one of the given icon names or file paths can be resolved.
+		 *
+		 * @param names a delimited (with ";;") list of icon names or file paths
+		 * @return true if an icon can be resolved in the theme, as a file, or as a built-in resource
+		 */
+		public static bool has_icon (string names)
+		{
+			if (names == null || names == "")
+				return false;
+
+			var all_names = names.split (";;");
+			unowned Gtk.IconTheme theme = get_icon_theme ();
+
+			foreach (unowned string name in all_names) {
+				if (name == null || name == "")
+					continue;
+
+				if (try_get_icon_file (name) != null)
+					return true;
+
+				icon_theme_mutex.lock ();
+				bool exists = theme.has_icon (name);
+				if (!exists && name.contains (".")) {
+					var parts = name.split (".");
+					exists = theme.has_icon (parts [0]);
+				}
+				icon_theme_mutex.unlock ();
+
+				if (exists)
+					return true;
+
+				if (get_docklet_fallback_resource (name) != null)
+					return true;
+			}
+
+			return false;
 		}
 		
 		/**

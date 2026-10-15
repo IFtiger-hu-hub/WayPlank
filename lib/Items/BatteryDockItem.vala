@@ -167,6 +167,7 @@ namespace Plank
 			}
 
 			Count = percentage;
+			BadgeText = (bat_dir_path != null) ? "%d%%".printf (percentage) : null;
 			CountVisible = (bat_dir_path != null);
 		}
 		

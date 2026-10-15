@@ -444,6 +444,7 @@ namespace Plank
 		private void update_display ()
 		{
 			Count = current_percent;
+			BadgeText = "%d%%".printf (current_percent);
 			CountVisible = true;
 			Text = _("Screen Brightness: %d%%").printf (current_percent);
 

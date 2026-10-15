@@ -194,6 +194,7 @@ namespace Plank
 			if (system_pressure > 100) system_pressure = 100;
 
 			Count = system_pressure;
+			BadgeText = "%d%%".printf (system_pressure);
 			CountVisible = true;
 
 			Text = _("System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Disk: %d%%").printf (

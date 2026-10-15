@@ -130,10 +130,12 @@ namespace Plank
 			if (is_muted) {
 				Text = _("Volume: %d%% (Muted)").printf (volume);
 				Icon = "audio-volume-muted;;stock_volume-mute";
+				BadgeText = null;
 				CountVisible = false;
 			} else {
 				Text = _("Volume: %d%%").printf (volume);
 				Count = volume;
+				BadgeText = "%d%%".printf (volume);
 				CountVisible = true;
 				if (volume == 0)
 					Icon = "audio-volume-muted;;stock_volume-mute";

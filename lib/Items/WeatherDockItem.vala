@@ -207,6 +207,7 @@ namespace Plank
 
 					GLib.Idle.add (() => {
 						CountVisible = false;
+						BadgeText = null;
 						Text = "%s: %s".printf (city_name, condition_desc);
 						Icon = "dialog-warning;;weather-severe-alert;;weather-few-clouds";
 						reset_icon_buffer ();
@@ -257,6 +258,7 @@ namespace Plank
 
 				GLib.Idle.add (() => {
 					CountVisible = false;
+					BadgeText = null;
 					Text = "%s: %s".printf (city_name, condition_desc);
 					Icon = "weather-few-clouds;;weather";
 					reset_icon_buffer ();
@@ -326,6 +328,7 @@ namespace Plank
 		private void update_display ()
 		{
 			Count = (int64) Math.round (current_temp);
+			BadgeText = "%d°%s".printf ((int) Math.round (current_temp), units);
 			CountVisible = (current_code != -1);
 			Text = "%s: %d°%s, %s".printf (city_name, (int) Math.round (current_temp), units, condition_desc);
 			Icon = get_current_icon_name ();

@@ -86,7 +86,8 @@ namespace Plank
 				return;
 			
 			OwnedFile = File.new_for_uri (Prefs.Launcher);
-			Icon = DrawingService.get_icon_from_file (OwnedFile) ?? DEFAULT_ICONS;
+			var resolved = DrawingService.get_icon_from_file (OwnedFile);
+			Icon = (resolved != null && DrawingService.has_icon (resolved)) ? resolved : DEFAULT_ICONS;
 			
 			if (!OwnedFile.is_native ()) {
 				Text = OwnedFile.get_uri ();
@@ -103,6 +104,41 @@ namespace Plank
 					critical ("Unable to watch the stack directory '%s'.", OwnedFile.get_path () ?? "");
 				}
 			}
+		}
+
+		/**
+		 * Restores this folder item to its default icon and presentation.
+		 * Clears custom icon metadata on disk when user explicitly resets in IconChooserDialog.
+		 */
+		public void restore_default_icon ()
+		{
+			if (OwnedFile != null) {
+				try {
+					var info = new FileInfo ();
+					info.set_attribute_string ("metadata::custom-icon", "");
+					info.set_attribute_string ("metadata::custom-icon-name", "");
+					OwnedFile.set_attributes_from_info (info, FileQueryInfoFlags.NONE, null);
+				} catch (Error e) {
+					debug ("Failed to clear folder custom icon metadata: %s", e.message);
+				}
+			}
+			Icon = DEFAULT_ICONS;
+			reset_icon_buffer ();
+		}
+
+		protected override void on_icon_theme_changed ()
+		{
+			base.on_icon_theme_changed ();
+			if (OwnedFile == null || !is_directory ())
+				return;
+
+			// Re-resolve icon from file against the newly active theme.
+			// If the custom icon exists in this theme, use it. If not, fall back to DEFAULT_ICONS.
+			// IMPORTANT: Never erase the folder's metadata on disk, so returning to the original theme
+			// automatically restores the custom icon!
+			var resolved = DrawingService.get_icon_from_file (OwnedFile);
+			Icon = (resolved != null && DrawingService.has_icon (resolved)) ? resolved : DEFAULT_ICONS;
+			reset_icon_buffer ();
 		}
 		
 		void stop_monitor ()
@@ -170,9 +206,19 @@ namespace Plank
 		 */
 		protected override void draw_icon (Surface surface)
 		{
-			if (!is_valid () || !has_default_icon_match ()) {
+			if (!is_valid ()) {
 				base.draw_icon (surface);
 				return;
+			}
+			
+			if (!has_default_icon_match ()) {
+				if (DrawingService.has_icon (Icon)) {
+					base.draw_icon (surface);
+					return;
+				}
+				
+				// Custom icon not available in active theme: fall back to default presentation at runtime.
+				// Keep metadata intact so returning to the original theme will restore the custom icon.
 			}
 			
 			unowned Cairo.Context cr = surface.Context;
@@ -202,11 +248,23 @@ namespace Plank
 				return true;
 			});
 			
-			var pos = 0;
 			var icon_width = (int) ((width - 80 * radius / 33.0) / 2.0);
 			var icon_height = (int) ((height - 80 * radius / 33.0) / 2.0);
 			var offset = (int) ((width - 2 * icon_width) / 3.0);
 			
+			if (keys.size == 0) {
+				// Empty folder: draw centered default folder icon on the tray instead of leaving it completely blank
+				var folder_pbuf = DrawingService.load_icon (DEFAULT_ICONS, (int) (width * 0.7), (int) (height * 0.7));
+				if (folder_pbuf != null) {
+					Gdk.cairo_set_source_pixbuf (cr, folder_pbuf,
+						(width - folder_pbuf.width) / 2,
+						(height - folder_pbuf.height) / 2);
+					cr.paint ();
+				}
+				return;
+			}
+			
+			var pos = 0;
 			keys.sort ();
 			foreach (var s in keys) {
 				var x = pos % 2;

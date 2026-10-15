@@ -74,6 +74,7 @@ namespace Plank
 		bool zoom_changed = false;
 		
 		ulong gtk_theme_name_changed_handler_id = 0UL;
+		ulong gtk_dark_theme_changed_handler_id = 0UL;
 		
 		double dynamic_animation_offset = 0.0;
 		
@@ -134,6 +135,14 @@ namespace Plank
 			if (theme != null) {
 				theme.notify.disconnect (theme_changed);
 			}
+			if (gtk_theme_name_changed_handler_id > 0UL) {
+				SignalHandler.disconnect (Gtk.Settings.get_default (), gtk_theme_name_changed_handler_id);
+				gtk_theme_name_changed_handler_id = 0UL;
+			}
+			if (gtk_dark_theme_changed_handler_id > 0UL) {
+				SignalHandler.disconnect (Gtk.Settings.get_default (), gtk_dark_theme_changed_handler_id);
+				gtk_dark_theme_changed_handler_id = 0UL;
+			}
 		}
 		
 		void prefs_changed (Object prefs, ParamSpec prop)
@@ -190,9 +199,17 @@ namespace Plank
 			if (name == Theme.GTK_THEME_NAME) {
 				if (gtk_theme_name_changed_handler_id == 0UL)
 					gtk_theme_name_changed_handler_id = Gtk.Settings.get_default ().notify["gtk-theme-name"].connect (load_theme);
-			} else if (gtk_theme_name_changed_handler_id > 0UL) {
-				SignalHandler.disconnect (Gtk.Settings.get_default (), gtk_theme_name_changed_handler_id);
-				gtk_theme_name_changed_handler_id = 0UL;
+				if (gtk_dark_theme_changed_handler_id == 0UL)
+					gtk_dark_theme_changed_handler_id = Gtk.Settings.get_default ().notify["gtk-application-prefer-dark-theme"].connect (load_theme);
+			} else {
+				if (gtk_theme_name_changed_handler_id > 0UL) {
+					SignalHandler.disconnect (Gtk.Settings.get_default (), gtk_theme_name_changed_handler_id);
+					gtk_theme_name_changed_handler_id = 0UL;
+				}
+				if (gtk_dark_theme_changed_handler_id > 0UL) {
+					SignalHandler.disconnect (Gtk.Settings.get_default (), gtk_dark_theme_changed_handler_id);
+					gtk_dark_theme_changed_handler_id = 0UL;
+				}
 			}
 			
 			theme = new DockTheme (name);
@@ -920,9 +937,9 @@ namespace Plank
 				urgent_color.add_hue (theme.UrgentHueShift);
 			}
 			
-			// draw item's count
+			// draw item's count / badge
 			if (item.CountVisible)
-				theme.draw_item_count (surface, icon_size, urgent_color, item.Count);
+				theme.draw_item_badge (surface, icon_size, urgent_color, item.get_badge_text ());
 			
 			// draw item's progress
 			if (item.ProgressVisible)

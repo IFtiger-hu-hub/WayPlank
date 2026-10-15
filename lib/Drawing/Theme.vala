@@ -82,14 +82,22 @@ namespace Plank
 		
 		File? theme_folder;
 		Gtk.StyleContext style_context;
+		string theme_name;
+		
+		public string get_theme_name ()
+		{
+			return theme_name;
+		}
 		
 		protected Theme ()
 		{
+			theme_name = DEFAULT_NAME;
 			theme_folder = get_theme_folder (DEFAULT_NAME);
 		}
 		
 		protected Theme.with_name (string name)
 		{
+			theme_name = name;
 			theme_folder = get_theme_folder (name);
 		}
 		
@@ -97,24 +105,27 @@ namespace Plank
 		{
 			unowned Gtk.Settings gtk_settings = Gtk.Settings.get_default ();
 			
-			var theme_name = gtk_settings.gtk_theme_name;
-			update_style_context (theme_name);
+			var gtk_theme = gtk_settings.gtk_theme_name;
+			update_style_context (gtk_theme);
 			
 			gtk_settings.notify["gtk-theme-name"].connect (gtk_theme_name_changed);
+			gtk_settings.notify["gtk-application-prefer-dark-theme"].connect (gtk_theme_name_changed);
 		}
 
 		~Theme ()
 		{
 			unowned Gtk.Settings? gtk_settings = Gtk.Settings.get_default ();
-			if (gtk_settings != null)
+			if (gtk_settings != null) {
 				gtk_settings.notify["gtk-theme-name"].disconnect (gtk_theme_name_changed);
+				gtk_settings.notify["gtk-application-prefer-dark-theme"].disconnect (gtk_theme_name_changed);
+			}
 		}
 		
-		void update_style_context (string? theme_name)
+		void update_style_context (string? gtk_theme)
 		{
 			Gtk.CssProvider provider;
-			if (theme_name != null)
-				provider = Gtk.CssProvider.get_named (theme_name, null);
+			if (gtk_theme != null)
+				provider = Gtk.CssProvider.get_named (gtk_theme, null);
 			else
 				provider = Gtk.CssProvider.get_named (GTK_THEME_NAME, null);
 			
@@ -126,10 +137,11 @@ namespace Plank
 		
 		void gtk_theme_name_changed (Object o, ParamSpec p)
 		{
-			var theme_name = ((Gtk.Settings) o).gtk_theme_name;
-			update_style_context (theme_name);
+			var gtk_theme = ((Gtk.Settings) o).gtk_theme_name;
+			update_style_context (gtk_theme);
+			if (theme_name == GTK_THEME_NAME && theme_folder == null)
+				apply_dynamic_gtk_theme ();
 			
-			//FIXME Do we want a dedicated signal here?
 			notify (new ParamSpecBoolean ("theme-changed", "theme-changed", "theme-changed", true, ParamFlags.READABLE));
 		}
 		
@@ -153,6 +165,82 @@ namespace Plank
 			FillEndColor     = { 0.3176, 0.3176, 0.3176, 1.0 };
 			InnerStrokeColor = { 1.0, 1.0, 1.0, 1.0 };
 		}
+
+		/**
+		 * Dynamically derives translucent dock styling and palette from the active GTK theme.
+		 */
+		protected virtual void apply_dynamic_gtk_theme ()
+		{
+			unowned Gtk.Settings settings = Gtk.Settings.get_default ();
+			Gdk.RGBA bg_rgba = { 0.18, 0.18, 0.20, 1.0 };
+			Gdk.RGBA fg_rgba = { 0.95, 0.95, 0.95, 1.0 };
+			Gdk.RGBA border_rgba = { 0.30, 0.30, 0.30, 1.0 };
+			
+			bool has_bg = style_context.lookup_color ("theme_bg_color", out bg_rgba);
+			if (!has_bg)
+				has_bg = style_context.lookup_color ("window_bg_color", out bg_rgba);
+			if (!has_bg)
+				has_bg = style_context.lookup_color ("theme_base_color", out bg_rgba);
+				
+			style_context.lookup_color ("theme_fg_color", out fg_rgba);
+			if (!style_context.lookup_color ("borders", out border_rgba))
+				style_context.lookup_color ("theme_border_color", out border_rgba);
+
+			// Determine dark vs light mode via ITU-R luminance or explicit setting
+			double lum = 0.299 * bg_rgba.red + 0.587 * bg_rgba.green + 0.114 * bg_rgba.blue;
+			bool is_dark = lum < 0.50 || settings.gtk_application_prefer_dark_theme;
+
+			LineWidth = 1;
+			TopRoundness = 6;
+			BottomRoundness = 0;
+
+			if (is_dark) {
+				// Modern dark translucent theme harmonizing with GTK Dark Mode
+				double r = bg_rgba.red;
+				double g = bg_rgba.green;
+				double b = bg_rgba.blue;
+				
+				FillStartColor = {
+					(r + 0.05).clamp (0.0, 1.0),
+					(g + 0.05).clamp (0.0, 1.0),
+					(b + 0.05).clamp (0.0, 1.0),
+					0.78
+				};
+				FillEndColor = {
+					(r * 0.85).clamp (0.0, 1.0),
+					(g * 0.85).clamp (0.0, 1.0),
+					(b * 0.85).clamp (0.0, 1.0),
+					0.85
+				};
+				OuterStrokeColor = { 0.05, 0.05, 0.05, 0.60 };
+				InnerStrokeColor = { 1.0, 1.0, 1.0, 0.18 };
+			} else {
+				// Clean, elegant light translucent theme harmonizing with GTK Light Mode
+				double r = bg_rgba.red;
+				double g = bg_rgba.green;
+				double b = bg_rgba.blue;
+				
+				FillStartColor = {
+					(r + 0.02).clamp (0.0, 1.0),
+					(g + 0.02).clamp (0.0, 1.0),
+					(b + 0.02).clamp (0.0, 1.0),
+					0.82
+				};
+				FillEndColor = {
+					(r * 0.92).clamp (0.0, 1.0),
+					(g * 0.92).clamp (0.0, 1.0),
+					(b * 0.92).clamp (0.0, 1.0),
+					0.88
+				};
+				OuterStrokeColor = {
+					(border_rgba.red * 0.8).clamp (0.0, 1.0),
+					(border_rgba.green * 0.8).clamp (0.0, 1.0),
+					(border_rgba.blue * 0.8).clamp (0.0, 1.0),
+					0.45
+				};
+				InnerStrokeColor = { 1.0, 1.0, 1.0, 0.65 };
+			}
+		}
 		
 		/**
 		 * Loads a theme for the renderer to use.
@@ -161,9 +249,11 @@ namespace Plank
 		 */
 		public void load (string type)
 		{
-			// if there is no folder available, fallback to the internal defaults
+			// if there is no folder available, fallback to internal defaults or dynamic GTK theme
 			if (theme_folder == null) {
 				reset_properties ();
+				if (theme_name == GTK_THEME_NAME)
+					apply_dynamic_gtk_theme ();
 				return;
 			}
 			
@@ -378,7 +468,37 @@ namespace Plank
 		}
 		
 		/**
-		 * Get a sorted array of all available theme-names
+		 * Enumerate valid dock theme directories inside a parent folder.
+		 */
+		static void enumerate_theme_folder (File? folder, Gee.HashSet<string> list)
+		{
+			if (folder == null || !folder.query_exists ())
+				return;
+			try {
+				var enumerator = folder.enumerate_children ("standard::name,standard::type,standard::is-hidden",
+					GLib.FileQueryInfoFlags.NONE);
+				FileInfo info;
+				while ((info = enumerator.next_file ()) != null) {
+					if (info.get_is_hidden ()
+						|| info.get_file_type () != GLib.FileType.DIRECTORY)
+						continue;
+					
+					var child = folder.get_child (info.get_name ());
+					if (child.get_child ("dock.theme").query_exists () || child.get_child ("hover.theme").query_exists ())
+						list.add (info.get_name ());
+				}
+			} catch {}
+		}
+
+		static bool is_valid_theme_dir (File? folder)
+		{
+			return folder != null
+				&& folder.query_exists ()
+				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY;
+		}
+
+		/**
+		 * Get a sorted array of all available theme-names (Wayplank and Plank legacy).
 		 *
 		 * @return array containing all available theme-names
 		 */
@@ -389,33 +509,22 @@ namespace Plank
 			list.add (DEFAULT_NAME);
 			list.add (GTK_THEME_NAME);
 			
-			// Look in user's themes-folder
-			try {
-				var enumerator = Paths.AppThemeFolder.enumerate_children ("standard::name,standard::type,standard::is-hidden",
-					GLib.FileQueryInfoFlags.NONE);
-				FileInfo info;
-				while ((info = enumerator.next_file ()) != null) {
-					if (info.get_is_hidden ()
-						|| info.get_file_type () != GLib.FileType.DIRECTORY)
-						continue;
-					
-					list.add (info.get_name ());
-				}
-			} catch {}
+			// 1. User's wayplank themes folder (~/.local/share/wayplank/themes)
+			enumerate_theme_folder (Paths.AppThemeFolder, list);
 			
-			// Look in system's themes-folder
-			try {
-				var enumerator = Paths.ThemeFolder.enumerate_children ("standard::name,standard::type,standard::is-hidden",
-					GLib.FileQueryInfoFlags.NONE);
-				FileInfo info;
-				while ((info = enumerator.next_file ()) != null) {
-					if (info.get_is_hidden ()
-						|| info.get_file_type () != GLib.FileType.DIRECTORY)
-						continue;
-					
-					list.add (info.get_name ());
-				}
-			} catch {}
+			// 2. User's legacy plank themes folder (~/.local/share/plank/themes)
+			enumerate_theme_folder (Paths.DataHomeFolder.get_child ("plank/themes"), list);
+			
+			// 3. User's ~/.themes folder
+			enumerate_theme_folder (Paths.HomeFolder.get_child (".themes"), list);
+			
+			// 4. System wayplank themes folder (/usr/share/wayplank/themes)
+			enumerate_theme_folder (Paths.ThemeFolder, list);
+			
+			// 5. System legacy plank themes folders (/usr/share/plank/themes)
+			foreach (var datafolder in Paths.DataDirFolders) {
+				enumerate_theme_folder (datafolder.get_child ("plank/themes"), list);
+			}
 			
 			var result = new Gee.ArrayList<string> ();
 			result.add_all (list);
@@ -427,8 +536,7 @@ namespace Plank
 		/**
 		 * Try to get an already existing folder located in the
 		 * themes folder while prefering the user's themes folder.
-		 * If there is no folder found we fallback to the "Default" theme.
-		 * If even that folder doesn't exist return NULL (and use built-in defaults)
+		 * Checks Wayplank directories and legacy Plank directories for 100% theme compatibility.
 		 *
 		 * @param name the basename of the folder
 		 * @return {@link GLib.File} the folder of the theme or NULL
@@ -443,17 +551,32 @@ namespace Plank
 			
 			File folder;
 			
-			// Look in user's themes-folder
+			// 1. Look in user's wayplank themes folder
 			folder = Paths.AppThemeFolder.get_child (name);
-			if (folder.query_exists ()
-				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+			if (is_valid_theme_dir (folder))
 				return folder;
 			
-			// Look in system's themes-folder
-			folder = Paths.ThemeFolder.get_child (name);
-			if (folder.query_exists ()
-				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+			// 2. Look in user's legacy plank themes folder (~/.local/share/plank/themes)
+			folder = Paths.DataHomeFolder.get_child ("plank/themes/%s".printf (name));
+			if (is_valid_theme_dir (folder))
 				return folder;
+			
+			// 3. Look in user's ~/.themes folder
+			folder = Paths.HomeFolder.get_child (".themes/%s".printf (name));
+			if (is_valid_theme_dir (folder))
+				return folder;
+
+			// 4. Look in system's wayplank themes folder
+			folder = Paths.ThemeFolder.get_child (name);
+			if (is_valid_theme_dir (folder))
+				return folder;
+			
+			// 5. Look in system's legacy plank themes folders
+			foreach (var datafolder in Paths.DataDirFolders) {
+				folder = datafolder.get_child ("plank/themes/%s".printf (name));
+				if (is_valid_theme_dir (folder))
+					return folder;
+			}
 			
 			warning ("%s not found, falling back to %s.", name, DEFAULT_NAME);
 			
@@ -466,11 +589,15 @@ namespace Plank
 			
 			// "Default" folder located in system's themes-folder
 			folder = Paths.ThemeFolder.get_child (DEFAULT_NAME);
-			if (folder.query_exists ()
-				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+			if (is_valid_theme_dir (folder))
 				return folder;
 			
-			warning ("%s is not a folder fallback to the built-in defaults!", folder.get_path ());
+			// Fallback to legacy plank default folder if present
+			foreach (var datafolder in Paths.DataDirFolders) {
+				folder = datafolder.get_child ("plank/themes/%s".printf (DEFAULT_NAME));
+				if (is_valid_theme_dir (folder))
+					return folder;
+			}
 			
 			return null;
 		}
@@ -484,36 +611,36 @@ namespace Plank
 			// Look in user's xdg-themes-folder
 			folder = Paths.DataHomeFolder.get_child ("themes/%s".printf (name));
 			if (folder.query_exists ()) {
-				folder = folder.get_child (exec_name);
-				if (folder.query_exists ()
-					&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
-					return folder;
-				
-				warning ("Currently selected gtk+ theme '%s' does not provide a dock theme, fallback to the built-in defaults!", name);
-				return null;
+				var dock_folder = folder.get_child (exec_name);
+				if (is_valid_theme_dir (dock_folder))
+					return dock_folder;
+				dock_folder = folder.get_child ("plank");
+				if (is_valid_theme_dir (dock_folder))
+					return dock_folder;
 			}
 			
 			// Look in user's legacy xdg-themes-folder
 			folder = Paths.HomeFolder.get_child (".themes/%s".printf (name));
 			if (folder.query_exists ()) {
-				folder = folder.get_child (exec_name);
-				if (folder.query_exists ()
-					&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
-					return folder;
-				
-				warning ("Currently selected gtk+ theme '%s' does not provide a dock theme, fallback to the built-in defaults!", name);
-				return null;
+				var dock_folder = folder.get_child (exec_name);
+				if (is_valid_theme_dir (dock_folder))
+					return dock_folder;
+				dock_folder = folder.get_child ("plank");
+				if (is_valid_theme_dir (dock_folder))
+					return dock_folder;
 			}
 			
 			// Look in system's xdg-themes-folders
 			foreach (var datafolder in Paths.DataDirFolders) {
 				folder = datafolder.get_child ("themes/%s/%s".printf (name, exec_name));
-				if (folder.query_exists ()
-					&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+				if (is_valid_theme_dir (folder))
+					return folder;
+				folder = datafolder.get_child ("themes/%s/plank".printf (name));
+				if (is_valid_theme_dir (folder))
 					return folder;
 			}
 			
-			warning ("Currently selected gtk+ theme '%s' does not provide a dock theme, fallback to the built-in defaults!", name);
+			// If not provided on disk, return null so dynamic GTK theme synthesis takes over
 			return null;
 		}
 	}
