@@ -47,7 +47,7 @@ SESSION 1: GNOME (Mutter Backend)
           Trash.
         - Attempt to drag locked items (Preferences, Separator, Trash):
           drag cleanly aborts with zero GLib terminal warnings.
-   [ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click on a folder dock item toggles the Folder Launcher menu:
           BUG: The menu appear in the center of the screen.
           Solution use tool-tips coordinates, Solved
@@ -64,13 +64,23 @@ SESSION 1: GNOME (Mutter Backend)
         - Subfolder drill-down with back button navigation, launcher execution,
           and document opening.
         - Auto-dismisses when hovering another dock item or on desktop leave.
+        - Gap & Focus Loss Elimination: 4px floating margin following dynamic icon zoom
+          elevation at 60 FPS (zero icon overlap); 450ms dismissal grace timer prevents
+          premature menu closure when moving pointer from dock icon across the gap into
+          the popup menu across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
    [ok] 1.9  First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click App -> 'Change Icon...': instant search, custom
           icon applies cleanly, 'Restore Default' restores original.
         - Folder drawers accept custom icons via GIO metadata.
+        - Changing desktop icon theme when a custom folder icon is missing from the
+          new theme automatically triggers 'Restore Default', falling back to the
+          standard folder drawer presentation (4-item stack preview) instead of
+          rendering an empty/blank card.
+        - Empty folder drawers render a centered default folder icon on the frosted
+          tray instead of an empty blank card.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
@@ -219,18 +229,18 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
         - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
         - Displays brightness icon with graded vector artwork (high, medium, low).
-        - Badge counter displays current brightness percentage (e.g. 75%).
+        - Badge counter displays current brightness percentage with % (e.g. 75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
         - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
           Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
-   [ok] 6.11 Weather Forecast Docklet (docklet://weather):
+   [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
-        - Badge counter displays current temperature in °C or °F (e.g. 18° or
-          64°).
+        - Badge counter displays current temperature with unit in °C or °F (e.g. 18°C or
+          64°F).
         - Left-click opens modern weather forecast window (WeatherWindow) with
           current temperature, "feels like", humidity, wind speed, and 3-day
           forecast cards.
@@ -253,7 +263,7 @@ SESSION 1: GNOME (Mutter Backend)
           * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak,
             none) free of generic flat preemption.
           * Wi-Fi Signal Badge: Native numeric badge displays signal strength %
-            (Count = wifi_strength).
+            with % unit (Count = wifi_strength, BadgeText = "%d%%").
           * Ethernet: wired connection active icon.
           * Offline: disconnected icon.
         - Informative tooltip displays connection type, SSID, signal
@@ -276,20 +286,32 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
-        - Badge counter displays combined system pressure [0-100%] calculated
-          as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
+        - Badge counter displays combined system pressure with % [0-100%]
+          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
         - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
    [  ] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
         - Volume and Battery docklets retire custom Cairo vector drawings; render
           standard theme icons and embedded GResource vector fallbacks.
-        - Battery displays charge percentage on native numeric top badge; zero
+        - Battery displays charge percentage with % on native numeric top badge (e.g. 70%); zero
           generic flat preemption in charging/discharging states.
-        - Volume displays exact level on native numeric badge (Count = volume) and
+        - Volume displays exact level with % on native numeric badge (e.g. 24%) and
           switches to overamplified icon (audio-volume-overamplified / warning vector)
           above 100% up to 150%; zero generic flat preemption in overamplified state.
         - Media Player (docklet://mpris) renders dedicated player icon
           (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
           play/pause state queries free of generic flat overrides.
+   [  ] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
+        - Verify numeric badges display appropriate units: Weather displays
+          temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU), Battery,
+          Volume, Network, and Brightness display percentages with % (e.g. 12%,
+          70%, 24%, 93%, 80%). Removable volume ejector and unread indicators
+          display clean integer counts without units.
+        - Verify compact badge proportions: badge height scales elegantly to ~34%
+          of icon size (min 10px; ~16px on 48px icon, ~24px on 72px icon) without
+          obscuring underlying icon artwork.
+        - Verify single numbers form a clean circular badge (width = height), while
+          multi-character badges scale compactly with crisp bold white Pango text,
+          outline shadow, and highlight across all icon sizes and dynamic zoom.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -386,6 +408,25 @@ SESSION 1: GNOME (Mutter Backend)
 
 
 GNOME BUGS / NOTES:
+ - BUG 1 (Squashed): Folder Launcher popup menu closed prematurely when cursor moved across gap towards menu.
+   * Root Cause: Hovering off the item set HoveredItem to null, which triggered an immediate (0ms) dismissal.
+   * Fix: Added 450ms dismissal grace window (DISMISS_DELAY = 450U) when moving towards popup across the gap; immediate dismissal only if hovering another dock item. Reduced gap to 4px.
+ - BUG 2 (Squashed): Folder Launcher menu did not follow dynamic icon zoom elevation (overlapping magnified icons).
+   * Root Cause: Base dock thickness was used instead of item visual elevation during zoom.
+   * Fix: Restored 60 FPS dynamic elevation tracking via pm.get_visual_thickness_for_item(TargetItem) + GAP across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
+ - BUG 3 (Squashed): Theme change rendered missing custom folder drawer icons as empty/blank cards.
+   * Root Cause: Custom folder icon names stored in GIO metadata were not checked against newly selected desktop icon themes, falling back to empty application-default-icon.svg.
+   * Fix: Added DrawingService.has_icon() and hooked on_icon_theme_changed() in DockItem/FileDockItem. When custom icon is missing in new theme, WayPlank falls back cleanly to 4-item preview stack while preserving GIO metadata on disk.
+ - BUG 4 (Squashed): Empty folder drawers rendered blank trays.
+   * Fix: When drawer contains 0 items, renders a clean centered default folder icon on the frosted tray.
+ - BUG 5 (Squashed): Folder drawer bottom-left corner artifact (black horn/spike).
+   * Fix: Corrected arc order in FileDockItem.draw_icon_fast (Math.PI_2, Math.PI).
+ - IMPROVEMENT 6: Rich Units in Docklet Numeric Badges (°C, °F, %).
+   * Root Cause: draw_item_count only accepted int64 count, rendering raw numbers without units (e.g. 24 instead of 24°C, 85 instead of 85%).
+   * Fix: Added BadgeText property to DockItem and draw_item_badge() in DockTheme.vala supporting arbitrary UTF-8 text. Added °C/°F to Weather, and % to CPU (system pressure), Battery, Volume, Network (Wi-Fi), and Brightness docklets. Clean integer counts preserved for Ejector and App notifications.
+ - BUG / COSMETIC 7: Docklet badges oversized (~50% of icon size) obscuring underlying icons.
+   * Root Cause: Badge height hardcoded at 0.50 * icon_size, covering ~40% of icon area.
+   * Fix: Scaled badge height down to ~34% of icon size (min 10px; ~16px on 48px dock, ~24px on 72px zoomed dock), saving over 50% surface area. Adjusted proportional pill width formula ((0.50 + 0.32 * chars) * height, clamped to 78% icon width), reduced padding to 1.5px, and scaled Pango font size directly to available inner box height (min 7.0pt) for crisp, sharp, non-occluding badges.
 
 
 
@@ -428,7 +469,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
           Trash.
         - Attempt to drag locked items (Preferences, Separator, Trash):
           drag cleanly aborts with zero GLib terminal warnings.
-   [ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click on a folder dock item toggles the Folder Launcher menu.
         - Right-click on folder dock item is dedicated to dock management
           ("Keep in Dock", "Open in File Browser", "Preferences").
@@ -443,13 +484,23 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Subfolder drill-down with back button navigation, launcher execution,
           and document opening.
         - Auto-dismisses when hovering another dock item or on desktop leave.
+        - Gap & Focus Loss Elimination: 4px floating margin following dynamic icon zoom
+          elevation at 60 FPS (zero icon overlap); 450ms dismissal grace timer prevents
+          premature menu closure when moving pointer from dock icon across the gap into
+          the popup menu across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
    [ok] 1.9  First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click App -> 'Change Icon...': instant search, custom
           icon applies cleanly, 'Restore Default' restores original.
         - Folder drawers accept custom icons via GIO metadata.
+        - Changing desktop icon theme when a custom folder icon is missing from the
+          new theme automatically triggers 'Restore Default', falling back to the
+          standard folder drawer presentation (4-item stack preview) instead of
+          rendering an empty/blank card.
+        - Empty folder drawers render a centered default folder icon on the frosted
+          tray instead of an empty blank card.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
@@ -592,18 +643,18 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
         - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
         - Displays brightness icon with graded vector artwork (high, medium, low).
-        - Badge counter displays current brightness percentage (e.g. 75%).
+        - Badge counter displays current brightness percentage with % (e.g. 75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
         - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
           Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
-   [ok] 6.11 Weather Forecast Docklet (docklet://weather):
+   [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
-        - Badge counter displays current temperature in °C or °F (e.g. 18° or
-          64°).
+        - Badge counter displays current temperature with unit in °C or °F (e.g. 18°C or
+          64°F).
         - Left-click opens modern weather forecast window (WeatherWindow) with
           current temperature, "feels like", humidity, wind speed, and 3-day
           forecast cards.
@@ -626,7 +677,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
           * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak,
             none) free of generic flat preemption.
           * Wi-Fi Signal Badge: Native numeric badge displays signal strength %
-            (Count = wifi_strength).
+            with % unit (Count = wifi_strength, BadgeText = "%d%%").
           * Ethernet: wired connection active icon.
           * Offline: disconnected icon.
         - Informative tooltip displays connection type, SSID, signal
@@ -649,20 +700,32 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
-        - Badge counter displays combined system pressure [0-100%] calculated
-          as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
+        - Badge counter displays combined system pressure with % [0-100%]
+          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
         - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
    [  ] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
         - Volume and Battery docklets retire custom Cairo vector drawings; render
           standard theme icons and embedded GResource vector fallbacks.
-        - Battery displays charge percentage on native numeric top badge; zero
+        - Battery displays charge percentage with % on native numeric top badge (e.g. 70%); zero
           generic flat preemption in charging/discharging states.
-        - Volume displays exact level on native numeric badge (Count = volume) and
+        - Volume displays exact level with % on native numeric badge (e.g. 24%) and
           switches to overamplified icon (audio-volume-overamplified / warning vector)
           above 100% up to 150%; zero generic flat preemption in overamplified state.
         - Media Player (docklet://mpris) renders dedicated player icon
           (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
           play/pause state queries free of generic flat overrides.
+   [  ] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
+        - Verify numeric badges display appropriate units: Weather displays
+          temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU), Battery,
+          Volume, Network, and Brightness display percentages with % (e.g. 12%,
+          70%, 24%, 93%, 80%). Removable volume ejector and unread indicators
+          display clean integer counts without units.
+        - Verify compact badge proportions: badge height scales elegantly to ~34%
+          of icon size (min 10px; ~16px on 48px icon, ~24px on 72px icon) without
+          obscuring underlying icon artwork.
+        - Verify single numbers form a clean circular badge (width = height), while
+          multi-character badges scale compactly with crisp bold white Pango text,
+          outline shadow, and highlight across all icon sizes and dynamic zoom.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -758,6 +821,25 @@ SESSION 2: KDE PLASMA (KWin Backend)
 
 
 PLASMA BUGS / NOTES:
+ - BUG 1 (Squashed): Folder Launcher popup menu closed prematurely when cursor moved across gap towards menu.
+   * Root Cause: Hovering off the item set HoveredItem to null, which triggered an immediate (0ms) dismissal.
+   * Fix: Added 450ms dismissal grace window (DISMISS_DELAY = 450U) when moving towards popup across the gap; immediate dismissal only if hovering another dock item. Reduced gap to 4px.
+ - BUG 2 (Squashed): Folder Launcher menu did not follow dynamic icon zoom elevation (overlapping magnified icons).
+   * Root Cause: Base dock thickness was used instead of item visual elevation during zoom.
+   * Fix: Restored 60 FPS dynamic elevation tracking via pm.get_visual_thickness_for_item(TargetItem) + GAP across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
+ - BUG 3 (Squashed): Theme change rendered missing custom folder drawer icons as empty/blank cards.
+   * Root Cause: Custom folder icon names stored in GIO metadata were not checked against newly selected desktop icon themes, falling back to empty application-default-icon.svg.
+   * Fix: Added DrawingService.has_icon() and hooked on_icon_theme_changed() in DockItem/FileDockItem. When custom icon is missing in new theme, WayPlank falls back cleanly to 4-item preview stack while preserving GIO metadata on disk.
+ - BUG 4 (Squashed): Empty folder drawers rendered blank trays.
+   * Fix: When drawer contains 0 items, renders a clean centered default folder icon on the frosted tray.
+ - BUG 5 (Squashed): Folder drawer bottom-left corner artifact (black horn/spike).
+   * Fix: Corrected arc order in FileDockItem.draw_icon_fast (Math.PI_2, Math.PI).
+ - IMPROVEMENT 6: Rich Units in Docklet Numeric Badges (°C, °F, %).
+   * Root Cause: draw_item_count only accepted int64 count, rendering raw numbers without units (e.g. 24 instead of 24°C, 85 instead of 85%).
+   * Fix: Added BadgeText property to DockItem and draw_item_badge() in DockTheme.vala supporting arbitrary UTF-8 text. Added °C/°F to Weather, and % to CPU (system pressure), Battery, Volume, Network (Wi-Fi), and Brightness docklets. Clean integer counts preserved for Ejector and App notifications.
+ - BUG / COSMETIC 7: Docklet badges oversized (~50% of icon size) obscuring underlying icons.
+   * Root Cause: Badge height hardcoded at 0.50 * icon_size, covering ~40% of icon area.
+   * Fix: Scaled badge height down to ~34% of icon size (min 10px; ~16px on 48px dock, ~24px on 72px zoomed dock), saving over 50% surface area. Adjusted proportional pill width formula ((0.50 + 0.32 * chars) * height, clamped to 78% icon width), reduced padding to 1.5px, and scaled Pango font size directly to available inner box height (min 7.0pt) for crisp, sharp, non-occluding badges.
 
 
 
@@ -800,7 +882,7 @@ SESSION 3: LABWC (wlroots Backend)
           Trash.
         - Attempt to drag locked items (Preferences, Separator, Trash):
           drag cleanly aborts with zero GLib terminal warnings.
-   [ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click on a folder dock item toggles the Folder Launcher menu.
         - Right-click on folder dock item is dedicated to dock management
           ("Keep in Dock", "Open in File Browser", "Preferences").
@@ -815,13 +897,23 @@ SESSION 3: LABWC (wlroots Backend)
         - Subfolder drill-down with back button navigation, launcher execution,
           and document opening.
         - Auto-dismisses when hovering another dock item or on desktop leave.
+        - Gap & Focus Loss Elimination: 4px floating margin following dynamic icon zoom
+          elevation at 60 FPS (zero icon overlap); 450ms dismissal grace timer prevents
+          premature menu closure when moving pointer from dock icon across the gap into
+          the popup menu across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
    [ok] 1.9  First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click App -> 'Change Icon...': instant search, custom
           icon applies cleanly, 'Restore Default' restores original.
         - Folder drawers accept custom icons via GIO metadata.
+        - Changing desktop icon theme when a custom folder icon is missing from the
+          new theme automatically triggers 'Restore Default', falling back to the
+          standard folder drawer presentation (4-item stack preview) instead of
+          rendering an empty/blank card.
+        - Empty folder drawers render a centered default folder icon on the frosted
+          tray instead of an empty blank card.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
@@ -968,18 +1060,18 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
         - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
         - Displays brightness icon with graded vector artwork (high, medium, low).
-        - Badge counter displays current brightness percentage (e.g. 75%).
+        - Badge counter displays current brightness percentage with % (e.g. 75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
         - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
           Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
-   [ok] 6.11 Weather Forecast Docklet (docklet://weather):
+   [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
-        - Badge counter displays current temperature in °C or °F (e.g. 18° or
-          64°).
+        - Badge counter displays current temperature with unit in °C or °F (e.g. 18°C or
+          64°F).
         - Left-click opens modern weather forecast window (WeatherWindow) with
           current temperature, "feels like", humidity, wind speed, and 3-day
           forecast cards.
@@ -1002,7 +1094,7 @@ SESSION 3: LABWC (wlroots Backend)
           * Wi-Fi: 5-level signal strength icons (excellent, good, ok, weak,
             none) free of generic flat preemption.
           * Wi-Fi Signal Badge: Native numeric badge displays signal strength %
-            (Count = wifi_strength).
+            with % unit (Count = wifi_strength, BadgeText = "%d%%").
           * Ethernet: wired connection active icon.
           * Offline: disconnected icon.
         - Informative tooltip displays connection type, SSID, signal
@@ -1025,20 +1117,32 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
-        - Badge counter displays combined system pressure [0-100%] calculated
-          as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
+        - Badge counter displays combined system pressure with % [0-100%]
+          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
         - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
    [  ] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
         - Volume and Battery docklets retire custom Cairo vector drawings; render
           standard theme icons and embedded GResource vector fallbacks.
-        - Battery displays charge percentage on native numeric top badge; zero
+        - Battery displays charge percentage with % on native numeric top badge (e.g. 70%); zero
           generic flat preemption in charging/discharging states.
-        - Volume displays exact level on native numeric badge (Count = volume) and
+        - Volume displays exact level with % on native numeric badge (e.g. 24%) and
           switches to overamplified icon (audio-volume-overamplified / warning vector)
           above 100% up to 150%; zero generic flat preemption in overamplified state.
         - Media Player (docklet://mpris) renders dedicated player icon
           (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
           play/pause state queries free of generic flat overrides.
+   [  ] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
+        - Verify numeric badges display appropriate units: Weather displays
+          temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU), Battery,
+          Volume, Network, and Brightness display percentages with % (e.g. 12%,
+          70%, 24%, 93%, 80%). Removable volume ejector and unread indicators
+          display clean integer counts without units.
+        - Verify compact badge proportions: badge height scales elegantly to ~34%
+          of icon size (min 10px; ~16px on 48px icon, ~24px on 72px icon) without
+          obscuring underlying icon artwork.
+        - Verify single numbers form a clean circular badge (width = height), while
+          multi-character badges scale compactly with crisp bold white Pango text,
+          outline shadow, and highlight across all icon sizes and dynamic zoom.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -1133,6 +1237,25 @@ SESSION 3: LABWC (wlroots Backend)
 
 
 LABWC BUGS / NOTES:
+ - BUG 1 (Squashed): Folder Launcher popup menu closed prematurely when cursor moved across gap towards menu.
+   * Root Cause: Hovering off the item set HoveredItem to null, which triggered an immediate (0ms) dismissal.
+   * Fix: Added 450ms dismissal grace window (DISMISS_DELAY = 450U) when moving towards popup across the gap; immediate dismissal only if hovering another dock item. Reduced gap to 4px.
+ - BUG 2 (Squashed): Folder Launcher menu did not follow dynamic icon zoom elevation (overlapping magnified icons).
+   * Root Cause: Base dock thickness was used instead of item visual elevation during zoom.
+   * Fix: Restored 60 FPS dynamic elevation tracking via pm.get_visual_thickness_for_item(TargetItem) + GAP across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
+ - BUG 3 (Squashed): Theme change rendered missing custom folder drawer icons as empty/blank cards.
+   * Root Cause: Custom folder icon names stored in GIO metadata were not checked against newly selected desktop icon themes, falling back to empty application-default-icon.svg.
+   * Fix: Added DrawingService.has_icon() and hooked on_icon_theme_changed() in DockItem/FileDockItem. When custom icon is missing in new theme, WayPlank falls back cleanly to 4-item preview stack while preserving GIO metadata on disk.
+ - BUG 4 (Squashed): Empty folder drawers rendered blank trays.
+   * Fix: When drawer contains 0 items, renders a clean centered default folder icon on the frosted tray.
+ - BUG 5 (Squashed): Folder drawer bottom-left corner artifact (black horn/spike).
+   * Fix: Corrected arc order in FileDockItem.draw_icon_fast (Math.PI_2, Math.PI).
+ - IMPROVEMENT 6: Rich Units in Docklet Numeric Badges (°C, °F, %).
+   * Root Cause: draw_item_count only accepted int64 count, rendering raw numbers without units (e.g. 24 instead of 24°C, 85 instead of 85%).
+   * Fix: Added BadgeText property to DockItem and draw_item_badge() in DockTheme.vala supporting arbitrary UTF-8 text. Added °C/°F to Weather, and % to CPU (system pressure), Battery, Volume, Network (Wi-Fi), and Brightness docklets. Clean integer counts preserved for Ejector and App notifications.
+ - BUG / COSMETIC 7: Docklet badges oversized (~50% of icon size) obscuring underlying icons.
+   * Root Cause: Badge height hardcoded at 0.50 * icon_size, covering ~40% of icon area.
+   * Fix: Scaled badge height down to ~34% of icon size (min 10px; ~16px on 48px dock, ~24px on 72px zoomed dock), saving over 50% surface area. Adjusted proportional pill width formula ((0.50 + 0.32 * chars) * height, clamped to 78% icon width), reduced padding to 1.5px, and scaled Pango font size directly to available inner box height (min 7.0pt) for crisp, sharp, non-occluding badges.
 
 
 

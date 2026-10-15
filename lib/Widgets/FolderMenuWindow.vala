@@ -21,11 +21,11 @@ namespace Plank
 {
 	public class FolderMenuWindow : Gtk.Window
 	{
-		const int GAP = 8;
+		const int GAP = 4;
 		const int ICON_SIZE = 24;
 		const int MAX_HEIGHT = 440;
 		const int MIN_WIDTH = 220;
-		public const uint DISMISS_DELAY = 150U;
+		public const uint DISMISS_DELAY = 450U;
 
 		public DockController controller { get; construct; }
 		public FileDockItem? TargetItem { get; protected set; default = null; }
@@ -147,11 +147,23 @@ namespace Plank
 			if (!get_visible () || TargetItem == null)
 				return;
 
-			if (hovered_item != TargetItem) {
-				close_menu ();
-			} else {
+			if (hovered_item == TargetItem) {
 				cancel_dismiss_timer ();
 				update_position ();
+				return;
+			}
+
+			// If another dock item is actively hovered, dismiss immediately
+			if (hovered_item != null) {
+				close_menu ();
+				return;
+			}
+
+			// When moving from the folder icon towards the menu, hovered_item becomes null
+			// as the cursor passes through the dock window padding/edge.
+			// Give the user a graceful window to cross into the menu without abruptly closing.
+			if (!pointer_inside) {
+				schedule_dismiss (DISMISS_DELAY);
 			}
 		}
 
@@ -590,6 +602,8 @@ namespace Plank
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
 
+				int visual_thickness = pm.get_visual_thickness_for_item (TargetItem);
+
 				switch (pm.Position) {
 				case Gtk.PositionType.BOTTOM:
 					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, true);
@@ -597,7 +611,7 @@ namespace Plank
 					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
 					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
 
-					int bottom_margin = pm.get_visual_thickness_for_item (TargetItem) + GAP;
+					int bottom_margin = visual_thickness + GAP;
 
 					if (monitor != null) {
 						var work = monitor.get_workarea ();
@@ -617,7 +631,7 @@ namespace Plank
 					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
 					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
 
-					int top_margin = pm.get_visual_thickness_for_item (TargetItem) + GAP;
+					int top_margin = visual_thickness + GAP;
 
 					if (monitor != null) {
 						var work = monitor.get_workarea ();
@@ -637,7 +651,7 @@ namespace Plank
 					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
 					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
 
-					int left_margin = pm.get_visual_thickness_for_item (TargetItem) + GAP;
+					int left_margin = visual_thickness + GAP;
 
 					if (monitor != null) {
 						var work = monitor.get_workarea ();
@@ -657,7 +671,7 @@ namespace Plank
 					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
 					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
 
-					int right_margin = pm.get_visual_thickness_for_item (TargetItem) + GAP;
+					int right_margin = visual_thickness + GAP;
 
 					if (monitor != null) {
 						var work = monitor.get_workarea ();
@@ -677,21 +691,21 @@ namespace Plank
 
 				int target_x = mon_x + center_x - width / 2;
 				int target_y = mon_y + center_y;
-				var dock_region = pm.get_dock_window_region ();
+				int visual_thickness = pm.get_visual_thickness_for_item (TargetItem);
 
 				switch (pm.Position) {
 				case Gtk.PositionType.BOTTOM:
-					target_y = mon_y + mon_h - dock_region.height - GAP - height;
+					target_y = mon_y + mon_h - visual_thickness - GAP - height;
 					break;
 				case Gtk.PositionType.TOP:
-					target_y = mon_y + dock_region.height + GAP;
+					target_y = mon_y + visual_thickness + GAP;
 					break;
 				case Gtk.PositionType.LEFT:
-					target_x = mon_x + dock_region.width + GAP;
+					target_x = mon_x + visual_thickness + GAP;
 					target_y = mon_y + center_y - height / 2;
 					break;
 				case Gtk.PositionType.RIGHT:
-					target_x = mon_x + mon_w - dock_region.width - GAP - width;
+					target_x = mon_x + mon_w - visual_thickness - GAP - width;
 					target_y = mon_y + center_y - height / 2;
 					break;
 				}

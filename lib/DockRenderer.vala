@@ -920,9 +920,9 @@ namespace Plank
 				urgent_color.add_hue (theme.UrgentHueShift);
 			}
 			
-			// draw item's count
+			// draw item's count / badge
 			if (item.CountVisible)
-				theme.draw_item_count (surface, icon_size, urgent_color, item.Count);
+				theme.draw_item_badge (surface, icon_size, urgent_color, item.get_badge_text ());
 			
 			// draw item's progress
 			if (item.ProgressVisible)

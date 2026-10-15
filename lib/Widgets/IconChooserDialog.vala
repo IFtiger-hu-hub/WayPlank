@@ -447,19 +447,7 @@ namespace Plank
 
 		private static void reset_folder_icon (FileDockItem item)
 		{
-			if (item.OwnedFile == null)
-				return;
-
-			try {
-				var info = new FileInfo ();
-				info.set_attribute_string ("metadata::custom-icon", "");
-				info.set_attribute_string ("metadata::custom-icon-name", "");
-				item.OwnedFile.set_attributes_from_info (info, FileQueryInfoFlags.NONE, null);
-			} catch (Error e) {
-				warning ("Failed to reset folder custom icon: %s", e.message);
-			}
-
-			item.Icon = "inode-directory;;folder";
+			item.restore_default_icon ();
 		}
 	}
 }

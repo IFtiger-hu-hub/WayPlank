@@ -357,6 +357,8 @@ namespace Plank
 		
 		/**
 		 * Draws a badge for an item.
+		/**
+		 * Draws a badge with numeric count for an item.
 		 *
 		 * @param surface the surface to draw the badge onto
 		 * @param icon_size the icon-size of the dock
@@ -364,6 +366,19 @@ namespace Plank
 		 * @param count the number for the badge to show
 		 */
 		public void draw_item_count (Surface surface, int icon_size, Color color, int64 count)
+		{
+			draw_item_badge (surface, icon_size, color, count.to_string ());
+		}
+
+		/**
+		 * Draws a badge with custom text / units (e.g. "24°C", "95%") for an item.
+		 *
+		 * @param surface the surface to draw the badge onto
+		 * @param icon_size the icon-size of the dock
+		 * @param color the color of the badge
+		 * @param badge_text the text for the badge to show
+		 */
+		public void draw_item_badge (Surface surface, int icon_size, Color color, string badge_text)
 		{
 			unowned Cairo.Context cr = surface.Context;
 			
@@ -385,30 +400,37 @@ namespace Plank
 			stroke_color_end.set_sat (0.9);
 			stroke_color_end.darken_val (0.9);
 			
-			// FIXME enhance scalability and adjustments depending on icon-size
+			// Scalability and adjustments depending on icon-size
 			var is_small = icon_size < 32;
-			var is_large = icon_size > 54;
-			var padding = (is_small ? 1.0 : (is_large ? 4.5 : 2.0));
-			var line_width = (is_small ? 0.0 : (is_large ? 2.0 : 1.0));
+			var line_width = 1.0;
+			var padding = 1.5;
 
-			var height = Math.floor ((is_small ? 0.80 : 0.50) * icon_size - 2.0 * line_width);
-			var width = Math.floor ((0.75 + 0.25 * count.to_string ().length) * height);
-			var max_width = icon_size - 2.0 * line_width;
+			// Proportional, elegant badge height (~34% of icon size, min 10px)
+			var height = Math.floor ((is_small ? 0.42 : 0.34) * icon_size);
+			if (height < 10.0)
+				height = 10.0;
+
+			var chars = badge_text.char_count ();
+			var width = Math.floor ((0.50 + 0.32 * chars) * height);
+			if (width < height)
+				width = height; // Single characters form a clean circular badge
+
+			var max_width = Math.floor (icon_size * 0.78);
 			if (width > max_width)
 				width = max_width;
 
 			// Mirror horizontal badge-position for RTL environments
 			if (Gtk.Widget.get_default_direction () == Gtk.TextDirection.RTL)
-				x += line_width + line_width / 2.0;
+				x += line_width;
 			else
-				x += icon_size - width - 1.5 * line_width;
-			y += line_width + line_width / 2.0;
+				x += icon_size - width - line_width;
+			y += line_width;
 			
 			cr.set_line_width (line_width);
 			
 			Cairo.Pattern stroke, fill;
 			
-			if (!is_small) {
+			if (height >= 13.0) {
 				// draw outline shadow
 				stroke = new Cairo.Pattern.rgba (0.2, 0.2, 0.2, 0.3);
 				draw_rounded_line (cr, x, y, width + line_width, height, true, true, stroke, null);
@@ -424,8 +446,13 @@ namespace Plank
 				draw_rounded_line (cr, x, y, width, height, true, true, stroke, fill);
 				
 				// draw inline highlight
-				stroke = new Cairo.Pattern.rgba (0.9, 0.9, 0.9, 0.1);
+				stroke = new Cairo.Pattern.rgba (0.9, 0.9, 0.9, 0.15);
 				draw_rounded_line (cr, x + line_width, y + line_width, width - 2 * line_width, height - 2 * line_width, true, true, stroke, null);
+			} else {
+				// Simple filled badge for small icons
+				fill = new Cairo.Pattern.rgba (badge_color_middle.red, badge_color_middle.green, badge_color_middle.blue, 1.0);
+				stroke = new Cairo.Pattern.rgba (stroke_color_end.red, stroke_color_end.green, stroke_color_end.blue, 0.8);
+				draw_rounded_line (cr, x, y, width, height, true, true, stroke, fill);
 			}
 			
 			var layout = new Pango.Layout (Gdk.pango_context_get ());
@@ -435,17 +462,19 @@ namespace Plank
 			unowned Gtk.StyleContext style_context = get_style_context ();
 			Pango.FontDescription font_description;
 			style_context.get (style_context.get_state (), "font", out font_description, null);
-			font_description.set_absolute_size ((int) (height * Pango.SCALE));
+			var font_size = height - 2.0 * padding - 2.0 * line_width;
+			if (font_size < 7.0) font_size = 7.0;
+			font_description.set_absolute_size ((int) (font_size * Pango.SCALE));
 			font_description.set_weight (Pango.Weight.BOLD);
 			layout.set_font_description (font_description);
 			
-			layout.set_text (count.to_string (), -1);
+			layout.set_text (badge_text, -1);
 			Pango.Rectangle logical_rect;
 			layout.get_pixel_extents (null, out logical_rect);
 			
 			var scale = double.min (1.0, double.min ((width - 2.0 * padding - 2.0 * line_width) / (double) logical_rect.width, (height - 2.0 * padding) / (double) logical_rect.height));
 			
-			if (!is_small)
+			if (height >= 13.0)
 				cr.set_source_rgba (0.0, 0.0, 0.0, 0.2);
 			else
 				cr.set_source_rgba (0.0, 0.0, 0.0, 0.6);

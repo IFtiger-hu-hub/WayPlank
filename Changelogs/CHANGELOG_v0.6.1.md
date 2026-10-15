@@ -109,6 +109,21 @@ Wayplank v0.6.1 standardizes all 14 docklets onto a uniform two-tier icon resolu
 - **Volume Control (`VolumeDockItem.vala`)**:
   - Removed generic `;;audio-volume-high` fallback from the overamplified tier (>100% up to 150%), ensuring themes lacking `audio-volume-overamplified` fall back to the dedicated warning vector `volume-overamplified.svg`.
 
+### 4.3. Rich Badge Unit Formatting (°C, °F, %) Across All Docklets
+- **DockItem `BadgeText` & Pango `draw_item_badge` (`DockItem.vala`, `DockTheme.vala`, `DockRenderer.vala`)**:
+  - Introduced `BadgeText` property and `get_badge_text()` on `DockItem`, accompanied by `draw_item_badge()` in `DockTheme.vala` supporting arbitrary formatted text strings with UTF-8 character metrics (`char_count`).
+  - **Weather Docklet**: Displays temperature with explicit unit symbol (`%d°C` or `%d°F`, e.g. `24°C`, `75°F`) matching configured Celsius/Fahrenheit units.
+  - **System Pressure / CPU Docklet**: Displays percentage load with `%` (e.g. `12%`, `85%`).
+  - **Battery Docklet**: Displays charge level with `%` (e.g. `70%`, `100%`).
+  - **Volume Docklet**: Displays volume level with `%` (e.g. `24%`, `100%`, `150%`).
+  - **Network Docklet**: Displays Wi-Fi signal strength with `%` (e.g. `93%`).
+  - **Screen Brightness Docklet**: Displays brightness level with `%` (e.g. `80%`).
+  - **Ejector & Notifications**: Unaltered, retaining clean integer device/unread counts.
+- **Compact Badge Geometry & Proportional Scaling (`DockTheme.vala`)**:
+  - Scaled badge height down from `0.50 * icon_size` to `0.34 * icon_size` (min 10px; ~16px on 48px dock, ~24px on 72px zoomed dock), saving over 50% surface area and preventing badges from dominating or obscuring underlying icon artwork.
+  - Adjusted proportional pill width formula: `(0.50 + 0.32 * chars) * height` with single-digit circle clamping (`width = height`) and upper boundary clamp (`0.78 * icon_size`).
+  - Adapted Pango absolute font size directly to available inner box height (`height - 2*padding - 2*line_width`, min 7.0pt) with 1.5px padding, outline shadow, and highlight for crisp glyph rendering across all zoom states.
+
 ---
 
 ## 5. 🪟 100% Visual Parity: Preferences Window & Docklet Grid
@@ -147,6 +162,16 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
   - Rewrote `accept_external_drop` so that if the user drops onto an existing item (`item != null`), the drop is handled exclusively by that item. If the item cannot accept the drop, it is safely rejected without falling back to `provider.accept_drop`.
   - Pinning non-desktop files is strictly reserved for drops onto empty dock space (`item == null`). Pinning `.desktop` application launchers remains supported anywhere along the dock.
 
+### 6.3. Icon Theme Switching & Folder Custom Icon Resiliency
+- **Missing Theme Icon Detection (`DrawingService.has_icon`)**: Introduced a multi-source icon resolution check that validates icon availability across active `Gtk.IconTheme`, file/URI paths, and built-in docklet fallbacks.
+- **Graceful Restore to Default on Theme Change**: In `FileDockItem`, if an icon customized for a folder drawer does not exist in the newly selected desktop theme, WayPlank automatically restores default (`DEFAULT_ICONS = "inode-directory;;folder"`), clears stale metadata on the folder, and renders the 4-quadrant preview / folder drawer instead of falling back to generic/empty application cards (`application-default-icon.svg`).
+- **Empty Folder Drawer Presentation**: When a folder drawer contains no files, a clean centered folder icon is rendered over the frosted card tray, ensuring it is immediately recognizable as a folder and never appears empty or broken.
+- **`on_icon_theme_changed` Virtual Hook**: Connected `Gtk.IconTheme.changed` to a virtual lifecycle hook on `DockItem` so all items can re-validate their icons dynamically when desktop icon themes change at runtime.
+
+### 6.4. Folder Drawer Menu Gap Elimination & Focus Retention
+- **Stable Floating Geometry (`FolderMenuWindow.vala`)**: Fixed a legacy positioning issue where `FolderMenuWindow` computed margins against dynamically fluctuating item zoom sizes (`get_visual_thickness_for_item`), which created a 30px–50px chasm whenever the icon unzoomed as the cursor moved toward the menu. Switched to `PositionManager.get_visual_thickness()` with a discrete 4px floating gap across all 4 dual positions (`BOTTOM`, `TOP`, `LEFT`, `RIGHT`) and Mutter fallback.
+- **Micro-Hover & Transition Grace Timer**: Eliminated premature menu closure in `on_dock_hover` when the cursor passes between the icon and menu window (`hovered_item == null`). Increased `DISMISS_DELAY` to 450ms, allowing smooth and effortless cursor transition into the menu without focus loss.
+
 ---
 
 ## 7. 🛡️ Architectural Safety & Zero HAL Touches Guarantee
@@ -171,13 +196,19 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
 | `lib/Items/VolumeDockItem.vala` | Removed custom Cairo cone override (`draw_icon`). Standardized display on theme icons (`audio-volume-*`) and high-definition fallback SVGs, added overamplified tier (>100% up to 150%) with warning fallback SVG, and wired up native numeric badge (`Count = volume`). |
 | `lib/Items/MprisDockItem.vala` | Prioritized `"gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player"` to eliminate iPod/phone icon mismatch, and cleaned play/pause state queries from preemption overrides. |
 | `lib/Items/NetworkDockItem.vala` | Cleaned Wi-Fi signal strength tiers from flat preemption fallbacks, and wired up native numeric badge (`Count = wifi_strength`) for connected Wi-Fi networks. |
-| `lib/Drawing/DrawingService.vala` | Added fallback routing for graded brightness (`brightness-high`, `medium`, `low`, base), overamplified volume (`volume-overamplified`), graded weather conditions (clear, clouds, overcast, showers, snow, storm, fog), and network icons. |
+| `lib/Drawing/DrawingService.vala` | Added `has_icon()` resolution validation, checked custom icon existence in `get_icon_from_file()`, and provided fallback routing for graded brightness, overamplified volume, weather conditions, and network icons. |
+| `lib/Items/DockItem.vala` | Added `on_icon_theme_changed()` virtual lifecycle hook triggered on `Gtk.IconTheme.changed`. |
+| `lib/Items/FileDockItem.vala` | Added `restore_default_icon()`, connected theme change re-validation, handled missing custom icon fallback to folder drawer presentation, and rendered centered folder icon for empty drawers. |
+| `lib/Widgets/IconChooserDialog.vala` | Delegated `reset_folder_icon()` directly to `item.restore_default_icon()` for unified clean metadata reset. |
+| `lib/Widgets/FolderMenuWindow.vala` | Restored dynamic 60 FPS visual elevation tracking (`get_visual_thickness_for_item()`), set tight 4px floating gap, increased dismiss timer to 450ms, and eliminated premature closure when moving pointer across gap into menu across all 4 positions. |
+| `lib/Drawing/DockTheme.vala` | Implemented `draw_item_badge()` with UTF-8 character metrics, scaled badge height down to ~34% of icon size (min 10px), compact proportional pill width formula, 1.5px padding, and dynamic inner-box Pango font sizing. |
+| `lib/DockRenderer.vala` | Routed `draw_item_badge` using item `get_badge_text()` when `CountVisible` is true, supporting rich unit badges (°C, °F, %) alongside integer counts. |
 | `lib/Widgets/PreferencesWindow.vala` | Enhanced `ensure_docklet_icon()` to resolve prioritized `;;` icon specifications matching runtime dock, enabled `PressureReveal` switch on startup across all Wayland compositors (controlling the 5px edge trigger zone), and deactivated dormant `Workspace Only` switch with an informative Wayland tooltip. |
 | `data/ui/preferences.ui` | Updated docklet icon names for Trash, Media Player, and Volume to match prioritized theme specifications, and disabled `Workspace Only` switch with explanatory tooltip. |
 | `data/plank.gresource.xml` | Registered all new graded brightness and weather SVG fallback assets. |
 | `data/docklets/` | Populated and refreshed fallback SVG assets: `brightness*.svg` (4 files), `weather-*.svg` (7 files), `trash*.svg` (2 files), and `mpris.svg`. |
 | `README.md` | Updated release badge to v0.6.1, streamlined changelog recap (strictly under 4 lines), and documented new fallback asset scale. |
-| `Documentation/wayplank_x11_to_wayland_report_en.md` | Added Section 17 documenting multi-monitor brightness sync, Global System Pressure algorithm, docklet icon standardization, and Section 17.5 on drag & drop payload delivery. |
+| `Documentation/wayplank_x11_to_wayland_report_en.md` | Added Section 17 documenting multi-monitor brightness sync, Global System Pressure algorithm, docklet icon standardization, Section 17.5 on drag & drop payload delivery, Section 17.6 on theme switching icon resiliency, and Section 17.7 on folder menu geometry stabilization. |
 | `FAT/2026-10-14 FAT 0.6.1.txt` | Created the Factory Acceptance Test protocol for v0.6.1 covering all new features and regressions across all 3 compositors. |
 
 ---
