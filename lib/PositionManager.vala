@@ -614,7 +614,7 @@ namespace Plank
 				return cursor_region;
 			}
 			
-			int edge_size = controller.prefs.PressureReveal ? (5 * window_scale_factor) : (1 * window_scale_factor);
+			int edge_size = controller.prefs.PressureReveal ? (1 * window_scale_factor) : (10 * window_scale_factor);
 			switch (Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:

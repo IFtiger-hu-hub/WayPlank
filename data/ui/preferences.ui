@@ -148,6 +148,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">On Primary Display:</property>
                 <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Automatically display the dock on the primary monitor; disable to choose a specific display</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -166,6 +167,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can_focus">True</property>
                     <property name="halign">start</property>
                     <property name="valign">center</property>
+                    <property name="tooltip_text" translatable="yes">Automatically display the dock on the primary monitor; disable to choose a specific display</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -342,6 +344,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Icon Zoom:</property>
                 <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -360,6 +363,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can_focus">True</property>
                     <property name="halign">start</property>
                     <property name="valign">center</property>
+                    <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -395,6 +399,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Categorize Items:</property>
                 <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with dynamic separators</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -472,6 +477,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="can_focus">False</property>
                         <property name="halign">end</property>
                         <property name="label" translatable="yes">Docklet Accordion:</property>
+                        <property name="tooltip_text" translatable="yes">Collapse docklets in-line showing only the first item; expand on hover</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -500,6 +506,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="halign">end</property>
                         <property name="margin_left">16</property>
                         <property name="label" translatable="yes">Click to Expand:</property>
+                        <property name="tooltip_text" translatable="yes">Expand docklets only when clicking the Master Preferences icon instead of on hover</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -619,6 +626,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Hide Dock:</property>
+                <property name="tooltip_text" translatable="yes">Enable automatic dock hiding according to the selected Hide Mode; when disabled, the dock remains permanently visible</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -631,6 +639,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Enable automatic dock hiding according to the selected Hide Mode; when disabled, the dock remains permanently visible</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -729,6 +738,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Pressure Reveal:</property>
+                <property name="tooltip_text" translatable="yes">Requires touching the physical screen edge (1px) to reveal the dock, preventing accidental triggers; when disabled, reveals 10px before the edge for fluid unhiding</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -741,6 +751,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Requires touching the physical screen edge (1px) to reveal the dock, preventing accidental triggers; when disabled, reveals 10px before the edge for fluid unhiding</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -772,6 +783,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Show Unpinned:</property>
+                <property name="tooltip_text" translatable="yes">Display running applications on the dock even if they are not pinned</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -784,6 +796,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Display running applications on the dock even if they are not pinned</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -797,6 +810,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="margin_left">12</property>
                 <property name="label" translatable="yes">Lock Icons:</property>
+                <property name="tooltip_text" translatable="yes">Lock dock icons in place to prevent accidental dragging, reordering, or removal</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -809,6 +823,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Lock dock icons in place to prevent accidental dragging, reordering, or removal</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -850,6 +865,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="margin_left">12</property>
                 <property name="label" translatable="yes">Start on Login:</property>
+                <property name="tooltip_text" translatable="yes">Automatically launch WayPlank when logging into your desktop session</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -862,6 +878,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Automatically launch WayPlank when logging into your desktop session</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -933,6 +950,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Restore Minimized:</property>
+                <property name="tooltip_text" translatable="yes">Restore and unminimize windows when clicking their dock icon</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -944,6 +962,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Restore and unminimize windows when clicking their dock icon</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -971,6 +990,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Show Running:</property>
+                <property name="tooltip_text" translatable="yes">Display indicator dots beneath icons for actively running applications</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -982,6 +1002,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Display indicator dots beneath icons for actively running applications</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -993,6 +1014,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Show Attention:</property>
+                <property name="tooltip_text" translatable="yes">Highlight or animate indicator dots when an application requests user attention</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -1004,6 +1026,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Highlight or animate indicator dots when an application requests user attention</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>

@@ -130,12 +130,13 @@ SESSION 1: GNOME (Mutter Backend)
    [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
    [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
    [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal:
+   [  ] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
         - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
           immediately sensitive and correctly reflects configured state on startup
-          when Hide Dock is enabled (no longer disabled by legacy is_wayland check).
-        - When ON, expands edge trigger zone to 5px for fluid cursor unhide.
-        - Mouse touching edge unhides dock immediately.
+          when Hide Dock is enabled.
+        - When OFF (default), provides a comfortable 10px unhide zone for fluid everyday unhiding.
+        - When ON (pressure mode), enforces strict 1px edge barrier preventing accidental unhiding.
+        - Verify all 14 switches across Appearance, Behaviour, and Windows display clear, consistent tooltips on both switch and label.
    [ok] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -437,6 +438,9 @@ GNOME BUGS / NOTES:
  - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank Compatibility.
    * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in the active GTK theme folder (which no modern theme provides), issuing terminal warnings and falling back to static non-adaptive defaults. Additionally, legacy Plank theme folders (~/.local/share/plank/themes, /usr/share/plank/themes) were ignored.
    * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color, theme_selected_bg_color, borders), auto-detects dark/light mode, and synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light) with live updating on theme or dark mode toggle. Added multi-tier search across Wayplank and legacy Plank theme directories (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes) guaranteeing 100% Plank theme compatibility.
+ - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure) & Universal Preferences Switch Tooltips.
+   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely.
+   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and their corresponding labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala).
 
 
 
@@ -479,7 +483,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
           Trash.
         - Attempt to drag locked items (Preferences, Separator, Trash):
           drag cleanly aborts with zero GLib terminal warnings.
-   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+   [ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click on a folder dock item toggles the Folder Launcher menu.
         - Right-click on folder dock item is dedicated to dock management
           ("Keep in Dock", "Open in File Browser", "Preferences").
@@ -501,7 +505,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [ok] 1.9  First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click App -> 'Change Icon...': instant search, custom
           icon applies cleanly, 'Restore Default' restores original.
         - Folder drawers accept custom icons via GIO metadata.
@@ -560,12 +564,13 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
    [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
    [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal:
+   [  ] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
         - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
           immediately sensitive and correctly reflects configured state on startup
-          when Hide Dock is enabled (no longer disabled by legacy is_wayland check).
-        - When ON, expands edge trigger zone to 5px for fluid cursor unhide.
-        - Mouse touching edge unhides dock immediately.
+          when Hide Dock is enabled.
+        - When OFF (default), provides a comfortable 10px unhide zone for fluid everyday unhiding.
+        - When ON (pressure mode), enforces strict 1px edge barrier preventing accidental unhiding.
+        - Verify all 14 switches across Appearance, Behaviour, and Windows display clear, consistent tooltips on both switch and label.
    [ok] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -634,7 +639,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [ok] 6.7  Digital Clock Visual Tile:
         - Verify Digital Clock displays modern tile with digital numerals
           (01:18), NOT an analog clock dial with hands.
-   [  ] 6.8  100% Internal Binary GResource Fallbacks:
+   [ok] 6.8  100% Internal Binary GResource Fallbacks:
         - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
           (12 levels) render properly from binary.
         - Brightness scale (High, Med, Low, Base) and Weather scale (7 conditions)
@@ -650,7 +655,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [  ] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
+   [ok] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
         - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
         - Displays brightness icon with graded vector artwork (high, medium, low).
         - Badge counter displays current brightness percentage with % (e.g. 75%).
@@ -660,7 +665,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
           Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
-   [  ] 6.11 Weather Forecast Docklet (docklet://weather):
+   [ok] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
         - Badge counter displays current temperature with unit in °C or °F (e.g. 18°C or
@@ -678,7 +683,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
-   [  ] 6.13 Network & Wi-Fi Docklet (docklet://network):
+   [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Fills the 14th slot in the Preferences Docklets 2x7 grid with a
           complete hardware monitor.
         - Real-time network detection via GIO NetworkMonitor and
@@ -707,13 +712,13 @@ SESSION 2: KDE PLASMA (KWin Backend)
           held/inhibited while any dialog (Preferences, Help, Icon Chooser,
           Weather) or menu is open. On close, restarts full delay if cursor
           is outside, or keeps drawer open if cursor is on dock.
-   [  ] 6.15 Global System Pressure Engine (docklet://cpu):
+   [ok] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
         - Badge counter displays combined system pressure with % [0-100%]
           (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
         - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
-   [  ] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
+   [ok] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
         - Volume and Battery docklets retire custom Cairo vector drawings; render
           standard theme icons and embedded GResource vector fallbacks.
         - Battery displays charge percentage with % on native numeric top badge (e.g. 70%); zero
@@ -724,7 +729,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Media Player (docklet://mpris) renders dedicated player icon
           (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
           play/pause state queries free of generic flat overrides.
-   [  ] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
+   [ok] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
         - Verify numeric badges display appropriate units: Weather displays
           temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU), Battery,
           Volume, Network, and Brightness display percentages with % (e.g. 12%,
@@ -749,7 +754,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
         Real-time slider resizing works smoothly across all values (24px to
         64px+); auto-shrink does NOT crush icons to 24px minimum due to
         separator count or uninitialized monitor geometry
-   [  ] 7.5 Theme Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank Compatibility:
+   [ok] 7.5 Theme Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank Compatibility:
         - Select "Gtk+" in Preferences -> Appearance -> Theme.
         - Verify dock dynamically samples active GTK theme background and accent palette.
         - In Dark Mode: renders sleek dark translucent dock (rgba ~0.80) with subtle depth gradient.
@@ -760,7 +765,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
    [ok] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
+   [ok] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
           (7 items left column, 7 items right column):
@@ -800,7 +805,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
           indicators, retention, right-click shortcuts, and icon chooser.
    [ok] 7.12 Shortcuts & Gestures Centering:
         - Window opens properly centered on screen under KWin.
-   [  ] 7.13 Workspace Only Wayland Dormancy:
+   [ok] 7.13 Workspace Only Wayland Dormancy:
         - Open Preferences -> Behaviour tab.
         - Verify 'Workspace Only' switch is insensitive (greyed out).
         - Verify hovering either the switch or label displays tooltip:
@@ -860,6 +865,9 @@ PLASMA BUGS / NOTES:
  - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank Compatibility.
    * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in the active GTK theme folder (which no modern theme provides), issuing terminal warnings and falling back to static non-adaptive defaults. Additionally, legacy Plank theme folders (~/.local/share/plank/themes, /usr/share/plank/themes) were ignored.
    * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color, theme_selected_bg_color, borders), auto-detects dark/light mode, and synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light) with live updating on theme or dark mode toggle. Added multi-tier search across Wayplank and legacy Plank theme directories (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes) guaranteeing 100% Plank theme compatibility.
+ - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure) & Universal Preferences Switch Tooltips.
+   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely.
+   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and their corresponding labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala).
 
 
 
@@ -983,12 +991,13 @@ SESSION 3: LABWC (wlroots Backend)
    [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
    [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
    [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal:
+   [  ] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
         - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
           immediately sensitive and correctly reflects configured state on startup
-          when Hide Dock is enabled (no longer disabled by legacy is_wayland check).
-        - When ON, expands edge trigger zone to 5px for fluid cursor unhide.
-        - Mouse touching edge unhides dock immediately.
+          when Hide Dock is enabled.
+        - When OFF (default), provides a comfortable 10px unhide zone for fluid everyday unhiding.
+        - When ON (pressure mode), enforces strict 1px edge barrier preventing accidental unhiding.
+        - Verify all 14 switches across Appearance, Behaviour, and Windows display clear, consistent tooltips on both switch and label.
    [ok] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -1286,6 +1295,9 @@ LABWC BUGS / NOTES:
  - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank Compatibility.
    * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in the active GTK theme folder (which no modern theme provides), issuing terminal warnings and falling back to static non-adaptive defaults. Additionally, legacy Plank theme folders (~/.local/share/plank/themes, /usr/share/plank/themes) were ignored.
    * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color, theme_selected_bg_color, borders), auto-detects dark/light mode, and synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light) with live updating on theme or dark mode toggle. Added multi-tier search across Wayplank and legacy Plank theme directories (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes) guaranteeing 100% Plank theme compatibility.
+ - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure) & Universal Preferences Switch Tooltips.
+   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely.
+   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and their corresponding labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala).
 
 
 

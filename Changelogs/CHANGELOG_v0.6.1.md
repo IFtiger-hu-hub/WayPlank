@@ -135,13 +135,19 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
 - Media Player displays identical media player artwork in both Preferences and Dock.
 - Screen Brightness displays identical monitor-with-sun artwork in both Preferences and Dock.
 
-### 5.1. Pressure Reveal Startup Sensitivity & Wayland Edge Zone
-- **Issue**: In `PreferencesWindow.vala`, `sw_pressure_reveal.sensitive` was previously guarded behind `!is_wayland`, disabling the switch on startup with an obsolete tooltip under Wayland sessions, while toggling "Hide Dock" off/on unlocked it.
-- **Resolution**: Under Wayland, `PressureReveal` is natively utilized by `PositionManager.vala` to expand the edge trigger input region from 1px to 5px for responsive cursor unhiding across KWin, Labwc, and Mutter. Removed the legacy `!is_wayland` restriction in `init_controls()`, ensuring the switch is immediately sensitive and accurately reflects the configured state on startup.
+### 5.1. Pressure Reveal Semantics Inversion & 10px / 1px Calibration
+- **Issue**: Previously, enabling `PressureReveal` created a larger edge trigger zone while disabling it enforced a 1px boundary. This inverted the intuitive physical meaning of "Pressure" (which should act as a resistance barrier requiring deliberate pushing against the screen edge).
+- **Resolution**: Inverted the `edge_size` mapping in `PositionManager.vala`:
+  - **Enabled (`true`)**: Enforces a strict 1px edge barrier, requiring the cursor to touch the physical screen edge to reveal the dock, preventing accidental unhiding while working in full-screen applications or scrollbars.
+  - **Disabled (`false`, Default)**: Provides a relaxed 10px unhide zone (`10 * window_scale_factor`), allowing fluid and responsive everyday reveal before hitting the bezel.
+  - Removed the legacy `!is_wayland` restriction in `init_controls()`, ensuring the switch is immediately sensitive and accurately reflects the configured state on startup.
 
 ### 5.2. Workspace Only Wayland Dormancy & Informative Tooltip
 - **Context**: In X11 Plank, `CurrentWorkspaceOnly` utilized `libwnck` to filter dock items per desktop workspace. Under Wayland, cross-compositor workspace querying is not yet standardized across Mutter, KWin, and wlroots/Labwc (slated for v0.7.0).
 - **Resolution**: In `PreferencesWindow.vala` and `data/ui/preferences.ui`, `sw_workspace_only` is set to insensitive (`sensitive = false`) and annotated with the honest, informative tooltip `_("Workspace filtering is not yet supported under Wayland")` on both the switch and its label. This eliminates placebo switch confusion while preserving settings schema compatibility.
+
+### 5.3. Universal Preferences Switch Tooltips
+- Added descriptive, consistent tooltips across all 14 switches and their corresponding labels in the Appearance, Behaviour, and Windows tabs (`data/ui/preferences.ui`, `PreferencesWindow.vala`), providing instant user guidance.
 
 ---
 

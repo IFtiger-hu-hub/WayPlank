@@ -247,7 +247,7 @@ WayPlank is architected from the ground up for modern multi-monitor Wayland setu
   - `Intelligent`: Dock automatically slides out of view only when an active window overlaps its territory.
   - `Autohide`: Dock hides whenever the mouse leaves its boundary.
   - `Dodge Active Window`: Dock hides only when the focused window overlaps it.
-- **Pressure Reveal**: Requires deliberate mouse pressure against the screen edge before the dock reveals itself, preventing accidental triggers when working near the border.
+- **Pressure Reveal**: Requires touching the physical screen edge (1px barrier) before the dock reveals itself, preventing accidental triggers when working near the border. When disabled, the dock unhides smoothly 10px before reaching the edge for fluid everyday access.
 
 ### GNOME Shell Mutter Extension Architecture
 On GNOME Wayland sessions, WayPlank communicates with a dedicated, lightweight GNOME Shell extension:

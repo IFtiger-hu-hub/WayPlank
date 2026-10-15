@@ -926,7 +926,7 @@ namespace Plank
 			sw_lock_items.set_active (prefs.LockItems);
 			sw_pressure_reveal.set_active (prefs.PressureReveal);
 			sw_pressure_reveal.sensitive = (prefs.HideMode != HideType.NONE);
-			sw_pressure_reveal.tooltip_text = _("Expands the edge trigger zone (5px) for responsive cursor reveal");
+			sw_pressure_reveal.tooltip_text = _("Requires touching the physical screen edge (1px) to reveal the dock, preventing accidental triggers; when disabled, reveals 10px before the edge for fluid unhiding");
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
 			sw_categorize_items.set_active (prefs.CategorizeItems);
 			sw_accordion_docklets.set_active (prefs.AccordionDocklets);
