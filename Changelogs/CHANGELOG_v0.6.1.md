@@ -146,8 +146,9 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
 - **Context**: In X11 Plank, `CurrentWorkspaceOnly` utilized `libwnck` to filter dock items per desktop workspace. Under Wayland, cross-compositor workspace querying is not yet standardized across Mutter, KWin, and wlroots/Labwc (slated for v0.7.0).
 - **Resolution**: In `PreferencesWindow.vala` and `data/ui/preferences.ui`, `sw_workspace_only` is set to insensitive (`sensitive = false`) and annotated with the honest, informative tooltip `_("Workspace filtering is not yet supported under Wayland")` on both the switch and its label. This eliminates placebo switch confusion while preserving settings schema compatibility.
 
-### 5.3. Universal Preferences Switch Tooltips
+### 5.3. Universal Preferences Switch Tooltips & Informative Click Behavior Options
 - Added descriptive, consistent tooltips across all 14 switches and their corresponding labels in the Appearance, Behaviour, and Windows tabs (`data/ui/preferences.ui`, `PreferencesWindow.vala`), providing instant user guidance.
+- Expanded the **Click Behavior** combobox in the Applications tab with clear in-line explanations for each mode (`Smart: Focus, toggle or cycle windows`, `Focus: Raise active window to front`, `Cycle: Step through open windows`) alongside explanatory tooltips on both the combobox and its label.
 
 ---
 
@@ -183,6 +184,26 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
 - **Dark/Light Mode Detection & Live Hot-Reloading**: Automatically distinguishes Dark vs. Light mode via ITU-R luminance ($Y = 0.299R + 0.587G + 0.114B$) and desktop preferences (`gtk_application_prefer_dark_theme`). Synthesizes translucent dark glass (`rgba` ~0.80) or crisp light glass (`rgba` ~0.84) with live signal listening on `notify["gtk-application-prefer-dark-theme"]` and `notify["gtk-theme-name"]` in `DockRenderer.vala` for instant live recalculation without dock restart.
 - **Desktop Accent Color Wiring (`DockTheme.vala`)**: Set `BadgeColor` to transparent in dynamic GTK mode, directing `DockRenderer.vala` to render docklet badges and urgency indicators with the system's active desktop accent color.
 - **Comprehensive Plank Legacy Discovery**: Multi-tier directory scan across `~/.local/share/wayplank/themes`, `~/.local/share/plank/themes`, `~/.themes`, `/usr/share/wayplank/themes`, and system `/usr/share/plank/themes` with 100% parser fidelity for `dock.theme` and `hover.theme`.
+
+### 6.6. Dynamic Layout Refresh & Compositor Synchronization on "Show Unpinned" Toggle (Bug 10 Squashed)
+- **The Defect**: Toggling "Show Unpinned" (`show-unpinned`) in the Preferences Behaviour tab previously updated in-memory state but did not invoke `sync_compositor_windows()` or gate transient generation via `is_pinned_only()`. When toggling Show Unpinned ON, `internal_elements` still contained zero transient dock items because none had been created or queried from the compositor yet. They remained absent until an external window focus event arrived from the compositor, which triggered `WindowManager.windows_refreshed` and called `sync_compositor_windows()`.
+- **The Resolution**:
+  1. In `ApplicationDockItemProvider.vala`, introduced the `is_pinned_only()` virtual hook (overridden by `DefaultApplicationDockItemProvider` to return `Prefs.PinnedOnly`).
+  2. In `sync_compositor_windows()`, gated transient item creation on `!is_pinned_only()` and pruned transients when `is_pinned_only()` is active, preventing redundant transient objects when unpinned apps are disabled.
+  3. In `DefaultApplicationDockItemProvider.vala`, invoked `sync_compositor_windows()` immediately within `handle_pinned_only_changed()` followed by the full dock layout refresh pipeline:
+  ```vala
+  sync_compositor_windows ();
+  update_visible_elements ();
+  dock.refresh_visible_elements ();
+  dock.position_manager.update (dock.renderer.theme);
+  dock.renderer.reset_buffers ();
+  dock.schedule_serialize_item_positions ();
+  if (dock.window != null) {
+      dock.window.set_input_mask ();
+  }
+  dock.renderer.animated_draw ();
+  ```
+  Unpinned running items now appear and disappear instantaneously with smooth fluid animations upon toggling the switch, with zero requirement for external compositor window focus events.
 
 ---
 
@@ -220,10 +241,13 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
 | `data/ui/preferences.ui` | Updated docklet icon names for Trash, Media Player, and Volume to match prioritized theme specifications, and disabled `Workspace Only` switch with explanatory tooltip. |
 | `data/plank.gresource.xml` | Registered all new graded brightness and weather SVG fallback assets. |
 | `data/docklets/` | Populated and refreshed fallback SVG assets: `brightness*.svg` (4 files), `weather-*.svg` (7 files), `trash*.svg` (2 files), and `mpris.svg`. |
+| `lib/Items/ApplicationDockItemProvider.vala` | Added `is_pinned_only()` virtual method, made `sync_compositor_windows()` public, and gated transient window item addition/pruning on `is_pinned_only()`. |
+| `lib/Items/DefaultApplicationDockItemProvider.vala` | Overrode `is_pinned_only()` returning `Prefs.PinnedOnly`, called `base.prepare()` in `prepare()`, and wired `sync_compositor_windows()` with the full dock refresh pipeline in `handle_pinned_only_changed()`. |
+| `lib/PositionManager.vala` | Inverted `edge_size` mapping for Pressure Reveal: default (disabled) provides a fluid 10px unhide margin, while enabled enforces a strict 1px edge barrier against accidental unhides. |
 | `README.md` | Updated release badge to v0.6.1, streamlined changelog recap (strictly under 4 lines), and documented new fallback asset scale. |
-| `Documentation/wayplank_x11_to_wayland_report_en.md` | Added Section 17 documenting multi-monitor brightness sync, Global System Pressure algorithm, docklet icon standardization, Section 17.5 on drag & drop payload delivery, Section 17.6 on theme switching icon resiliency, Section 17.7 on folder menu geometry stabilization, and Section 17.8 on adaptive dynamic Gtk+ theme engine. |
-| `Documentation/USER_GUIDE.md` | Documented the adaptive dynamic Gtk+ theme engine and comprehensive Plank theme directories search paths. |
-| `FAT/2026-10-14 FAT 0.6.1.txt` | Created the Factory Acceptance Test protocol for v0.6.1 covering all new features and regressions across all 3 compositors, including Section 7.5 theme tests. |
+| `Documentation/wayplank_x11_to_wayland_report_en.md` | Added Section 17 documenting multi-monitor brightness sync, Global System Pressure algorithm, docklet icon standardization, drag & drop payload delivery, theme switching icon resiliency, folder menu geometry stabilization, adaptive dynamic Gtk+ theme engine, pressure reveal calibration, and dynamic Show Unpinned refresh. |
+| `Documentation/USER_GUIDE.md` | Documented the adaptive dynamic Gtk+ theme engine, comprehensive Plank theme directories search paths, and calibrated Pressure Reveal semantics. |
+| `FAT/2026-10-15 FAT 0.6.1.txt` | Created the Factory Acceptance Test protocol for v0.6.1 covering all new features and regressions across all 3 compositors, including Section 3.7 Pressure Reveal, Section 7.5 theme tests, and Section 7.14 Show Unpinned dynamic refresh tests. |
 
 ---
 

@@ -37,6 +37,21 @@ Feel free to star the repo or follow releases if you want to track progress!
 
 ---
 
+## 📸 Screenshots
+
+![Wayplank Dock & Drawers Showcase](Screenshots/2.png)
+
+<details>
+<summary><b>🔍 Click to view full desktop integration (1920x1080)</b></summary>
+
+<br>
+
+![Wayplank Full Desktop](Screenshots/1.png)
+
+</details>
+
+---
+
 # Universal Build & Installation Guide (Any Linux Distribution)
 
 ## 1. CORE DEPENDENCIES

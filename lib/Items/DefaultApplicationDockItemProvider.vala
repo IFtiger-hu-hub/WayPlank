@@ -767,6 +767,8 @@ namespace Plank
 
 		public override void prepare ()
 		{
+			base.prepare ();
+
 			var favs = new Gee.ArrayList<string> ();
 
 			foreach (var element in internal_elements) {
@@ -776,6 +778,11 @@ namespace Plank
 			}
 
 			Matcher.get_default ().set_favorites (favs);
+		}
+
+		protected override bool is_pinned_only ()
+		{
+			return Prefs.PinnedOnly;
 		}
 
 		protected override void app_opened (string app_id)
@@ -817,7 +824,20 @@ namespace Plank
 
 		void handle_pinned_only_changed ()
 		{
+			sync_compositor_windows ();
 			update_visible_elements ();
+
+			unowned DockController? dock = get_dock ();
+			if (dock != null && dock.renderer != null && dock.renderer.theme != null) {
+				dock.refresh_visible_elements ();
+				dock.position_manager.update (dock.renderer.theme);
+				dock.renderer.reset_buffers ();
+				dock.schedule_serialize_item_positions ();
+				if (dock.window != null) {
+					dock.window.set_input_mask ();
+				}
+				dock.renderer.animated_draw ();
+			}
 		}
 
 		protected override void connect_element (DockElement element)

@@ -923,6 +923,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Click Behavior:</property>
+                <property name="tooltip_text" translatable="yes">How clicking a running application icon interacts with its windows</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -934,10 +935,11 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="hexpand">True</property>
                 <property name="width_request">200</property>
+                <property name="tooltip_text" translatable="yes">How clicking a running application icon interacts with its windows</property>
                 <items>
-                  <item id="0" translatable="yes">Smart</item>
-                  <item id="1" translatable="yes">Focus</item>
-                  <item id="2" translatable="yes">Cycle</item>
+                  <item id="0" translatable="yes">Smart: Focus, toggle or cycle windows</item>
+                  <item id="1" translatable="yes">Focus: Raise active window to front</item>
+                  <item id="2" translatable="yes">Cycle: Step through open windows</item>
                 </items>
               </object>
               <packing>

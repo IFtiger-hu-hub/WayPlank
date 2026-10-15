@@ -990,7 +990,16 @@ Wayplank v0.6.1 standardizes all 14 docklets onto a clean two-tier resolution mo
     5. `/usr/share/plank/themes` across all `XDG_DATA_DIRS` (system Plank themes)
   - Verified 100% parameter compatibility with legacy Plank `dock.theme` and `hover.theme` files.
 
-### 17.9. Strict HAL Protection & Compositor Safety Guarantee
+### 17.9. Pressure Reveal Semantics Calibration, Universal Switch Tooltips & Informative Click Behavior Options
+- **Edge Barrier Physics**: Inverted `edge_size` mapping in `PositionManager.vala`. Disabling Pressure Reveal provides a fluid 10px trigger zone for effortless cursor reveal before hitting the bezel, while enabling it enforces a strict 1px edge contact barrier preventing accidental dock exposure during fullscreen work.
+- **Universal Tooltips & Extended Options**: Standardized comprehensive, descriptive tooltips across all 14 switches and labels in Appearance, Behaviour, and Windows preferences tabs. Expanded the Click Behavior combobox with informative in-line explanations (`Smart: Focus, toggle or cycle windows`, `Focus: Raise active window to front`, `Cycle: Step through open windows`) and contextual tooltips.
+
+### 17.10. Dynamic Layout Refresh & Compositor Synchronization on "Show Unpinned" Toggle (Bug 10 Squashed)
+- **Synchronous Pipeline Trigger**: In `DefaultApplicationDockItemProvider.vala` (`handle_pinned_only_changed`), hooked `sync_compositor_windows()` alongside the complete dock layout pipeline (`refresh_visible_elements`, `position_manager.update`, `reset_buffers`, `schedule_serialize_item_positions`, `set_input_mask`, and `animated_draw`).
+- **Gated Transient Lifecycle**: Introduced `is_pinned_only()` in `ApplicationDockItemProvider.vala` to cleanly prune transient dock items when Show Unpinned is disabled and immediately instantiate running unpinned window launchers from `WindowControl.get_windows()` when enabled.
+- **Immediate Visual Reaction**: Toggling "Show Unpinned" dynamically pops open or smoothly closes unpinned active applications on the dock without requiring external compositor window focus events.
+
+### 17.11. Strict HAL Protection & Compositor Safety Guarantee
 - **Protected Backend Layer:** `lib/Services/*` remained 100% untouched throughout all v0.6.1 updates. All adjustments were strictly contained within dock items, preferences UI, drawing fallbacks, and compiled vector assets.
 
 ---

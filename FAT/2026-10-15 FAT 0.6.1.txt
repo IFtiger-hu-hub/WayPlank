@@ -1,15 +1,19 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-10-14
+Date: 2026-10-15
 Milestone: V0.6.1 (KWin Multi-Monitor Brightness Synchronization, Global
            System Pressure Engine, Docklet Icon Standardization & Preferences
            Visual Parity)
 Author & Tester: Sergio Melas
+Compositor Validation Status:
+  - KDE PLASMA (KWin Backend): FINISHED (100% Passed)
+  - GNOME (Mutter Backend): ONGOING
+  - LABWC (wlroots Backend): ONGOING
 
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend)
+SESSION 1: GNOME (Mutter Backend) - [ONGOING]
 ================================================================================
 
 0. Crashes during test
@@ -137,6 +141,7 @@ SESSION 1: GNOME (Mutter Backend)
         - When OFF (default), provides a comfortable 10px unhide zone for fluid everyday unhiding.
         - When ON (pressure mode), enforces strict 1px edge barrier preventing accidental unhiding.
         - Verify all 14 switches across Appearance, Behaviour, and Windows display clear, consistent tooltips on both switch and label.
+        - Verify "Click Behavior" in Applications displays informative option descriptions ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") and tooltips.
    [ok] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -387,6 +392,10 @@ SESSION 1: GNOME (Mutter Backend)
           "Workspace filtering is not yet supported under Wayland".
         - Verify dock remains stable and all running applications remain
           accessible.
+   [  ] 7.14 Show Unpinned Dynamic Refresh:
+        - Open Preferences -> Behaviour tab -> toggle "Show Unpinned".
+        - When enabled (ON), all running unpinned applications immediately appear on the dock without requiring window focus.
+        - When disabled (OFF), all unpinned applications disappear immediately, leaving only pinned apps.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [ok] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -438,14 +447,17 @@ GNOME BUGS / NOTES:
  - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank Compatibility.
    * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in the active GTK theme folder (which no modern theme provides), issuing terminal warnings and falling back to static non-adaptive defaults. Additionally, legacy Plank theme folders (~/.local/share/plank/themes, /usr/share/plank/themes) were ignored.
    * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color, theme_selected_bg_color, borders), auto-detects dark/light mode, and synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light) with live updating on theme or dark mode toggle. Added multi-tier search across Wayplank and legacy Plank theme directories (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes) guaranteeing 100% Plank theme compatibility.
- - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure) & Universal Preferences Switch Tooltips.
-   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely.
-   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and their corresponding labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala).
+ - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure), Universal Switch Tooltips & Informative Click Behavior Options.
+   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely, and Click Behavior only displayed terse one-word options without explanation.
+   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala), and expanded Click Behavior dropdown items with clear in-line explanations ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") plus tooltips.
+ - BUG 10 (Squashed): Toggling "Show Unpinned" in Preferences did not refresh running unpinned items until focusing a window.
+   * Root Cause: Previously, toggling "Show Unpinned" did not invoke sync_compositor_windows() or gate transient generation via is_pinned_only(). When toggling Show Unpinned ON, internal_elements still contained 0 transient dock items because none had been queried from the compositor yet. They remained absent until an external window focus event arrived, which fired WindowManager.windows_refreshed and called sync_compositor_windows().
+   * Fix: Added is_pinned_only() virtual hook to gate transient generation/pruning in ApplicationDockItemProvider, invoked sync_compositor_windows() directly within handle_pinned_only_changed(), and executed the complete dock layout and animation pipeline (refresh_visible_elements, position_manager.update, reset_buffers, set_input_mask, animated_draw), ensuring running unpinned applications appear and disappear instantaneously without window focus.
 
 
 
 ================================================================================
-SESSION 2: KDE PLASMA (KWin Backend)
+SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
 ================================================================================
 
 0. Crashes during test
@@ -564,13 +576,14 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
    [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
    [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
+   [ok] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
         - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
           immediately sensitive and correctly reflects configured state on startup
           when Hide Dock is enabled.
         - When OFF (default), provides a comfortable 10px unhide zone for fluid everyday unhiding.
         - When ON (pressure mode), enforces strict 1px edge barrier preventing accidental unhiding.
         - Verify all 14 switches across Appearance, Behaviour, and Windows display clear, consistent tooltips on both switch and label.
+        - Verify "Click Behavior" in Applications displays informative option descriptions ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") and tooltips.
    [ok] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -812,6 +825,10 @@ SESSION 2: KDE PLASMA (KWin Backend)
           "Workspace filtering is not yet supported under Wayland".
         - Verify dock remains stable and all running applications remain
           accessible.
+   [ok] 7.14 Show Unpinned Dynamic Refresh:
+        - Open Preferences -> Behaviour tab -> toggle "Show Unpinned".
+        - When enabled (ON), all running unpinned applications immediately appear on the dock without requiring window focus.
+        - When disabled (OFF), all unpinned applications disappear immediately, leaving only pinned apps.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [ok] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -865,14 +882,17 @@ PLASMA BUGS / NOTES:
  - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank Compatibility.
    * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in the active GTK theme folder (which no modern theme provides), issuing terminal warnings and falling back to static non-adaptive defaults. Additionally, legacy Plank theme folders (~/.local/share/plank/themes, /usr/share/plank/themes) were ignored.
    * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color, theme_selected_bg_color, borders), auto-detects dark/light mode, and synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light) with live updating on theme or dark mode toggle. Added multi-tier search across Wayplank and legacy Plank theme directories (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes) guaranteeing 100% Plank theme compatibility.
- - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure) & Universal Preferences Switch Tooltips.
-   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely.
-   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and their corresponding labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala).
+ - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure), Universal Switch Tooltips & Informative Click Behavior Options.
+   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely, and Click Behavior only displayed terse one-word options without explanation.
+   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala), and expanded Click Behavior dropdown items with clear in-line explanations ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") plus tooltips.
+ - BUG 10 (Squashed): Toggling "Show Unpinned" in Preferences did not refresh running unpinned items until focusing a window.
+   * Root Cause: Previously, toggling "Show Unpinned" did not invoke sync_compositor_windows() or gate transient generation via is_pinned_only(). When toggling Show Unpinned ON, internal_elements still contained 0 transient dock items because none had been queried from the compositor yet. They remained absent until an external window focus event arrived, which fired WindowManager.windows_refreshed and called sync_compositor_windows().
+   * Fix: Added is_pinned_only() virtual hook to gate transient generation/pruning in ApplicationDockItemProvider, invoked sync_compositor_windows() directly within handle_pinned_only_changed(), and executed the complete dock layout and animation pipeline (refresh_visible_elements, position_manager.update, reset_buffers, set_input_mask, animated_draw), ensuring running unpinned applications appear and disappear instantaneously without window focus.
 
 
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend)
+SESSION 3: LABWC (wlroots Backend) - [ONGOING]
 ================================================================================
 
 0. Crashes during test
@@ -998,6 +1018,7 @@ SESSION 3: LABWC (wlroots Backend)
         - When OFF (default), provides a comfortable 10px unhide zone for fluid everyday unhiding.
         - When ON (pressure mode), enforces strict 1px edge barrier preventing accidental unhiding.
         - Verify all 14 switches across Appearance, Behaviour, and Windows display clear, consistent tooltips on both switch and label.
+        - Verify "Click Behavior" in Applications displays informative option descriptions ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") and tooltips.
    [ok] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -1243,6 +1264,10 @@ SESSION 3: LABWC (wlroots Backend)
           "Workspace filtering is not yet supported under Wayland".
         - Verify dock remains stable and all running applications remain
           accessible.
+   [  ] 7.14 Show Unpinned Dynamic Refresh:
+        - Open Preferences -> Behaviour tab -> toggle "Show Unpinned".
+        - When enabled (ON), all running unpinned applications immediately appear on the dock without requiring window focus.
+        - When disabled (OFF), all unpinned applications disappear immediately, leaving only pinned apps.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [ok] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -1295,9 +1320,12 @@ LABWC BUGS / NOTES:
  - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank Compatibility.
    * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in the active GTK theme folder (which no modern theme provides), issuing terminal warnings and falling back to static non-adaptive defaults. Additionally, legacy Plank theme folders (~/.local/share/plank/themes, /usr/share/plank/themes) were ignored.
    * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color, theme_selected_bg_color, borders), auto-detects dark/light mode, and synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light) with live updating on theme or dark mode toggle. Added multi-tier search across Wayplank and legacy Plank theme directories (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes) guaranteeing 100% Plank theme compatibility.
- - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure) & Universal Preferences Switch Tooltips.
-   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely.
-   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and their corresponding labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala).
+ - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure), Universal Switch Tooltips & Informative Click Behavior Options.
+   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely, and Click Behavior only displayed terse one-word options without explanation.
+   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala), and expanded Click Behavior dropdown items with clear in-line explanations ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") plus tooltips.
+ - BUG 10 (Squashed): Toggling "Show Unpinned" in Preferences did not refresh running unpinned items until focusing a window.
+   * Root Cause: Previously, toggling "Show Unpinned" did not invoke sync_compositor_windows() or gate transient generation via is_pinned_only(). When toggling Show Unpinned ON, internal_elements still contained 0 transient dock items because none had been queried from the compositor yet. They remained absent until an external window focus event arrived, which fired WindowManager.windows_refreshed and called sync_compositor_windows().
+   * Fix: Added is_pinned_only() virtual hook to gate transient generation/pruning in ApplicationDockItemProvider, invoked sync_compositor_windows() directly within handle_pinned_only_changed(), and executed the complete dock layout and animation pipeline (refresh_visible_elements, position_manager.update, reset_buffers, set_input_mask, animated_draw), ensuring running unpinned applications appear and disappear instantaneously without window focus.
 
 
 

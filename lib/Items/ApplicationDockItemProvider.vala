@@ -187,7 +187,12 @@ namespace Plank
 			sync_compositor_windows ();
 		}
 
-		void sync_compositor_windows ()
+		protected virtual bool is_pinned_only ()
+		{
+			return false;
+		}
+
+		public void sync_compositor_windows ()
 		{
 			var windows = WindowControl.get_windows ();
 			var discovery = ApplicationDiscovery.get_default ();
@@ -236,7 +241,7 @@ namespace Plank
 					}
 				}
 
-				if (!already_exists) {
+				if (!already_exists && !is_pinned_only ()) {
 					DockElement? trash_target = null;
 					foreach (var element in internal_elements) {
 						if (element is TrashDockItem) {
@@ -253,7 +258,7 @@ namespace Plank
 				if (transient == null)
 					continue;
 
-				if (!active_transient_launchers.contains (transient.Launcher))
+				if (is_pinned_only () || !active_transient_launchers.contains (transient.Launcher))
 					remove (transient);
 			}
 		}
