@@ -289,6 +289,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Icon Size:</property>
                 <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Preferred dock item size in pixels (24px to 128px); when screen space is full, items auto-shrink unless Scroll on Overflow is enabled</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -305,9 +306,11 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkSpinButton" id="sp_iconsize">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="valign">start</property>
                     <property name="invisible_char">•</property>
                     <property name="adjustment">adj_iconsize</property>
                     <property name="numeric">True</property>
+                    <property name="tooltip_text" translatable="yes">Adjust dock item size in pixels (24px to 128px)</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -316,14 +319,44 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScale" id="s_iconsize">
+                  <object class="GtkBox" id="box_scale_and_hint">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">2</property>
                     <property name="hexpand">True</property>
-                    <property name="adjustment">adj_iconsize</property>
-                    <property name="digits">0</property>
-                    <property name="draw_value">False</property>
-                    <property name="value_pos">left</property>
+                    <child>
+                      <object class="GtkScale" id="s_iconsize">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="adjustment">adj_iconsize</property>
+                        <property name="digits">0</property>
+                        <property name="draw_value">False</property>
+                        <property name="value_pos">left</property>
+                        <property name="tooltip_text" translatable="yes">Adjust dock item size in pixels; turning red indicates the screen capacity is exceeded and icons are auto-shrunk</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="l_iconsize_hint">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="xalign">0</property>
+                        <property name="use_markup">True</property>
+                        <property name="tooltip_text" translatable="yes">Dynamic indicator of screen space capacity and auto-shrink status</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -883,6 +916,32 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="left_attach">3</property>
                 <property name="top_attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_scroll_overflow">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Scroll on Overflow:</property>
+                <property name="tooltip_text" translatable="yes">Smoothly scroll items with mouse wheel when dock exceeds screen space, preserving full icon size instead of auto-shrinking icons</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_scroll_overflow">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Smoothly scroll items with mouse wheel when dock exceeds screen space, preserving full icon size instead of auto-shrinking icons</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">7</property>
               </packing>
             </child>
           </object>

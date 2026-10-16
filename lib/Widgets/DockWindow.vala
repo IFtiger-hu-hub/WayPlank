@@ -1,6 +1,7 @@
 //
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
+//  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
 //  This file is part of Wayplank.
 //
@@ -496,18 +497,27 @@ namespace Plank
 			if (controller.drag_manager.InternalDragActive)
 				return Gdk.EVENT_STOP;
 
+			// Retain accordion expansion during wheel scrolling
+			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+				if (controller.app_provider.docklets_expanded) {
+					controller.app_provider.cancel_collapse_timer ();
+				}
+			}
+
 			Gdk.ScrollDirection direction = event.direction;
+			double raw_dx = 0.0, raw_dy = 0.0;
+			bool has_deltas = (direction == Gdk.ScrollDirection.SMOOTH && event.get_scroll_deltas (out raw_dx, out raw_dy));
+
 			if (direction == Gdk.ScrollDirection.SMOOTH) {
-				double dx, dy;
-				if (event.get_scroll_deltas (out dx, out dy)) {
+				if (has_deltas) {
 					if (event.time - last_scroll_time > 400U) {
 						smooth_scroll_dx = 0.0;
 						smooth_scroll_dy = 0.0;
 					}
 					last_scroll_time = event.time;
 
-					smooth_scroll_dx += dx;
-					smooth_scroll_dy += dy;
+					smooth_scroll_dx += raw_dx;
+					smooth_scroll_dy += raw_dy;
 
 					if (smooth_scroll_dy <= -0.7) {
 						direction = Gdk.ScrollDirection.UP;
@@ -526,6 +536,18 @@ namespace Plank
 						smooth_scroll_dy = 0.0;
 						smooth_scroll_dx = 0.0;
 					} else {
+						if (controller.position_manager.max_scroll_offset > 0.0) {
+							string? item_type_name = (HoveredItem != null) ? HoveredItem.get_type ().name () : null;
+							bool is_volume = (item_type_name != null && item_type_name.contains ("Volume"));
+							bool is_brightness = (item_type_name != null && item_type_name.contains ("Brightness"));
+							if (!is_volume && !is_brightness) {
+								double d = (Math.fabs (raw_dx) > Math.fabs (raw_dy)) ? raw_dx : raw_dy;
+								if (Math.fabs (d) > 0.02) {
+									controller.position_manager.scroll_by (d * 50.0);
+									return Gdk.EVENT_STOP;
+								}
+							}
+						}
 						return Gdk.EVENT_STOP;
 					}
 				} else {
@@ -542,6 +564,24 @@ namespace Plank
 					controller.prefs.decrease_icon_size ();
 
 				return Gdk.EVENT_STOP;
+			}
+
+			// =====================================================================
+			// Dock Overflow Smooth Scrolling (Fork Integration by 史有虎 / IFtiger-hu)
+			// =====================================================================
+			if (controller.position_manager.max_scroll_offset > 0.0) {
+				string? item_type_name = (HoveredItem != null) ? HoveredItem.get_type ().name () : null;
+				bool is_volume = (item_type_name != null && item_type_name.contains ("Volume"));
+				bool is_brightness = (item_type_name != null && item_type_name.contains ("Brightness"));
+				if (!is_volume && !is_brightness) {
+					if (direction == Gdk.ScrollDirection.LEFT || direction == Gdk.ScrollDirection.UP) {
+						controller.position_manager.scroll_by (-80.0);
+						return Gdk.EVENT_STOP;
+					} else if (direction == Gdk.ScrollDirection.RIGHT || direction == Gdk.ScrollDirection.DOWN) {
+						controller.position_manager.scroll_by (80.0);
+						return Gdk.EVENT_STOP;
+					}
+				}
 			}
 
 			if (HoveredItem != null) {

@@ -1,19 +1,29 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-10-15
+Date: 2026-10-13
 Milestone: V0.6.1 (KWin Multi-Monitor Brightness Synchronization, Global
            System Pressure Engine, Docklet Icon Standardization & Preferences
            Visual Parity)
 Author & Tester: Sergio Melas
 Compositor Validation Status:
   - KDE PLASMA (KWin Backend): FINISHED (100% Passed)
-  - GNOME (Mutter Backend): ONGOING
-  - LABWC (wlroots Backend): ONGOING
+  - GNOME (Mutter Backend): CONCLUDED (Incomplete items marked [NA], deferred to
+    v0.6.2)
+  - LABWC (wlroots Backend): CONCLUDED (Incomplete items marked [NA], deferred
+    to v0.6.2)
 
+
+Test Status Legend (ISA-88 Qualification Standard):
+  - [ok]      : Compliant / Passed (Verified during v0.6.1 testing)
+  - [ko]      : Non-conformance / Defect logged
+  - [ko->ok]  : Remediation verified / Passed on re-test
+  - [ko->imp] : Remediation verified / Passed on re-test but need minor improvement
+  - [NA]      : Not Applicable / Deferred (De-scoped from current test cycle;
+               formally transferred to and tracked under next Milestone FAT
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [ONGOING]
+SESSION 1: GNOME (Mutter Backend) - [CONCLUDED / SCOPE DEFERRED TO v0.6.2]
 ================================================================================
 
 0. Crashes during test
@@ -51,7 +61,7 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
           Trash.
         - Attempt to drag locked items (Preferences, Separator, Trash):
           drag cleanly aborts with zero GLib terminal warnings.
-   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+   [NA] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click on a folder dock item toggles the Folder Launcher menu:
           BUG: The menu appear in the center of the screen.
           Solution use tool-tips coordinates, Solved
@@ -68,22 +78,28 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
         - Subfolder drill-down with back button navigation, launcher execution,
           and document opening.
         - Auto-dismisses when hovering another dock item or on desktop leave.
-        - Gap & Focus Loss Elimination: 4px floating margin following dynamic icon zoom
-          elevation at 60 FPS (zero icon overlap); 450ms dismissal grace timer prevents
-          premature menu closure when moving pointer from dock icon across the gap into
+        - Gap & Focus Loss Elimination: 4px floating margin following dynamic
+          icon zoom
+          elevation at 60 FPS (zero icon overlap); 450ms dismissal grace timer
+          prevents
+          premature menu closure when moving pointer from dock icon across the
+          gap into
           the popup menu across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
    [ok] 1.9  First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [NA] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click App -> 'Change Icon...': instant search, custom
           icon applies cleanly, 'Restore Default' restores original.
         - Folder drawers accept custom icons via GIO metadata.
-        - Changing desktop icon theme when a custom folder icon is missing from the
-          new theme automatically triggers 'Restore Default', falling back to the
+        - Changing desktop icon theme when a custom folder icon is missing from
+          the
+          new theme automatically triggers 'Restore Default', falling back to
+          the
           standard folder drawer presentation (4-item stack preview) instead of
           rendering an empty/blank card.
-        - Empty folder drawers render a centered default folder icon on the frosted
+        - Empty folder drawers render a centered default folder icon on the
+          frosted
           tray instead of an empty blank card.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
@@ -134,14 +150,21 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
    [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
    [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
    [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
+   [NA] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
         - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
-          immediately sensitive and correctly reflects configured state on startup
+          immediately sensitive and correctly reflects configured state on
+          startup
           when Hide Dock is enabled.
-        - When OFF (default), provides a comfortable 10px unhide zone for fluid everyday unhiding.
-        - When ON (pressure mode), enforces strict 1px edge barrier preventing accidental unhiding.
-        - Verify all 14 switches across Appearance, Behaviour, and Windows display clear, consistent tooltips on both switch and label.
-        - Verify "Click Behavior" in Applications displays informative option descriptions ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") and tooltips.
+        - When OFF (default), provides a comfortable 10px unhide zone for fluid
+          everyday unhiding.
+        - When ON (pressure mode), enforces strict 1px edge barrier preventing
+          accidental unhiding.
+        - Verify all 14 switches across Appearance, Behaviour, and Windows
+          display clear, consistent tooltips on both switch and label.
+        - Verify "Click Behavior" in Applications displays informative option
+          descriptions ("Smart: Focus, toggle or cycle windows", "Focus: Raise
+          active window to front", "Cycle: Step through open windows") and
+          tooltips.
    [ok] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -216,10 +239,11 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
    [ok] 6.7  Digital Clock Visual Tile:
         - Verify Digital Clock displays modern tile with digital numerals
           (01:18), NOT an analog clock dial with hands.
-   [  ] 6.8  100% Internal Binary GResource Fallbacks:
+   [NA] 6.8  100% Internal Binary GResource Fallbacks:
         - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
           (12 levels) render properly from binary.
-        - Brightness scale (High, Med, Low, Base) and Weather scale (7 conditions)
+        - Brightness scale (High, Med, Low, Base) and Weather scale (7
+          conditions)
           render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
@@ -232,20 +256,29 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [  ] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
-        - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
-        - Displays brightness icon with graded vector artwork (high, medium, low).
-        - Badge counter displays current brightness percentage with % (e.g. 75%).
+   [NA] 6.10 Sc reen Brightness Multi-Monitor Synchronization & Atomic Graded
+        Resolution:
+        - Atomic Graded Resolution: Probes theme for 100% complete graded set
+          (High, Med, Low); if incomplete or missing, falls back 100% to
+          internal graded vectors (high, medium, low), preventing un-graded flat
+          icons from overriding.
+        - Displays brightness icon with graded vector artwork (high, medium,
+          low).
+        - Badge counter displays current brightness percentage with % (e.g.
+          75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
-        - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
-        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
+        - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
+          -> 100%).
+        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j
+          dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
           Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
-   [  ] 6.11 Weather Forecast Docklet (docklet://weather):
+   [NA] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
-        - Badge counter displays current temperature with unit in °C or °F (e.g. 18°C or
+        - Badge counter displays current temperature with unit in °C or °F (e.g.
+          18°C or
           64°F).
         - Left-click opens modern weather forecast window (WeatherWindow) with
           current temperature, "feels like", humidity, wind speed, and 3-day
@@ -260,7 +293,7 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
-   [  ] 6.13 Network & Wi-Fi Docklet (docklet://network):
+   [NA] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Fills the 14th slot in the Preferences Docklets 2x7 grid with a
           complete hardware monitor.
         - Real-time network detection via GIO NetworkMonitor and
@@ -289,34 +322,45 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
           held/inhibited while any dialog (Preferences, Help, Icon Chooser,
           Weather) or menu is open. On close, restarts full delay if cursor
           is outside, or keeps drawer open if cursor is on dock.
-   [  ] 6.15 Global System Pressure Engine (docklet://cpu):
+   [NA] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
         - Badge counter displays combined system pressure with % [0-100%]
-          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
+          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU,
+          RAM, Disk).
         - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
-   [  ] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
-        - Volume and Battery docklets retire custom Cairo vector drawings; render
+   [NA] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
+        - Volume and Battery docklets retire custom Cairo vector drawings;
+          render
           standard theme icons and embedded GResource vector fallbacks.
-        - Battery displays charge percentage with % on native numeric top badge (e.g. 70%); zero
+        - Battery displays charge percentage with % on native numeric top badge
+          (e.g. 70%); zero
           generic flat preemption in charging/discharging states.
-        - Volume displays exact level with % on native numeric badge (e.g. 24%) and
-          switches to overamplified icon (audio-volume-overamplified / warning vector)
-          above 100% up to 150%; zero generic flat preemption in overamplified state.
+        - Volume displays exact level with % on native numeric badge (e.g. 24%)
+          and
+          switches to overamplified icon (audio-volume-overamplified / warning
+          vector)
+          above 100% up to 150%; zero generic flat preemption in overamplified
+          state.
         - Media Player (docklet://mpris) renders dedicated player icon
           (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
           play/pause state queries free of generic flat overrides.
-   [  ] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
+   [NA] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
         - Verify numeric badges display appropriate units: Weather displays
-          temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU), Battery,
+          temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU),
+          Battery,
           Volume, Network, and Brightness display percentages with % (e.g. 12%,
           70%, 24%, 93%, 80%). Removable volume ejector and unread indicators
           display clean integer counts without units.
-        - Verify compact badge proportions: badge height scales elegantly to ~34%
-          of icon size (min 10px; ~16px on 48px icon, ~24px on 72px icon) without
+        - Verify compact badge proportions: badge height scales elegantly to
+          ~34%
+          of icon size (min 10px; ~16px on 48px icon, ~24px on 72px icon)
+          without
           obscuring underlying icon artwork.
-        - Verify single numbers form a clean circular badge (width = height), while
-          multi-character badges scale compactly with crisp bold white Pango text,
+        - Verify single numbers form a clean circular badge (width = height),
+          while
+          multi-character badges scale compactly with crisp bold white Pango
+          text,
           outline shadow, and highlight across all icon sizes and dynamic zoom.
 
 7. PREFERENCES & CONFIGURATION
@@ -331,18 +375,26 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
         Real-time slider resizing works smoothly across all values (24px to
         64px+); auto-shrink does NOT crush icons to 24px minimum due to
         separator count or uninitialized monitor geometry
-   [  ] 7.5 Theme Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank Compatibility:
+   [NA] 7.5 The me Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank
+        Compatibility:
         - Select "Gtk+" in Preferences -> Appearance -> Theme.
-        - Verify dock dynamically samples active GTK theme background and accent palette.
-        - In Dark Mode: renders sleek dark translucent dock (rgba ~0.80) with subtle depth gradient.
-        - In Light Mode: renders clean light translucent dock (rgba ~0.84) with light border.
-        - Toggling Dark Mode or changing GTK theme updates dock live without restarting.
-        - Verify standard themes (Default, Matte, Transparent, Arian Theme, Arian Theme Light) render 100% properly.
-        - Verify legacy Plank themes installed in ~/.local/share/plank/themes or /usr/share/plank/themes are automatically discovered and loaded with 100% parameter fidelity.
+        - Verify dock dynamically samples active GTK theme background and accent
+          palette.
+        - In Dark Mode: renders sleek dark translucent dock (rgba ~0.80) with
+          subtle depth gradient.
+        - In Light Mode: renders clean light translucent dock (rgba ~0.84) with
+          light border.
+        - Toggling Dark Mode or changing GTK theme updates dock live without
+          restarting.
+        - Verify standard themes (Default, Matte, Transparent, Arian Theme,
+          Arian Theme Light) render 100% properly.
+        - Verify legacy Plank themes installed in ~/.local/share/plank/themes or
+          /usr/share/plank/themes are automatically discovered and loaded with
+          100% parameter fidelity.
    [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
    [ok] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
+   [NA] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
           (7 items left column, 7 items right column):
@@ -385,17 +437,19 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
           causing Mutter bridge to misclassify dialog as dock.
         - Solved: Set title after set_titlebar(), properly classifying it
           as dialog and centering it on screen.
-   [  ] 7.13 Workspace Only Wayland Dormancy:
+   [NA] 7.13 Workspace Only Wayland Dormancy:
         - Open Preferences -> Behaviour tab.
         - Verify 'Workspace Only' switch is insensitive (greyed out).
         - Verify hovering either the switch or label displays tooltip:
           "Workspace filtering is not yet supported under Wayland".
         - Verify dock remains stable and all running applications remain
           accessible.
-   [  ] 7.14 Show Unpinned Dynamic Refresh:
+   [NA] 7.14 Show Unpinned Dynamic Refresh:
         - Open Preferences -> Behaviour tab -> toggle "Show Unpinned".
-        - When enabled (ON), all running unpinned applications immediately appear on the dock without requiring window focus.
-        - When disabled (OFF), all unpinned applications disappear immediately, leaving only pinned apps.
+        - When enabled (ON), all running unpinned applications immediately
+          appear on the dock without requiring window focus.
+        - When disabled (OFF), all unpinned applications disappear immediately,
+          leaving only pinned apps.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [ok] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -425,34 +479,102 @@ SESSION 1: GNOME (Mutter Backend) - [ONGOING]
 
 
 GNOME BUGS / NOTES:
- - BUG 1 (Squashed): Folder Launcher popup menu closed prematurely when cursor moved across gap towards menu.
-   * Root Cause: Hovering off the item set HoveredItem to null, which triggered an immediate (0ms) dismissal.
-   * Fix: Added 450ms dismissal grace window (DISMISS_DELAY = 450U) when moving towards popup across the gap; immediate dismissal only if hovering another dock item. Reduced gap to 4px.
- - BUG 2 (Squashed): Folder Launcher menu did not follow dynamic icon zoom elevation (overlapping magnified icons).
-   * Root Cause: Base dock thickness was used instead of item visual elevation during zoom.
-   * Fix: Restored 60 FPS dynamic elevation tracking via pm.get_visual_thickness_for_item(TargetItem) + GAP across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
- - BUG 3 (Squashed): Theme change rendered missing custom folder drawer icons as empty/blank cards.
-   * Root Cause: Custom folder icon names stored in GIO metadata were not checked against newly selected desktop icon themes, falling back to empty application-default-icon.svg.
-   * Fix: Added DrawingService.has_icon() and hooked on_icon_theme_changed() in DockItem/FileDockItem. When custom icon is missing in new theme, WayPlank falls back cleanly to 4-item preview stack while preserving GIO metadata on disk.
+ - BUG 1 (Squashed): Folder Launcher popup menu closed prematurely when cursor
+   moved across gap towards menu.
+   * Root Cause: Hovering off the item set HoveredItem to null, which triggered
+     an immediate (0ms) dismissal.
+   * Fix: Added 450ms dismissal grace window (DISMISS_DELAY = 450U) when moving
+     towards popup across the gap; immediate dismissal only if hovering another
+     dock item. Reduced gap to 4px.
+ - BUG 2 (Squashed): Folder Launcher menu did not follow dynamic icon zoom
+   elevation (overlapping magnified icons).
+   * Root Cause: Base dock thickness was used instead of item visual elevation
+     during zoom.
+   * Fix: Restored 60 FPS dynamic elevation tracking via
+     pm.get_visual_thickness_for_item(TargetItem) + GAP across all 4 positions
+     (BOTTOM, TOP, LEFT, RIGHT).
+ - BUG 3 (Squashed): Theme change rendered missing custom folder drawer icons as
+   empty/blank cards.
+   * Root Cause: Custom folder icon names stored in GIO metadata were not
+     checked against newly selected desktop icon themes, falling back to empty
+     application-default-icon.svg.
+   * Fix: Added DrawingService.has_icon() and hooked on_icon_theme_changed() in
+     DockItem/FileDockItem. When custom icon is missing in new theme, WayPlank
+     falls back cleanly to 4-item preview stack while preserving GIO metadata on
+     disk.
  - BUG 4 (Squashed): Empty folder drawers rendered blank trays.
-   * Fix: When drawer contains 0 items, renders a clean centered default folder icon on the frosted tray.
- - BUG 5 (Squashed): Folder drawer bottom-left corner artifact (black horn/spike).
-   * Fix: Corrected arc order in FileDockItem.draw_icon_fast (Math.PI_2, Math.PI).
+   * Fix: When drawer contains 0 items, renders a clean centered default folder
+     icon on the frosted tray.
+ - BUG 5 (Squashed): Folder drawer bottom-left corner artifact (black
+   horn/spike).
+   * Fix: Corrected arc order in FileDockItem.draw_icon_fast (Math.PI_2,
+     Math.PI).
  - IMPROVEMENT 6: Rich Units in Docklet Numeric Badges (°C, °F, %).
-   * Root Cause: draw_item_count only accepted int64 count, rendering raw numbers without units (e.g. 24 instead of 24°C, 85 instead of 85%).
-   * Fix: Added BadgeText property to DockItem and draw_item_badge() in DockTheme.vala supporting arbitrary UTF-8 text. Added °C/°F to Weather, and % to CPU (system pressure), Battery, Volume, Network (Wi-Fi), and Brightness docklets. Clean integer counts preserved for Ejector and App notifications.
- - BUG / COSMETIC 7: Docklet badges oversized (~50% of icon size) obscuring underlying icons.
-   * Root Cause: Badge height hardcoded at 0.50 * icon_size, covering ~40% of icon area.
-   * Fix: Scaled badge height down to ~34% of icon size (min 10px; ~16px on 48px dock, ~24px on 72px zoomed dock), saving over 50% surface area. Adjusted proportional pill width formula ((0.50 + 0.32 * chars) * height, clamped to 78% icon width), reduced padding to 1.5px, and scaled Pango font size directly to available inner box height (min 7.0pt) for crisp, sharp, non-occluding badges.
- - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank Compatibility.
-   * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in the active GTK theme folder (which no modern theme provides), issuing terminal warnings and falling back to static non-adaptive defaults. Additionally, legacy Plank theme folders (~/.local/share/plank/themes, /usr/share/plank/themes) were ignored.
-   * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color, theme_selected_bg_color, borders), auto-detects dark/light mode, and synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light) with live updating on theme or dark mode toggle. Added multi-tier search across Wayplank and legacy Plank theme directories (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes) guaranteeing 100% Plank theme compatibility.
- - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure), Universal Switch Tooltips & Informative Click Behavior Options.
-   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely, and Click Behavior only displayed terse one-word options without explanation.
-   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala), and expanded Click Behavior dropdown items with clear in-line explanations ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") plus tooltips.
- - BUG 10 (Squashed): Toggling "Show Unpinned" in Preferences did not refresh running unpinned items until focusing a window.
-   * Root Cause: Previously, toggling "Show Unpinned" did not invoke sync_compositor_windows() or gate transient generation via is_pinned_only(). When toggling Show Unpinned ON, internal_elements still contained 0 transient dock items because none had been queried from the compositor yet. They remained absent until an external window focus event arrived, which fired WindowManager.windows_refreshed and called sync_compositor_windows().
-   * Fix: Added is_pinned_only() virtual hook to gate transient generation/pruning in ApplicationDockItemProvider, invoked sync_compositor_windows() directly within handle_pinned_only_changed(), and executed the complete dock layout and animation pipeline (refresh_visible_elements, position_manager.update, reset_buffers, set_input_mask, animated_draw), ensuring running unpinned applications appear and disappear instantaneously without window focus.
+   * Root Cause: draw_item_count only accepted int64 count, rendering raw
+     numbers without units (e.g. 24 instead of 24°C, 85 instead of 85%).
+   * Fix: Added BadgeText property to DockItem and draw_item_badge() in
+     DockTheme.vala supporting arbitrary UTF-8 text. Added °C/°F to Weather, and
+     % to CPU (system pressure), Battery, Volume, Network (Wi-Fi), and
+     Brightness docklets. Clean integer counts preserved for Ejector and App
+     notifications.
+ - BUG / COSMETIC 7: Docklet badges oversized (~50% of icon size) obscuring
+   underlying icons.
+   * Root Cause: Badge height hardcoded at 0.50 * icon_size, covering ~40% of
+     icon area.
+   * Fix: Scaled badge height down to ~34% of icon size (min 10px; ~16px on 48px
+     dock, ~24px on 72px zoomed dock), saving over 50% surface area. Adjusted
+     proportional pill width formula ((0.50 + 0.32 * chars) * height, clamped to
+     78% icon width), reduced padding to 1.5px, and scaled Pango font size
+     directly to available inner box height (min 7.0pt) for crisp, sharp, non-
+     occluding badges.
+ - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank
+   Compatibility.
+   * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in
+     the active GTK theme folder (which no modern theme provides), issuing
+     terminal warnings and falling back to static non-adaptive defaults.
+     Additionally, legacy Plank theme folders (~/.local/share/plank/themes,
+     /usr/share/plank/themes) were ignored.
+   * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala
+     / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color,
+     theme_selected_bg_color, borders), auto-detects dark/light mode, and
+     synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light)
+     with live updating on theme or dark mode toggle. Added multi-tier search
+     across Wayplank and legacy Plank theme directories
+     (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes)
+     guaranteeing 100% Plank theme compatibility.
+ - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px
+   pressure), Universal Switch Tooltips & Informative Click Behavior Options.
+   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while
+     disabling it set 1px, inverting the intuitive physical meaning of
+     "pressure" (which should require pushing against the screen edge to resist
+     accidental unhiding). Furthermore, 9 out of 14 switches in Preferences
+     lacked tooltips entirely, and Click Behavior only displayed terse one-word
+     options without explanation.
+   * Fix: Inverted edge_size in PositionManager.vala: default (disabled)
+     provides a comfortable 10px unhide zone for fluid everyday unhiding before
+     reaching the screen bezel, while enabled enforces strict 1px edge contact
+     acting as a true barrier against accidental unhides. Added clear,
+     consistent tooltips across all 14 switches and labels in Appearance,
+     Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala), and
+     expanded Click Behavior dropdown items with clear in-line explanations
+     ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to
+     front", "Cycle: Step through open windows") plus tooltips.
+ - BUG 10 (Squashed): Toggling "Show Unpinned" in Preferences did not refresh
+   running unpinned items until focusing a window.
+   * Root Cause: Previously, toggling "Show Unpinned" did not invoke
+     sync_compositor_windows() or gate transient generation via
+     is_pinned_only(). When toggling Show Unpinned ON, internal_elements still
+     contained 0 transient dock items because none had been queried from the
+     compositor yet. They remained absent until an external window focus event
+     arrived, which fired WindowManager.windows_refreshed and called
+     sync_compositor_windows().
+   * Fix: Added is_pinned_only() virtual hook to gate transient
+     generation/pruning in ApplicationDockItemProvider, invoked
+     sync_compositor_windows() directly within handle_pinned_only_changed(), and
+     executed the complete dock layout and animation pipeline
+     (refresh_visible_elements, position_manager.update, reset_buffers,
+     set_input_mask, animated_draw), ensuring running unpinned applications
+     appear and disappear instantaneously without window focus.
 
 
 
@@ -510,9 +632,12 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
         - Subfolder drill-down with back button navigation, launcher execution,
           and document opening.
         - Auto-dismisses when hovering another dock item or on desktop leave.
-        - Gap & Focus Loss Elimination: 4px floating margin following dynamic icon zoom
-          elevation at 60 FPS (zero icon overlap); 450ms dismissal grace timer prevents
-          premature menu closure when moving pointer from dock icon across the gap into
+        - Gap & Focus Loss Elimination: 4px floating margin following dynamic
+          icon zoom
+          elevation at 60 FPS (zero icon overlap); 450ms dismissal grace timer
+          prevents
+          premature menu closure when moving pointer from dock icon across the
+          gap into
           the popup menu across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
    [ok] 1.9  First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
@@ -521,11 +646,14 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
         - Right-click App -> 'Change Icon...': instant search, custom
           icon applies cleanly, 'Restore Default' restores original.
         - Folder drawers accept custom icons via GIO metadata.
-        - Changing desktop icon theme when a custom folder icon is missing from the
-          new theme automatically triggers 'Restore Default', falling back to the
+        - Changing desktop icon theme when a custom folder icon is missing from
+          the
+          new theme automatically triggers 'Restore Default', falling back to
+          the
           standard folder drawer presentation (4-item stack preview) instead of
           rendering an empty/blank card.
-        - Empty folder drawers render a centered default folder icon on the frosted
+        - Empty folder drawers render a centered default folder icon on the
+          frosted
           tray instead of an empty blank card.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
@@ -578,12 +706,19 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
    [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
    [ok] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
         - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
-          immediately sensitive and correctly reflects configured state on startup
+          immediately sensitive and correctly reflects configured state on
+          startup
           when Hide Dock is enabled.
-        - When OFF (default), provides a comfortable 10px unhide zone for fluid everyday unhiding.
-        - When ON (pressure mode), enforces strict 1px edge barrier preventing accidental unhiding.
-        - Verify all 14 switches across Appearance, Behaviour, and Windows display clear, consistent tooltips on both switch and label.
-        - Verify "Click Behavior" in Applications displays informative option descriptions ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") and tooltips.
+        - When OFF (default), provides a comfortable 10px unhide zone for fluid
+          everyday unhiding.
+        - When ON (pressure mode), enforces strict 1px edge barrier preventing
+          accidental unhiding.
+        - Verify all 14 switches across Appearance, Behaviour, and Windows
+          display clear, consistent tooltips on both switch and label.
+        - Verify "Click Behavior" in Applications displays informative option
+          descriptions ("Smart: Focus, toggle or cycle windows", "Focus: Raise
+          active window to front", "Cycle: Step through open windows") and
+          tooltips.
    [ok] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -655,7 +790,8 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
    [ok] 6.8  100% Internal Binary GResource Fallbacks:
         - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
           (12 levels) render properly from binary.
-        - Brightness scale (High, Med, Low, Base) and Weather scale (7 conditions)
+        - Brightness scale (High, Med, Low, Base) and Weather scale (7
+          conditions)
           render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
@@ -668,20 +804,29 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [ok] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
-        - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
-        - Displays brightness icon with graded vector artwork (high, medium, low).
-        - Badge counter displays current brightness percentage with % (e.g. 75%).
+   [ok] 6.10 Sc reen Brightness Multi-Monitor Synchronization & Atomic Graded
+        Resolution:
+        - Atomic Graded Resolution: Probes theme for 100% complete graded set
+          (High, Med, Low); if incomplete or missing, falls back 100% to
+          internal graded vectors (high, medium, low), preventing un-graded flat
+          icons from overriding.
+        - Displays brightness icon with graded vector artwork (high, medium,
+          low).
+        - Badge counter displays current brightness percentage with % (e.g.
+          75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
-        - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
-        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
+        - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
+          -> 100%).
+        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j
+          dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
           Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
    [ok] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
-        - Badge counter displays current temperature with unit in °C or °F (e.g. 18°C or
+        - Badge counter displays current temperature with unit in °C or °F (e.g.
+          18°C or
           64°F).
         - Left-click opens modern weather forecast window (WeatherWindow) with
           current temperature, "feels like", humidity, wind speed, and 3-day
@@ -729,30 +874,41 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
         - Badge counter displays combined system pressure with % [0-100%]
-          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
+          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU,
+          RAM, Disk).
         - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
    [ok] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
-        - Volume and Battery docklets retire custom Cairo vector drawings; render
+        - Volume and Battery docklets retire custom Cairo vector drawings;
+          render
           standard theme icons and embedded GResource vector fallbacks.
-        - Battery displays charge percentage with % on native numeric top badge (e.g. 70%); zero
+        - Battery displays charge percentage with % on native numeric top badge
+          (e.g. 70%); zero
           generic flat preemption in charging/discharging states.
-        - Volume displays exact level with % on native numeric badge (e.g. 24%) and
-          switches to overamplified icon (audio-volume-overamplified / warning vector)
-          above 100% up to 150%; zero generic flat preemption in overamplified state.
+        - Volume displays exact level with % on native numeric badge (e.g. 24%)
+          and
+          switches to overamplified icon (audio-volume-overamplified / warning
+          vector)
+          above 100% up to 150%; zero generic flat preemption in overamplified
+          state.
         - Media Player (docklet://mpris) renders dedicated player icon
           (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
           play/pause state queries free of generic flat overrides.
    [ok] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
         - Verify numeric badges display appropriate units: Weather displays
-          temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU), Battery,
+          temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU),
+          Battery,
           Volume, Network, and Brightness display percentages with % (e.g. 12%,
           70%, 24%, 93%, 80%). Removable volume ejector and unread indicators
           display clean integer counts without units.
-        - Verify compact badge proportions: badge height scales elegantly to ~34%
-          of icon size (min 10px; ~16px on 48px icon, ~24px on 72px icon) without
+        - Verify compact badge proportions: badge height scales elegantly to
+          ~34%
+          of icon size (min 10px; ~16px on 48px icon, ~24px on 72px icon)
+          without
           obscuring underlying icon artwork.
-        - Verify single numbers form a clean circular badge (width = height), while
-          multi-character badges scale compactly with crisp bold white Pango text,
+        - Verify single numbers form a clean circular badge (width = height),
+          while
+          multi-character badges scale compactly with crisp bold white Pango
+          text,
           outline shadow, and highlight across all icon sizes and dynamic zoom.
 
 7. PREFERENCES & CONFIGURATION
@@ -767,14 +923,22 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
         Real-time slider resizing works smoothly across all values (24px to
         64px+); auto-shrink does NOT crush icons to 24px minimum due to
         separator count or uninitialized monitor geometry
-   [ok] 7.5 Theme Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank Compatibility:
+   [ok] 7.5 The me Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank
+        Compatibility:
         - Select "Gtk+" in Preferences -> Appearance -> Theme.
-        - Verify dock dynamically samples active GTK theme background and accent palette.
-        - In Dark Mode: renders sleek dark translucent dock (rgba ~0.80) with subtle depth gradient.
-        - In Light Mode: renders clean light translucent dock (rgba ~0.84) with light border.
-        - Toggling Dark Mode or changing GTK theme updates dock live without restarting.
-        - Verify standard themes (Default, Matte, Transparent, Arian Theme, Arian Theme Light) render 100% properly.
-        - Verify legacy Plank themes installed in ~/.local/share/plank/themes or /usr/share/plank/themes are automatically discovered and loaded with 100% parameter fidelity.
+        - Verify dock dynamically samples active GTK theme background and accent
+          palette.
+        - In Dark Mode: renders sleek dark translucent dock (rgba ~0.80) with
+          subtle depth gradient.
+        - In Light Mode: renders clean light translucent dock (rgba ~0.84) with
+          light border.
+        - Toggling Dark Mode or changing GTK theme updates dock live without
+          restarting.
+        - Verify standard themes (Default, Matte, Transparent, Arian Theme,
+          Arian Theme Light) render 100% properly.
+        - Verify legacy Plank themes installed in ~/.local/share/plank/themes or
+          /usr/share/plank/themes are automatically discovered and loaded with
+          100% parameter fidelity.
    [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
    [ok] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays
@@ -827,8 +991,10 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
           accessible.
    [ok] 7.14 Show Unpinned Dynamic Refresh:
         - Open Preferences -> Behaviour tab -> toggle "Show Unpinned".
-        - When enabled (ON), all running unpinned applications immediately appear on the dock without requiring window focus.
-        - When disabled (OFF), all unpinned applications disappear immediately, leaving only pinned apps.
+        - When enabled (ON), all running unpinned applications immediately
+          appear on the dock without requiring window focus.
+        - When disabled (OFF), all unpinned applications disappear immediately,
+          leaving only pinned apps.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [ok] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -860,39 +1026,107 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
 
 
 PLASMA BUGS / NOTES:
- - BUG 1 (Squashed): Folder Launcher popup menu closed prematurely when cursor moved across gap towards menu.
-   * Root Cause: Hovering off the item set HoveredItem to null, which triggered an immediate (0ms) dismissal.
-   * Fix: Added 450ms dismissal grace window (DISMISS_DELAY = 450U) when moving towards popup across the gap; immediate dismissal only if hovering another dock item. Reduced gap to 4px.
- - BUG 2 (Squashed): Folder Launcher menu did not follow dynamic icon zoom elevation (overlapping magnified icons).
-   * Root Cause: Base dock thickness was used instead of item visual elevation during zoom.
-   * Fix: Restored 60 FPS dynamic elevation tracking via pm.get_visual_thickness_for_item(TargetItem) + GAP across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
- - BUG 3 (Squashed): Theme change rendered missing custom folder drawer icons as empty/blank cards.
-   * Root Cause: Custom folder icon names stored in GIO metadata were not checked against newly selected desktop icon themes, falling back to empty application-default-icon.svg.
-   * Fix: Added DrawingService.has_icon() and hooked on_icon_theme_changed() in DockItem/FileDockItem. When custom icon is missing in new theme, WayPlank falls back cleanly to 4-item preview stack while preserving GIO metadata on disk.
+ - BUG 1 (Squashed): Folder Launcher popup menu closed prematurely when cursor
+   moved across gap towards menu.
+   * Root Cause: Hovering off the item set HoveredItem to null, which triggered
+     an immediate (0ms) dismissal.
+   * Fix: Added 450ms dismissal grace window (DISMISS_DELAY = 450U) when moving
+     towards popup across the gap; immediate dismissal only if hovering another
+     dock item. Reduced gap to 4px.
+ - BUG 2 (Squashed): Folder Launcher menu did not follow dynamic icon zoom
+   elevation (overlapping magnified icons).
+   * Root Cause: Base dock thickness was used instead of item visual elevation
+     during zoom.
+   * Fix: Restored 60 FPS dynamic elevation tracking via
+     pm.get_visual_thickness_for_item(TargetItem) + GAP across all 4 positions
+     (BOTTOM, TOP, LEFT, RIGHT).
+ - BUG 3 (Squashed): Theme change rendered missing custom folder drawer icons as
+   empty/blank cards.
+   * Root Cause: Custom folder icon names stored in GIO metadata were not
+     checked against newly selected desktop icon themes, falling back to empty
+     application-default-icon.svg.
+   * Fix: Added DrawingService.has_icon() and hooked on_icon_theme_changed() in
+     DockItem/FileDockItem. When custom icon is missing in new theme, WayPlank
+     falls back cleanly to 4-item preview stack while preserving GIO metadata on
+     disk.
  - BUG 4 (Squashed): Empty folder drawers rendered blank trays.
-   * Fix: When drawer contains 0 items, renders a clean centered default folder icon on the frosted tray.
- - BUG 5 (Squashed): Folder drawer bottom-left corner artifact (black horn/spike).
-   * Fix: Corrected arc order in FileDockItem.draw_icon_fast (Math.PI_2, Math.PI).
+   * Fix: When drawer contains 0 items, renders a clean centered default folder
+     icon on the frosted tray.
+ - BUG 5 (Squashed): Folder drawer bottom-left corner artifact (black
+   horn/spike).
+   * Fix: Corrected arc order in FileDockItem.draw_icon_fast (Math.PI_2,
+     Math.PI).
  - IMPROVEMENT 6: Rich Units in Docklet Numeric Badges (°C, °F, %).
-   * Root Cause: draw_item_count only accepted int64 count, rendering raw numbers without units (e.g. 24 instead of 24°C, 85 instead of 85%).
-   * Fix: Added BadgeText property to DockItem and draw_item_badge() in DockTheme.vala supporting arbitrary UTF-8 text. Added °C/°F to Weather, and % to CPU (system pressure), Battery, Volume, Network (Wi-Fi), and Brightness docklets. Clean integer counts preserved for Ejector and App notifications.
- - BUG / COSMETIC 7: Docklet badges oversized (~50% of icon size) obscuring underlying icons.
-   * Root Cause: Badge height hardcoded at 0.50 * icon_size, covering ~40% of icon area.
-   * Fix: Scaled badge height down to ~34% of icon size (min 10px; ~16px on 48px dock, ~24px on 72px zoomed dock), saving over 50% surface area. Adjusted proportional pill width formula ((0.50 + 0.32 * chars) * height, clamped to 78% icon width), reduced padding to 1.5px, and scaled Pango font size directly to available inner box height (min 7.0pt) for crisp, sharp, non-occluding badges.
- - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank Compatibility.
-   * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in the active GTK theme folder (which no modern theme provides), issuing terminal warnings and falling back to static non-adaptive defaults. Additionally, legacy Plank theme folders (~/.local/share/plank/themes, /usr/share/plank/themes) were ignored.
-   * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color, theme_selected_bg_color, borders), auto-detects dark/light mode, and synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light) with live updating on theme or dark mode toggle. Added multi-tier search across Wayplank and legacy Plank theme directories (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes) guaranteeing 100% Plank theme compatibility.
- - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure), Universal Switch Tooltips & Informative Click Behavior Options.
-   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely, and Click Behavior only displayed terse one-word options without explanation.
-   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala), and expanded Click Behavior dropdown items with clear in-line explanations ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") plus tooltips.
- - BUG 10 (Squashed): Toggling "Show Unpinned" in Preferences did not refresh running unpinned items until focusing a window.
-   * Root Cause: Previously, toggling "Show Unpinned" did not invoke sync_compositor_windows() or gate transient generation via is_pinned_only(). When toggling Show Unpinned ON, internal_elements still contained 0 transient dock items because none had been queried from the compositor yet. They remained absent until an external window focus event arrived, which fired WindowManager.windows_refreshed and called sync_compositor_windows().
-   * Fix: Added is_pinned_only() virtual hook to gate transient generation/pruning in ApplicationDockItemProvider, invoked sync_compositor_windows() directly within handle_pinned_only_changed(), and executed the complete dock layout and animation pipeline (refresh_visible_elements, position_manager.update, reset_buffers, set_input_mask, animated_draw), ensuring running unpinned applications appear and disappear instantaneously without window focus.
+   * Root Cause: draw_item_count only accepted int64 count, rendering raw
+     numbers without units (e.g. 24 instead of 24°C, 85 instead of 85%).
+   * Fix: Added BadgeText property to DockItem and draw_item_badge() in
+     DockTheme.vala supporting arbitrary UTF-8 text. Added °C/°F to Weather, and
+     % to CPU (system pressure), Battery, Volume, Network (Wi-Fi), and
+     Brightness docklets. Clean integer counts preserved for Ejector and App
+     notifications.
+ - BUG / COSMETIC 7: Docklet badges oversized (~50% of icon size) obscuring
+   underlying icons.
+   * Root Cause: Badge height hardcoded at 0.50 * icon_size, covering ~40% of
+     icon area.
+   * Fix: Scaled badge height down to ~34% of icon size (min 10px; ~16px on 48px
+     dock, ~24px on 72px zoomed dock), saving over 50% surface area. Adjusted
+     proportional pill width formula ((0.50 + 0.32 * chars) * height, clamped to
+     78% icon width), reduced padding to 1.5px, and scaled Pango font size
+     directly to available inner box height (min 7.0pt) for crisp, sharp, non-
+     occluding badges.
+ - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank
+   Compatibility.
+   * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in
+     the active GTK theme folder (which no modern theme provides), issuing
+     terminal warnings and falling back to static non-adaptive defaults.
+     Additionally, legacy Plank theme folders (~/.local/share/plank/themes,
+     /usr/share/plank/themes) were ignored.
+   * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala
+     / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color,
+     theme_selected_bg_color, borders), auto-detects dark/light mode, and
+     synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light)
+     with live updating on theme or dark mode toggle. Added multi-tier search
+     across Wayplank and legacy Plank theme directories
+     (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes)
+     guaranteeing 100% Plank theme compatibility.
+ - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px
+   pressure), Universal Switch Tooltips & Informative Click Behavior Options.
+   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while
+     disabling it set 1px, inverting the intuitive physical meaning of
+     "pressure" (which should require pushing against the screen edge to resist
+     accidental unhiding). Furthermore, 9 out of 14 switches in Preferences
+     lacked tooltips entirely, and Click Behavior only displayed terse one-word
+     options without explanation.
+   * Fix: Inverted edge_size in PositionManager.vala: default (disabled)
+     provides a comfortable 10px unhide zone for fluid everyday unhiding before
+     reaching the screen bezel, while enabled enforces strict 1px edge contact
+     acting as a true barrier against accidental unhides. Added clear,
+     consistent tooltips across all 14 switches and labels in Appearance,
+     Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala), and
+     expanded Click Behavior dropdown items with clear in-line explanations
+     ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to
+     front", "Cycle: Step through open windows") plus tooltips.
+ - BUG 10 (Squashed): Toggling "Show Unpinned" in Preferences did not refresh
+   running unpinned items until focusing a window.
+   * Root Cause: Previously, toggling "Show Unpinned" did not invoke
+     sync_compositor_windows() or gate transient generation via
+     is_pinned_only(). When toggling Show Unpinned ON, internal_elements still
+     contained 0 transient dock items because none had been queried from the
+     compositor yet. They remained absent until an external window focus event
+     arrived, which fired WindowManager.windows_refreshed and called
+     sync_compositor_windows().
+   * Fix: Added is_pinned_only() virtual hook to gate transient
+     generation/pruning in ApplicationDockItemProvider, invoked
+     sync_compositor_windows() directly within handle_pinned_only_changed(), and
+     executed the complete dock layout and animation pipeline
+     (refresh_visible_elements, position_manager.update, reset_buffers,
+     set_input_mask, animated_draw), ensuring running unpinned applications
+     appear and disappear instantaneously without window focus.
 
 
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [ONGOING]
+SESSION 3: LABWC (wlroots Backend) - [CONCLUDED / SCOPE DEFERRED TO v0.6.2]
 ================================================================================
 
 0. Crashes during test
@@ -930,7 +1164,7 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
           Trash.
         - Attempt to drag locked items (Preferences, Separator, Trash):
           drag cleanly aborts with zero GLib terminal warnings.
-   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+   [NA] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click on a folder dock item toggles the Folder Launcher menu.
         - Right-click on folder dock item is dedicated to dock management
           ("Keep in Dock", "Open in File Browser", "Preferences").
@@ -945,22 +1179,28 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
         - Subfolder drill-down with back button navigation, launcher execution,
           and document opening.
         - Auto-dismisses when hovering another dock item or on desktop leave.
-        - Gap & Focus Loss Elimination: 4px floating margin following dynamic icon zoom
-          elevation at 60 FPS (zero icon overlap); 450ms dismissal grace timer prevents
-          premature menu closure when moving pointer from dock icon across the gap into
+        - Gap & Focus Loss Elimination: 4px floating margin following dynamic
+          icon zoom
+          elevation at 60 FPS (zero icon overlap); 450ms dismissal grace timer
+          prevents
+          premature menu closure when moving pointer from dock icon across the
+          gap into
           the popup menu across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
    [ok] 1.9  First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [NA] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click App -> 'Change Icon...': instant search, custom
           icon applies cleanly, 'Restore Default' restores original.
         - Folder drawers accept custom icons via GIO metadata.
-        - Changing desktop icon theme when a custom folder icon is missing from the
-          new theme automatically triggers 'Restore Default', falling back to the
+        - Changing desktop icon theme when a custom folder icon is missing from
+          the
+          new theme automatically triggers 'Restore Default', falling back to
+          the
           standard folder drawer presentation (4-item stack preview) instead of
           rendering an empty/blank card.
-        - Empty folder drawers render a centered default folder icon on the frosted
+        - Empty folder drawers render a centered default folder icon on the
+          frosted
           tray instead of an empty blank card.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
@@ -1011,14 +1251,21 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
    [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
    [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
    [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
+   [NA] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
         - Open Preferences -> Behaviour: verify "Pressure Reveal" switch is
-          immediately sensitive and correctly reflects configured state on startup
+          immediately sensitive and correctly reflects configured state on
+          startup
           when Hide Dock is enabled.
-        - When OFF (default), provides a comfortable 10px unhide zone for fluid everyday unhiding.
-        - When ON (pressure mode), enforces strict 1px edge barrier preventing accidental unhiding.
-        - Verify all 14 switches across Appearance, Behaviour, and Windows display clear, consistent tooltips on both switch and label.
-        - Verify "Click Behavior" in Applications displays informative option descriptions ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") and tooltips.
+        - When OFF (default), provides a comfortable 10px unhide zone for fluid
+          everyday unhiding.
+        - When ON (pressure mode), enforces strict 1px edge barrier preventing
+          accidental unhiding.
+        - Verify all 14 switches across Appearance, Behaviour, and Windows
+          display clear, consistent tooltips on both switch and label.
+        - Verify "Click Behavior" in Applications displays informative option
+          descriptions ("Smart: Focus, toggle or cycle windows", "Focus: Raise
+          active window to front", "Cycle: Step through open windows") and
+          tooltips.
    [ok] 3.8  Accordion Retention on Dock Hide/Unhide:
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
@@ -1091,10 +1338,11 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
    [ok] 6.7  Digital Clock Visual Tile:
         - Verify Digital Clock displays modern tile with digital numerals
           (01:18), NOT an analog clock dial with hands.
-   [  ] 6.8  100% Internal Binary GResource Fallbacks:
+   [NA] 6.8  100% Internal Binary GResource Fallbacks:
         - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
           (12 levels) render properly from binary.
-        - Brightness scale (High, Med, Low, Base) and Weather scale (7 conditions)
+        - Brightness scale (High, Med, Low, Base) and Weather scale (7
+          conditions)
           render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
@@ -1107,20 +1355,29 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [  ] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded Resolution:
-        - Atomic Graded Resolution: Probes theme for 100% complete graded set (High, Med, Low); if incomplete or missing, falls back 100% to internal graded vectors (high, medium, low), preventing un-graded flat icons from overriding.
-        - Displays brightness icon with graded vector artwork (high, medium, low).
-        - Badge counter displays current brightness percentage with % (e.g. 75%).
+   [NA] 6.10 Sc reen Brightness Multi-Monitor Synchronization & Atomic Graded
+        Resolution:
+        - Atomic Graded Resolution: Probes theme for 100% complete graded set
+          (High, Med, Low); if incomplete or missing, falls back 100% to
+          internal graded vectors (high, medium, low), preventing un-graded flat
+          icons from overriding.
+        - Displays brightness icon with graded vector artwork (high, medium,
+          low).
+        - Badge counter displays current brightness percentage with % (e.g.
+          75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
-        - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
-        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
+        - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
+          -> 100%).
+        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j
+          dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
           Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
-   [  ] 6.11 Weather Forecast Docklet (docklet://weather):
+   [NA] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
-        - Badge counter displays current temperature with unit in °C or °F (e.g. 18°C or
+        - Badge counter displays current temperature with unit in °C or °F (e.g.
+          18°C or
           64°F).
         - Left-click opens modern weather forecast window (WeatherWindow) with
           current temperature, "feels like", humidity, wind speed, and 3-day
@@ -1135,7 +1392,7 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
-   [  ] 6.13 Network & Wi-Fi Docklet (docklet://network):
+   [NA] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Fills the 14th slot in the Preferences Docklets 2x7 grid with a
           complete hardware monitor.
         - Real-time network detection via GIO NetworkMonitor and
@@ -1164,34 +1421,45 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
           held/inhibited while any dialog (Preferences, Help, Icon Chooser,
           Weather) or menu is open. On close, restarts full delay if cursor
           is outside, or keeps drawer open if cursor is on dock.
-   [  ] 6.15 Global System Pressure Engine (docklet://cpu):
+   [NA] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
         - Badge counter displays combined system pressure with % [0-100%]
-          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU, RAM, Disk).
+          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU,
+          RAM, Disk).
         - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
-   [  ] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
-        - Volume and Battery docklets retire custom Cairo vector drawings; render
+   [NA] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
+        - Volume and Battery docklets retire custom Cairo vector drawings;
+          render
           standard theme icons and embedded GResource vector fallbacks.
-        - Battery displays charge percentage with % on native numeric top badge (e.g. 70%); zero
+        - Battery displays charge percentage with % on native numeric top badge
+          (e.g. 70%); zero
           generic flat preemption in charging/discharging states.
-        - Volume displays exact level with % on native numeric badge (e.g. 24%) and
-          switches to overamplified icon (audio-volume-overamplified / warning vector)
-          above 100% up to 150%; zero generic flat preemption in overamplified state.
+        - Volume displays exact level with % on native numeric badge (e.g. 24%)
+          and
+          switches to overamplified icon (audio-volume-overamplified / warning
+          vector)
+          above 100% up to 150%; zero generic flat preemption in overamplified
+          state.
         - Media Player (docklet://mpris) renders dedicated player icon
           (gnome-mplayer;;applications-multimedia) avoiding phone/iPod mismatch;
           play/pause state queries free of generic flat overrides.
-   [  ] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
+   [NA] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
         - Verify numeric badges display appropriate units: Weather displays
-          temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU), Battery,
+          temperature in °C or °F (e.g. 24°C, 64°F), System Pressure (CPU),
+          Battery,
           Volume, Network, and Brightness display percentages with % (e.g. 12%,
           70%, 24%, 93%, 80%). Removable volume ejector and unread indicators
           display clean integer counts without units.
-        - Verify compact badge proportions: badge height scales elegantly to ~34%
-          of icon size (min 10px; ~16px on 48px icon, ~24px on 72px icon) without
+        - Verify compact badge proportions: badge height scales elegantly to
+          ~34%
+          of icon size (min 10px; ~16px on 48px icon, ~24px on 72px icon)
+          without
           obscuring underlying icon artwork.
-        - Verify single numbers form a clean circular badge (width = height), while
-          multi-character badges scale compactly with crisp bold white Pango text,
+        - Verify single numbers form a clean circular badge (width = height),
+          while
+          multi-character badges scale compactly with crisp bold white Pango
+          text,
           outline shadow, and highlight across all icon sizes and dynamic zoom.
 
 7. PREFERENCES & CONFIGURATION
@@ -1206,18 +1474,26 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
         Real-time slider resizing works smoothly across all values (24px to
         64px+); auto-shrink does NOT crush icons to 24px minimum due to
         separator count or uninitialized monitor geometry
-   [  ] 7.5 Theme Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank Compatibility:
+   [NA] 7.5 The me Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank
+        Compatibility:
         - Select "Gtk+" in Preferences -> Appearance -> Theme.
-        - Verify dock dynamically samples active GTK theme background and accent palette.
-        - In Dark Mode: renders sleek dark translucent dock (rgba ~0.80) with subtle depth gradient.
-        - In Light Mode: renders clean light translucent dock (rgba ~0.84) with light border.
-        - Toggling Dark Mode or changing GTK theme updates dock live without restarting.
-        - Verify standard themes (Default, Matte, Transparent, Arian Theme, Arian Theme Light) render 100% properly.
-        - Verify legacy Plank themes installed in ~/.local/share/plank/themes or /usr/share/plank/themes are automatically discovered and loaded with 100% parameter fidelity.
+        - Verify dock dynamically samples active GTK theme background and accent
+          palette.
+        - In Dark Mode: renders sleek dark translucent dock (rgba ~0.80) with
+          subtle depth gradient.
+        - In Light Mode: renders clean light translucent dock (rgba ~0.84) with
+          light border.
+        - Toggling Dark Mode or changing GTK theme updates dock live without
+          restarting.
+        - Verify standard themes (Default, Matte, Transparent, Arian Theme,
+          Arian Theme Light) render 100% properly.
+        - Verify legacy Plank themes installed in ~/.local/share/plank/themes or
+          /usr/share/plank/themes are automatically discovered and loaded with
+          100% parameter fidelity.
    [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
    [ok] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
+   [NA] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
           (7 items left column, 7 items right column):
@@ -1257,17 +1533,19 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
           indicators, retention, right-click shortcuts, and icon chooser.
    [ok] 7.12 Shortcuts & Gestures Centering:
         - Does not apply (no window positioning possible in Labwc).
-   [  ] 7.13 Workspace Only Wayland Dormancy:
+   [NA] 7.13 Workspace Only Wayland Dormancy:
         - Open Preferences -> Behaviour tab.
         - Verify 'Workspace Only' switch is insensitive (greyed out).
         - Verify hovering either the switch or label displays tooltip:
           "Workspace filtering is not yet supported under Wayland".
         - Verify dock remains stable and all running applications remain
           accessible.
-   [  ] 7.14 Show Unpinned Dynamic Refresh:
+   [NA] 7.14 Show Unpinned Dynamic Refresh:
         - Open Preferences -> Behaviour tab -> toggle "Show Unpinned".
-        - When enabled (ON), all running unpinned applications immediately appear on the dock without requiring window focus.
-        - When disabled (OFF), all unpinned applications disappear immediately, leaving only pinned apps.
+        - When enabled (ON), all running unpinned applications immediately
+          appear on the dock without requiring window focus.
+        - When disabled (OFF), all unpinned applications disappear immediately,
+          leaving only pinned apps.
 
 8. MULTI MONITOR VALIDATION MATRIX
    [ok] 8.1 Cross-Compositor FAT Validation Matrix:
@@ -1298,34 +1576,102 @@ SESSION 3: LABWC (wlroots Backend) - [ONGOING]
 
 
 LABWC BUGS / NOTES:
- - BUG 1 (Squashed): Folder Launcher popup menu closed prematurely when cursor moved across gap towards menu.
-   * Root Cause: Hovering off the item set HoveredItem to null, which triggered an immediate (0ms) dismissal.
-   * Fix: Added 450ms dismissal grace window (DISMISS_DELAY = 450U) when moving towards popup across the gap; immediate dismissal only if hovering another dock item. Reduced gap to 4px.
- - BUG 2 (Squashed): Folder Launcher menu did not follow dynamic icon zoom elevation (overlapping magnified icons).
-   * Root Cause: Base dock thickness was used instead of item visual elevation during zoom.
-   * Fix: Restored 60 FPS dynamic elevation tracking via pm.get_visual_thickness_for_item(TargetItem) + GAP across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
- - BUG 3 (Squashed): Theme change rendered missing custom folder drawer icons as empty/blank cards.
-   * Root Cause: Custom folder icon names stored in GIO metadata were not checked against newly selected desktop icon themes, falling back to empty application-default-icon.svg.
-   * Fix: Added DrawingService.has_icon() and hooked on_icon_theme_changed() in DockItem/FileDockItem. When custom icon is missing in new theme, WayPlank falls back cleanly to 4-item preview stack while preserving GIO metadata on disk.
+ - BUG 1 (Squashed): Folder Launcher popup menu closed prematurely when cursor
+   moved across gap towards menu.
+   * Root Cause: Hovering off the item set HoveredItem to null, which triggered
+     an immediate (0ms) dismissal.
+   * Fix: Added 450ms dismissal grace window (DISMISS_DELAY = 450U) when moving
+     towards popup across the gap; immediate dismissal only if hovering another
+     dock item. Reduced gap to 4px.
+ - BUG 2 (Squashed): Folder Launcher menu did not follow dynamic icon zoom
+   elevation (overlapping magnified icons).
+   * Root Cause: Base dock thickness was used instead of item visual elevation
+     during zoom.
+   * Fix: Restored 60 FPS dynamic elevation tracking via
+     pm.get_visual_thickness_for_item(TargetItem) + GAP across all 4 positions
+     (BOTTOM, TOP, LEFT, RIGHT).
+ - BUG 3 (Squashed): Theme change rendered missing custom folder drawer icons as
+   empty/blank cards.
+   * Root Cause: Custom folder icon names stored in GIO metadata were not
+     checked against newly selected desktop icon themes, falling back to empty
+     application-default-icon.svg.
+   * Fix: Added DrawingService.has_icon() and hooked on_icon_theme_changed() in
+     DockItem/FileDockItem. When custom icon is missing in new theme, WayPlank
+     falls back cleanly to 4-item preview stack while preserving GIO metadata on
+     disk.
  - BUG 4 (Squashed): Empty folder drawers rendered blank trays.
-   * Fix: When drawer contains 0 items, renders a clean centered default folder icon on the frosted tray.
- - BUG 5 (Squashed): Folder drawer bottom-left corner artifact (black horn/spike).
-   * Fix: Corrected arc order in FileDockItem.draw_icon_fast (Math.PI_2, Math.PI).
+   * Fix: When drawer contains 0 items, renders a clean centered default folder
+     icon on the frosted tray.
+ - BUG 5 (Squashed): Folder drawer bottom-left corner artifact (black
+   horn/spike).
+   * Fix: Corrected arc order in FileDockItem.draw_icon_fast (Math.PI_2,
+     Math.PI).
  - IMPROVEMENT 6: Rich Units in Docklet Numeric Badges (°C, °F, %).
-   * Root Cause: draw_item_count only accepted int64 count, rendering raw numbers without units (e.g. 24 instead of 24°C, 85 instead of 85%).
-   * Fix: Added BadgeText property to DockItem and draw_item_badge() in DockTheme.vala supporting arbitrary UTF-8 text. Added °C/°F to Weather, and % to CPU (system pressure), Battery, Volume, Network (Wi-Fi), and Brightness docklets. Clean integer counts preserved for Ejector and App notifications.
- - BUG / COSMETIC 7: Docklet badges oversized (~50% of icon size) obscuring underlying icons.
-   * Root Cause: Badge height hardcoded at 0.50 * icon_size, covering ~40% of icon area.
-   * Fix: Scaled badge height down to ~34% of icon size (min 10px; ~16px on 48px dock, ~24px on 72px zoomed dock), saving over 50% surface area. Adjusted proportional pill width formula ((0.50 + 0.32 * chars) * height, clamped to 78% icon width), reduced padding to 1.5px, and scaled Pango font size directly to available inner box height (min 7.0pt) for crisp, sharp, non-occluding badges.
- - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank Compatibility.
-   * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in the active GTK theme folder (which no modern theme provides), issuing terminal warnings and falling back to static non-adaptive defaults. Additionally, legacy Plank theme folders (~/.local/share/plank/themes, /usr/share/plank/themes) were ignored.
-   * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color, theme_selected_bg_color, borders), auto-detects dark/light mode, and synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light) with live updating on theme or dark mode toggle. Added multi-tier search across Wayplank and legacy Plank theme directories (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes) guaranteeing 100% Plank theme compatibility.
- - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px pressure), Universal Switch Tooltips & Informative Click Behavior Options.
-   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while disabling it set 1px, inverting the intuitive physical meaning of "pressure" (which should require pushing against the screen edge to resist accidental unhiding). Furthermore, 9 out of 14 switches in Preferences lacked tooltips entirely, and Click Behavior only displayed terse one-word options without explanation.
-   * Fix: Inverted edge_size in PositionManager.vala: default (disabled) provides a comfortable 10px unhide zone for fluid everyday unhiding before reaching the screen bezel, while enabled enforces strict 1px edge contact acting as a true barrier against accidental unhides. Added clear, consistent tooltips across all 14 switches and labels in Appearance, Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala), and expanded Click Behavior dropdown items with clear in-line explanations ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to front", "Cycle: Step through open windows") plus tooltips.
- - BUG 10 (Squashed): Toggling "Show Unpinned" in Preferences did not refresh running unpinned items until focusing a window.
-   * Root Cause: Previously, toggling "Show Unpinned" did not invoke sync_compositor_windows() or gate transient generation via is_pinned_only(). When toggling Show Unpinned ON, internal_elements still contained 0 transient dock items because none had been queried from the compositor yet. They remained absent until an external window focus event arrived, which fired WindowManager.windows_refreshed and called sync_compositor_windows().
-   * Fix: Added is_pinned_only() virtual hook to gate transient generation/pruning in ApplicationDockItemProvider, invoked sync_compositor_windows() directly within handle_pinned_only_changed(), and executed the complete dock layout and animation pipeline (refresh_visible_elements, position_manager.update, reset_buffers, set_input_mask, animated_draw), ensuring running unpinned applications appear and disappear instantaneously without window focus.
+   * Root Cause: draw_item_count only accepted int64 count, rendering raw
+     numbers without units (e.g. 24 instead of 24°C, 85 instead of 85%).
+   * Fix: Added BadgeText property to DockItem and draw_item_badge() in
+     DockTheme.vala supporting arbitrary UTF-8 text. Added °C/°F to Weather, and
+     % to CPU (system pressure), Battery, Volume, Network (Wi-Fi), and
+     Brightness docklets. Clean integer counts preserved for Ejector and App
+     notifications.
+ - BUG / COSMETIC 7: Docklet badges oversized (~50% of icon size) obscuring
+   underlying icons.
+   * Root Cause: Badge height hardcoded at 0.50 * icon_size, covering ~40% of
+     icon area.
+   * Fix: Scaled badge height down to ~34% of icon size (min 10px; ~16px on 48px
+     dock, ~24px on 72px zoomed dock), saving over 50% surface area. Adjusted
+     proportional pill width formula ((0.50 + 0.32 * chars) * height, clamped to
+     78% icon width), reduced padding to 1.5px, and scaled Pango font size
+     directly to available inner box height (min 7.0pt) for crisp, sharp, non-
+     occluding badges.
+ - IMPROVEMENT 8: Adaptive Dynamic Gtk+ Theme Engine & Legacy Plank
+   Compatibility.
+   * Root Cause: Selecting "Gtk+" previously looked for a physical dock.theme in
+     the active GTK theme folder (which no modern theme provides), issuing
+     terminal warnings and falling back to static non-adaptive defaults.
+     Additionally, legacy Plank theme folders (~/.local/share/plank/themes,
+     /usr/share/plank/themes) were ignored.
+   * Fix: Transformed "Gtk+" into an adaptive dynamic theme engine in Theme.vala
+     / DockTheme.vala. Samples real-time Gtk.StyleContext (theme_bg_color,
+     theme_selected_bg_color, borders), auto-detects dark/light mode, and
+     synthesizes modern translucent dock styling (rgba ~0.80 dark / ~0.84 light)
+     with live updating on theme or dark mode toggle. Added multi-tier search
+     across Wayplank and legacy Plank theme directories
+     (~/.local/share/plank/themes, ~/.themes, /usr/share/plank/themes)
+     guaranteeing 100% Plank theme compatibility.
+ - IMPROVEMENT 9: Inverted Pressure Reveal Semantics (10px default vs 1px
+   pressure), Universal Switch Tooltips & Informative Click Behavior Options.
+   * Root Cause: Previously, enabling PressureReveal set edge_size to 5px while
+     disabling it set 1px, inverting the intuitive physical meaning of
+     "pressure" (which should require pushing against the screen edge to resist
+     accidental unhiding). Furthermore, 9 out of 14 switches in Preferences
+     lacked tooltips entirely, and Click Behavior only displayed terse one-word
+     options without explanation.
+   * Fix: Inverted edge_size in PositionManager.vala: default (disabled)
+     provides a comfortable 10px unhide zone for fluid everyday unhiding before
+     reaching the screen bezel, while enabled enforces strict 1px edge contact
+     acting as a true barrier against accidental unhides. Added clear,
+     consistent tooltips across all 14 switches and labels in Appearance,
+     Behaviour, and Windows tabs (preferences.ui, PreferencesWindow.vala), and
+     expanded Click Behavior dropdown items with clear in-line explanations
+     ("Smart: Focus, toggle or cycle windows", "Focus: Raise active window to
+     front", "Cycle: Step through open windows") plus tooltips.
+ - BUG 10 (Squashed): Toggling "Show Unpinned" in Preferences did not refresh
+   running unpinned items until focusing a window.
+   * Root Cause: Previously, toggling "Show Unpinned" did not invoke
+     sync_compositor_windows() or gate transient generation via
+     is_pinned_only(). When toggling Show Unpinned ON, internal_elements still
+     contained 0 transient dock items because none had been queried from the
+     compositor yet. They remained absent until an external window focus event
+     arrived, which fired WindowManager.windows_refreshed and called
+     sync_compositor_windows().
+   * Fix: Added is_pinned_only() virtual hook to gate transient
+     generation/pruning in ApplicationDockItemProvider, invoked
+     sync_compositor_windows() directly within handle_pinned_only_changed(), and
+     executed the complete dock layout and animation pipeline
+     (refresh_visible_elements, position_manager.update, reset_buffers,
+     set_input_mask, animated_draw), ensuring running unpinned applications
+     appear and disappear instantaneously without window focus.
 
 
 

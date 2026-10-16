@@ -365,14 +365,22 @@ namespace Plank
 				try {
 					File src;
 					if (uri.has_prefix ("application://")) {
-						var desktop_id = uri.replace ("application://", "");
+						var desktop_id = uri.replace ("application://", "").strip ();
+						while (desktop_id.has_suffix ("/"))
+							desktop_id = desktop_id.slice (0, desktop_id.length - 1);
 						var app_info = new DesktopAppInfo (desktop_id);
+						if (app_info == null && !desktop_id.has_suffix (".desktop"))
+							app_info = new DesktopAppInfo (desktop_id + ".desktop");
 						if (app_info != null && app_info.get_filename () != null)
 							src = File.new_for_path (app_info.get_filename ());
 						else
 							continue;
-					} else {
+					} else if (uri.has_prefix ("file://")) {
 						src = File.new_for_uri (uri);
+					} else if (uri.has_prefix ("/")) {
+						src = File.new_for_path (uri);
+					} else {
+						src = File.new_for_commandline_arg (uri);
 					}
 					
 					if (!src.query_exists ())
