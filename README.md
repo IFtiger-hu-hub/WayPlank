@@ -5,7 +5,7 @@
 > Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Release: v0.6.1 (Alpha)](https://img.shields.io/badge/Release-v0.6.1_(Alpha)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.1.md)
+> [![Release: v0.6.2 (Alpha)](https://img.shields.io/badge/Release-v0.6.2_(Alpha)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
 
 ![Wayplank Release Banner](Release%20Pic.png)
 
@@ -16,28 +16,44 @@
 Plank was completely unmaintained and broken on Wayland. Wayplank brings it back to life with a native Wayland architecture using `gtk-layer-shell`, modular bridges for different compositors, while preserving the fast and clean Cairo rendering engine we all loved.
 
 I get why it might look like slop at first glance, but this is done with professional rigor. Before dumping code, every single change and architecture shift goes through strict Factory Acceptance Testing—you can literally check the logs in the FAT/ folder to see how every version is systematically tested and verified.
-  
-AI is fantastic for rapid prototyping and bringing boilerplate up fast, but this isn't just 'vibe coding'; it's heavily human-reviewed, debugged, and architected for real stability across KWin, Labwc, and Mutter. It’s a robust, hobbyist-driven, native Wayland solution. Take it or leave it, enjoy the code!
+
+AI is fantastic for rapid prototyping and bringing boilerplate up fast, but this isn't just 'vibe coding'; it's heavily human-reviewed, debugged, and architected for real stability across KWin, Labwc, and Mutter. It’s a robust, hobbyist-driven, native Wayland solution. Some minor bugs still remain (fully documented in our FAT/ audit trails—such as multi-monitor brightness sync on GNOME/Labwc), but we believe in total engineering transparency and shipping usable daily-driver software rather than hiding defects. Take it or leave it, enjoy the code!
 
 Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL) working out of the box with **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)**. It auto-detects your compositor at startup without messy configs. 
 
+## 🤝 Acknowledgments & Contributors
+
+
 **A huge thank you to our 300+ community users: with 750+ clones and real-world feedback, 75+ bugs have been squashed across 250+ validation points! Testing, bug reports, and pull requests are warmly welcome.**
 
+* **史有虎 (IFtiger-hu)** ([@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub)): Author of the WayPlank community fork, contributor of native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), dock overflow smooth scrolling architecture, and launcher deduplication engine.
+
+## 📖 Documentation
+
 * 📚 [User Guide & Reference Manual](Documentation/USER_GUIDE.md)
+* 🗺️ [v0.6.2 Fork Integration Roadmap](Documentation/WAYPLANK_V062_FORK_INTEGRATION_ROADMAP.md)
 * 📖 [Technical migration report](Documentation/wayplank_x11_to_wayland_report_en.md)
 * 🧪 [Compositor test matrix & protocols](FAT/)
 * 📦 [Full technical changelogs](Changelogs/)
 
-### 🎯 Compositor Support & Roadmap
+### 🎯 Compositor Support & Native HAL Architecture
 
-* **Tested & working:** KWin (KDE Plasma 6), Labwc (wlroots), GNOME Shell (Mutter).
-* **Next on the list:** Sway and Hyprland support are in the works.
+WayPlank features a modular Hardware Abstraction Layer (HAL) with zero-configuration runtime auto-detection:
+
+| Compositor / Desktop | Integration Engine | Key Capabilities | Status |
+| :--- | :--- | :--- | :---: |
+| **KDE Plasma 6 (KWin)** | D-Bus ECMAScript Bridge | Bidirectional event tracking, atomic DRM `kscreen-doctor` brightness sync, 100% FAT pass | **Tier 1 (Full)** |
+| **GNOME Shell (Mutter)** | Monolithic Mutter Extension | 0.74s instant cold start, Clutter stage coordinate probing, window Dodge/Intellihide | **Tier 1 (Full)** |
+| **Labwc / wlroots** | `gtk-layer-shell` + `zwlr_foreign_toplevel` | Native C protocol bridge, Honest UI matrix, tested on LXQt 2.x & XFCE 4.20 Wayland | **Tier 1 (Full)** |
+| **Sway & Hyprland** | wlroots protocol extensions | Native layer-shell docking & workspace tracking | *In Roadmap* |
+
+*For in-depth architectural details, protocol diagrams, and security model analysis, see [User Guide Chapter 8: Hardware Abstraction Layer (HAL)](Documentation/USER_GUIDE.md#8-hardware-abstraction-layer-hal--compositor-architecture).*
 
 Feel free to star the repo or follow releases if you want to track progress!
 
 ---
 
-> ⚠️ **Note:** Wayplank is actively developing alpha software. It works great on daily drivers, but expect occasional bugs. Feel free to open an issue if something breaks!
+> ⚠️ **Note & Open Bugs:** Wayplank is actively developing software that is robust for daily driving. While KWin achieves 100% compliance across all 50+ test points, a few minor non-blocking issues remain openly logged and tracked in [`FAT/`](FAT/) for GNOME and Labwc. Feedback, bug reports, and pull requests are warmly welcome!
 
 ---
 
@@ -252,6 +268,7 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
+* 🌟 **v0.6.2 (Alpha) — 2026-10-15:** The Community Unification & Distribution Release — Native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), launcher deduplication & item reuse, ghost bridge window shielding, dock overflow smooth scrolling, and DND URL delivery.
 * 💡 **v0.6.1 (Alpha) — 2026-10-15:** The Bug Hunting Release — Multi-monitor KWin brightness sync, unified Global System Pressure engine, drag-and-drop payload delivery & 0-byte MIME fix, docklet icon standardization & adaptive dynamic Gtk+ theme engine.
 * ✨ **v0.6.0 (Alpha) — 2026-10-11:** Smart first-run auto-configuration (categorized English app drawers, auto-detected pinned apps, docklets & trash), universal "Change Icon..." dialog with FreeDesktop & GIO metadata, integrated User Guide, and clean release polish.
 * 🚀 **v0.5.2 (Alpha) — 2026-10-09:** Cairo folder launcher menu, 14 built-in docklets, category layout grouping and deep audit fixing stack overflows & GObject assertions.
@@ -266,6 +283,7 @@ Here is a recap of the journey so far! For complete technical breakdown and FAT 
 * 🌱 **v0.1.0 (Pre-Alpha) — 2026-09-19:** Initial standalone fork from Plank, clean namespace migration to `wayplank` and XDG isolated paths.
 
 👉 *Read the full detailed commits and milestone notes in [`Changelogs/`](Changelogs/).*
+ 
 
 ---
 

@@ -140,8 +140,10 @@ namespace Plank
 		{
 			var was_urgent = (State & ItemState.URGENT) != 0;
 			if (is_urgent) {
-				if (!was_urgent)
+				if (!was_urgent) {
 					LastUrgent = GLib.get_monotonic_time ();
+					get_dock ()?.position_manager.ensure_item_visible (this);
+				}
 				State |= ItemState.URGENT;
 			} else {
 				State &= ~ItemState.URGENT;

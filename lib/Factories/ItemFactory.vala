@@ -505,15 +505,41 @@ namespace Plank
 				} catch { }
 			}
 			
-			var launcher_file = File.new_for_uri (uri);
-			bool is_docklet = uri.has_prefix ("docklet://");
+			string target_uri = uri.strip ();
+			if (target_uri.has_prefix ("application://")) {
+				var desktop_id = target_uri.replace ("application://", "").strip ();
+				while (desktop_id.has_suffix ("/"))
+					desktop_id = desktop_id.slice (0, desktop_id.length - 1);
+				var app_info = new DesktopAppInfo (desktop_id);
+				if (app_info == null && !desktop_id.has_suffix (".desktop"))
+					app_info = new DesktopAppInfo (desktop_id + ".desktop");
+				if (app_info != null && app_info.get_filename () != null) {
+					target_uri = File.new_for_path (app_info.get_filename ()).get_uri ();
+				}
+			} else if (target_uri.has_prefix ("/")) {
+				target_uri = File.new_for_path (target_uri).get_uri ();
+			} else if (!target_uri.has_prefix ("file://") && !target_uri.has_prefix ("docklet://")) {
+				var f = File.new_for_commandline_arg (target_uri);
+				if (f.query_exists ()) {
+					target_uri = f.get_uri ();
+				} else {
+					var app_info = new DesktopAppInfo (target_uri);
+					if (app_info == null && !target_uri.has_suffix (".desktop"))
+						app_info = new DesktopAppInfo (target_uri + ".desktop");
+					if (app_info != null && app_info.get_filename () != null)
+						target_uri = File.new_for_path (app_info.get_filename ()).get_uri ();
+				}
+			}
+
+			var launcher_file = File.new_for_uri (target_uri);
+			bool is_docklet = target_uri.has_prefix ("docklet://");
 			bool is_valid = is_docklet || launcher_file.query_exists ();
-			string basename = is_docklet ? uri.replace ("docklet://", "") : (launcher_file.get_basename () ?? "unknown");
+			string basename = is_docklet ? target_uri.replace ("docklet://", "") : (launcher_file.get_basename () ?? "unknown");
 			
 			if (is_valid && target_dir != null) {
 				var file = new KeyFile ();
 				
-				file.set_string (typeof (DockItemPreferences).name (), "Launcher", uri);
+				file.set_string (typeof (DockItemPreferences).name (), "Launcher", target_uri);
 				
 				try {
 					// find a unique file name, based on the name of the launcher

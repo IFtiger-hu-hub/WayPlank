@@ -25,7 +25,7 @@
 set -euo pipefail
 
 # --- Dolphin Auto-Spawn GUI Terminal ---
-if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ]; then
+if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
     if command -v konsole >/dev/null 2>&1; then
         exec konsole -e bash "$0" "$@"
     elif command -v x-terminal-emulator >/dev/null 2>&1; then
@@ -34,7 +34,7 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ]; then
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.6.1"
+PKG_VER="0.6.2"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
 OUT_DIR="${BASE_DIR}/build"
@@ -210,7 +210,7 @@ if ! dpkg-deb --build --root-owner-group "$BUILD_DIR" "$DEB_FILE"; then
     echo "❌ Build failed! Error creating Debian package with dpkg-deb."
     echo ""
     rm -rf "$BUILD_DIR"
-    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
@@ -227,12 +227,12 @@ else
     echo ""
     echo "❌ Build failed! Package file '${DEB_FILE}' was not created."
     echo ""
-    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
 fi
 
-if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
+if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
     read -rp "👋 Press Enter to close..."
 fi

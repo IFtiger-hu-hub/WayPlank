@@ -1,8 +1,8 @@
 # WayPlank User Guide & Reference Manual
 
-Welcome to **WayPlank**, the fast, lightweight, and modern dock designed natively for the Wayland desktop environment (GNOME / Mutter and beyond).
+Welcome to **WayPlank**, the fast, lightweight, and modern dock designed natively for modern Wayland desktop environments (**KDE Plasma**, **GNOME**, **Labwc**, and beyond).
 
-This manual provides an in-depth reference for all features, configuration options, gestures, and advanced setups—such as folder-based application menus, docklets, accordion collapsing, and multi-monitor layouts.
+This manual provides an in-depth reference for all features, configuration options, gestures, and advanced setups—such as folder-based application menus, docklets, accordion collapsing, multi-monitor layouts, and our modular Hardware Abstraction Layer (HAL).
 
 ---
 
@@ -28,19 +28,26 @@ This manual provides an in-depth reference for all features, configuration optio
    - [Scroll Gestures](#scroll-gestures)
    - [Drag & Drop Interactions](#drag--drop-interactions)
    - [Quick Settings Access & In-App Help](#quick-settings-access--in-app-help)
-7. [Multi-Monitor & Wayland Desktop Integration](#7-multi-monitor--wayland-desktop-integration)
+7. [Multi-Monitor Setup & Screen Ergonomics](#7-multi-monitor-setup--screen-ergonomics)
    - [Monitor Selection & Alignment](#monitor-selection--alignment)
    - [Intelligent Hide & Edge Pressure](#intelligent-hide--edge-pressure)
-   - [GNOME Shell Mutter Extension Architecture](#gnome-shell-mutter-extension-architecture)
-8. [Themes & Visual Customization](#8-themes--visual-customization)
+   - [Multi-Monitor Topology & DPMS Wake Stability](#multi-monitor-topology--dpms-wake-stability)
+   - [Multi-Monitor Hardware Brightness Control](#multi-monitor-hardware-brightness-control)
+8. [Hardware Abstraction Layer (HAL) & Compositor Architecture](#8-hardware-abstraction-layer-hal--compositor-architecture)
+   - [The Wayland Security Model & Why WayPlank Needs an HAL](#the-wayland-security-model--why-wayplank-needs-an-hal)
+   - [KDE Plasma: KWin D-Bus Scripting Bridge](#kde-plasma-kwin-d-bus-scripting-bridge)
+   - [GNOME Shell: Monolithic Mutter Extension](#gnome-shell-monolithic-mutter-extension)
+   - [Labwc & wlroots: Native Protocol Architecture](#labwc--wlroots-native-protocol-architecture)
+   - [Runtime Auto-Detection Engine](#runtime-auto-detection-engine)
+9. [Themes & Visual Customization](#9-themes--visual-customization)
    - [Built-in Themes](#built-in-themes)
    - [Installing Custom Themes](#installing-custom-themes)
    - [Dock Size & Zoom Level](#dock-size--zoom-level)
-9. [Command Line Usage & Configuration Files](#9-command-line-usage--configuration-files)
+10. [Command Line Usage & Configuration Files](#10-command-line-usage--configuration-files)
    - [CLI Commands](#cli-commands)
    - [Configuration File Paths](#configuration-file-paths)
    - [GSettings Database Keys](#gsettings-database-keys)
-10. [Troubleshooting & FAQ](#10-troubleshooting--faq)
+11. [Troubleshooting & FAQ](#11-troubleshooting--faq)
 
 ---
 
@@ -49,11 +56,13 @@ This manual provides an in-depth reference for all features, configuration optio
 WayPlank is a native port and evolution of the classic Plank dock, rebuilt to thrive in modern Wayland display servers without X11 or XWayland workarounds.
 
 ### Key Highlights
-- **Native Wayland Performance:** Powered by a direct asynchronous Mutter backend extension with zero boot latency (sub-second startup).
+- **Modular Multi-Compositor HAL:** Zero-configuration runtime detection and high-performance native window tracking across **KDE Plasma (KWin D-Bus Scripting Bridge)**, **GNOME (Monolithic Mutter Extension)**, and **Labwc/wlroots (`zwlr_foreign_toplevel`)** with zero X11 or XWayland dependencies.
+- **Hardware-Level Brightness Control:** Atomic multi-monitor synchronization via KWin DRM `kscreen-doctor` calls, overcoming user-space PowerDevil I2C permission barriers on external HDMI/DisplayPort screens.
 - **Categorized Dock Layout:** Automatic visual grouping of Folders, Docklets, Pinned Launchers, Running Windows, and the Trash can.
-- **Folder Launchers:** Turn any directory into a Cairo-Dock style popup application menu.
+- **Folder Launchers:** Turn any directory into a Cairo-Dock style popup application menu with 60 FPS dynamic zoom elevation.
 - **Accordion Docklets:** Keep system widgets accessible without cluttering your desktop space.
 - **Fluid Animations:** Smooth zoom, bounce on launch, window attention indicators, and smoke poof animations when unpinning.
+- **Sub-Second Instant Boot:** 0.74s instantaneous launch with asynchronous compositor handshake.
 
 ---
 
@@ -232,14 +241,14 @@ WayPlank offers an extensive set of mouse gestures and keyboard shortcuts design
 
 ---
 
-## 7. Multi-Monitor & Wayland Desktop Integration
+## 7. Multi-Monitor Setup & Screen Ergonomics
 
-WayPlank is architected from the ground up for modern multi-monitor Wayland setups.
+WayPlank is architected from the ground up for modern multi-monitor Wayland workstations, whether utilizing homogeneous 4K displays or heterogeneous multi-output setups with mixed fractional scaling.
 
 ### Monitor Selection & Alignment
 - **Position**: Place the dock on the `Bottom`, `Top`, `Left`, or `Right` edge of your screen.
 - **Alignment**: Align the dock to `Center`, `Start` (Left/Top), or `End` (Right/Bottom).
-- **Monitor Pinning**: In the Preferences dialog, select the exact physical output where WayPlank should appear (e.g., `eDP-1`, `DP-1`, `HDMI-A-1`).
+- **Monitor Pinning**: In the Preferences dialog (**Preferences $\rightarrow$ Appearance $\rightarrow$ Monitor**), select the exact physical output where WayPlank should appear (e.g., `eDP-1`, `DP-1`, `HDMI-A-1`). When set to primary or specific outputs, WayPlank binds its layer-shell surface exclusively to that display geometry.
 
 ### Intelligent Hide & Edge Pressure
 - **Hide Modes**:
@@ -247,16 +256,95 @@ WayPlank is architected from the ground up for modern multi-monitor Wayland setu
   - `Intelligent`: Dock automatically slides out of view only when an active window overlaps its territory.
   - `Autohide`: Dock hides whenever the mouse leaves its boundary.
   - `Dodge Active Window`: Dock hides only when the focused window overlaps it.
-- **Pressure Reveal**: Requires touching the physical screen edge (1px barrier) before the dock reveals itself, preventing accidental triggers when working near the border. When disabled, the dock unhides smoothly 10px before reaching the edge for fluid everyday access.
+- **Pressure Reveal**: Requires touching the physical screen edge (1px barrier) before the dock reveals itself, preventing accidental triggers when moving the mouse across monitor boundaries or working near the border. When disabled, the dock unhides smoothly 10px before reaching the edge for fluid everyday access.
 
-### GNOME Shell Mutter Extension Architecture
-On GNOME Wayland sessions, WayPlank communicates with a dedicated, lightweight GNOME Shell extension:
-- **Instantaneous 0.74s Startup**: Asynchronous initialization with zero synchronous evaluation freezes.
-- **Stage Probing**: Multi-monitor boundaries are probed directly via Clutter stage coordinates, guaranteeing responsive mouse unhide even on secondary screens located at bottom or lateral coordinates.
+### Multi-Monitor Topology & DPMS Wake Stability
+In complex multi-monitor environments, dynamic display changes—such as hotplugging an external screen, changing physical layout topology, or waking from system suspend / DPMS sleep—frequently cause race conditions in Wayland clients:
+- **50ms Debounced Topology Sync**: WayPlank intercepts Gdk/Wayland display configuration events through a non-blocking 50ms debouncer, preventing display flicker or multiple surface rebuilds while displays renegotiate modes.
+- **Persistent Output Mapping**: Monitor connector identifiers are tracked across sleep and resume cycles, ensuring the dock never jumps unexpectedly between displays when external docks or monitors re-enumerate.
+- **Heterogeneous DPI & Fractional Scaling**: Layer-shell geometry and Cairo surface buffers automatically adjust scaling factors when moved across displays with differing device pixel ratios (HiDPI / LoDPI).
+
+### Multi-Monitor Hardware Brightness Control
+WayPlank's integrated Screen Brightness docklet features per-monitor hardware backlight and DDC/CI level synchronization:
+- On multi-monitor setups, external displays connected over HDMI, DisplayPort, or USB-C often lack unprivileged `/sys/class/backlight` interfaces.
+- WayPlank synchronizes brightness levels through KWin's DRM `kscreen-doctor` bridge and kernel interfaces, allowing fluid backlight adjustments across all connected displays without requiring root permissions or external background daemons.
 
 ---
 
-## 8. Themes & Visual Customization
+## 8. Hardware Abstraction Layer (HAL) & Compositor Architecture
+
+Unlike legacy X11—where any unprivileged client could globally poll window hierarchies, coordinates, and input focus via the root window—the **Wayland security model** intentionally isolates applications from one another. By design, a pure Wayland client cannot query other applications' windows or control desktop focus without explicit compositor cooperation.
+
+To deliver full dock functionality—including running application indicators, window activation, minimize/restore toggling, dynamic Dodge/Intellihide window overlap tracking, and multi-monitor coordination—WayPlank incorporates a modular, zero-configuration **Hardware Abstraction Layer (HAL)** (`lib/Services/WindowBackend.vala` and `lib/Services/WindowControl.vala`).
+
+### The Wayland Security Model & Why WayPlank Needs an HAL
+In Wayland, the compositor acts as the display server, window manager, and compositor all in one. Standard Wayland protocols (`wl_compositor`, `wl_surface`) deliberately omit APIs for inspecting foreign toplevel windows to prevent keylogging and screen snooping.
+
+```mermaid
+flowchart TD
+    subgraph UI ["WayPlank Frontend & Dock UI"]
+        Core["WayPlank Core Dock Engine (Drawing, Cairo Surfaces, Item Grouping)"]
+        Gestures["User Ergonomics & Gestures (Edge Pressure Reveal, Zoom Magnification)"]
+    end
+
+    subgraph HAL ["Hardware Abstraction Layer (HAL)"]
+        WB["WindowBackend & WindowControl API (lib/Services/WindowBackend.vala)"]
+        AutoDetect{"Runtime Compositor Auto-Detection"}
+    end
+
+    subgraph Drivers ["Compositor Backend Drivers"]
+        KWin["KWin Backend Driver (lib/Services/KWin)"]
+        Mutter["Mutter Backend Driver (lib/Services/Mutter)"]
+        Wlr["Labwc & wlroots Driver (wlr-toplevel-bridge)"]
+    end
+
+    subgraph Compositors ["Wayland Compositor Subsystems"]
+        KWinSub["KWin Scripting Bridge (/Scripting) & kscreen-doctor DRM Backlight"]
+        MutterSub["Monolithic GNOME Shell Extension & Clutter Stage Probing"]
+        WlrSub["Wayland Layer Shell (zwlr_layer_shell_v1) & Foreign Toplevel Protocol"]
+    end
+
+    Core --> WB
+    Gestures --> WB
+    WB --> AutoDetect
+
+    AutoDetect -->|"Session: KDE Plasma 5/6"| KWin
+    AutoDetect -->|"Session: GNOME Shell"| Mutter
+    AutoDetect -->|"Session: Labwc / wlroots"| Wlr
+
+    KWin <-->|"Bidirectional D-Bus ECMAScript"| KWinSub
+    Mutter <-->|"Asynchronous D-Bus IPC"| MutterSub
+    Wlr <-->|"Native Wayland Protocol Wire"| WlrSub
+```
+
+### KDE Plasma: KWin D-Bus Scripting Bridge
+On KDE Plasma (Plasma 5 & Plasma 6), WayPlank communicates with KWin via its native D-Bus scripting interface (`org.kde.KWin /Scripting`):
+- **Dynamic ECMAScript Bridge**: WayPlank registers a high-performance helper script inside KWin's JavaScript runtime, providing bi-directional, event-driven notifications for window creation, destruction, focus shifts, minimization, and geometry changes.
+- **Zero Polling Overhead**: Window geometry and state changes are delivered via D-Bus signal emissions, eliminating CPU-intensive polling loops.
+- **Hardware-Level Display Sync**: Leverages `kscreen-doctor` for atomic multi-monitor brightness and output state synchronization.
+- **Validated 100% FAT Stability**: Fully compliant with the WayPlank Factory Acceptance Test (FAT) matrix on KDE Plasma 6.
+
+### GNOME Shell: Monolithic Mutter Extension
+Because GNOME Shell (Mutter) does not implement the `zwlr_foreign_toplevel_manager_v1` protocol and restricts foreign window inspection, WayPlank features a self-deploying GNOME Shell extension:
+- **Instantaneous 0.74s Startup**: Asynchronous initialization with zero synchronous evaluation freezes, achieving sub-second cold starts.
+- **Clutter Stage Probing**: Multi-monitor boundaries and dock reveal triggers are probed directly through Clutter stage coordinates, guaranteeing responsive mouse unhide even on secondary screens located at bottom or lateral coordinates.
+- **Window Geometry & Intellihide**: Provides real-time window boundary data over session D-Bus (`/org/gnome/Shell/Extensions/WayPlank`), powering intelligent dodge and hide calculations on GNOME Wayland sessions.
+- **Non-Intrusive Desktop Integration**: Dialogs are centered automatically, and desktop notifications are delivered cleanly without intrusive banner overlays.
+
+### Labwc & wlroots: Native Protocol Architecture
+For modular Wayland environments such as Labwc, Wayfire, and generic wlroots-based compositors:
+- **`gtk-layer-shell` Surface Management**: WayPlank anchors itself directly to the desktop using standard Wayland layer-shell protocol semantics (`zwlr_layer_shell_v1`), managing exclusive zones and autohide margins natively.
+- **Foreign Toplevel Management**: Communicates via `zwlr_foreign_toplevel_manager_v1` using an optimized, native C bridge (`lib/Services/wlr-toplevel-bridge.c`), enabling window tracking, activation, minimization, and closing without intermediate desktop daemons.
+- **State-Based Dodge & Honest UI**: Employs an intelligent window state filter (`DODGE_MAXIMIZED` and focused window tracking), validated across lightweight Wayland environments including LXQt 2.x and XFCE 4.20 on Labwc.
+
+### Runtime Auto-Detection Engine
+WayPlank requires zero user configuration or environment toggles to select the correct compositor backend:
+- During startup, the HAL detection engine inspects session environment variables (`XDG_CURRENT_DESKTOP`, `XDG_SESSION_TYPE`, `WAYLAND_DISPLAY`), tests compositor D-Bus interfaces, and probes supported Wayland protocol globals.
+- It dynamically binds the optimal driver at runtime with graceful fallback, ensuring a seamless, out-of-the-box user experience regardless of distribution or desktop environment.
+
+---
+
+## 9. Themes & Visual Customization
 
 ### Built-in Themes
 WayPlank ships with five built-in static themes and an adaptive dynamic GTK theme engine:
@@ -284,7 +372,7 @@ They will instantly appear in the **Preferences $\rightarrow$ Theme** dropdown m
 
 ---
 
-## 9. Command Line Usage & Configuration Files
+## 10. Command Line Usage & Configuration Files
 
 ### CLI Commands
 ```bash
@@ -325,13 +413,13 @@ gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1
 
 ---
 
-## 10. Troubleshooting & FAQ
+## 11. Troubleshooting & FAQ
 
 #### Q: How do I open Preferences if the preferences icon is missing?
 **A:** Hold the **`Ctrl`** key and **Right-Click** anywhere on the dock, or run `wayplank --preferences` in a terminal.
 
 #### Q: How do I add an application that is not in the default folders?
-**A:** Open your Application Menu in GNOME or your file manager at `/usr/share/applications/`, and simply drag the `.desktop` file onto WayPlank.
+**A:** Open your Application Menu (KDE Kickoff, GNOME Dash, Labwc menu) or your file manager (Dolphin, Nautilus, Thunar) at `/usr/share/applications/`, and simply drag the `.desktop` file onto WayPlank.
 
 #### Q: Can I reset WayPlank to its initial default state?
 **A:** Yes. Close WayPlank, remove the configuration folder, and start WayPlank again:

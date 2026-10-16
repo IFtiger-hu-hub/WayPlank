@@ -191,5 +191,10 @@
 			<summary>Icon zoom percentage</summary>
 			<description>The amount to zoom dock items, in percent.</description>
 		</key>
+		<key name="scroll-overflow" type="b">
+			<default>false</default>
+			<summary>Scroll on overflow</summary>
+			<description>If true, smoothly scroll items with mouse wheel when dock overflows monitor space instead of shrinking icons to fit.</description>
+		</key>
 	</schema>
 </schemalist>

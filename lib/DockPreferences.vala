@@ -128,6 +128,9 @@ namespace Plank
 				_accordion_delay = value.clamp (500U, 20000U);
 			}
 		}
+
+		[Description(nick = "scroll-overflow", blurb = "Whether to smoothly scroll when items overflow the screen instead of shrinking.")]
+		public bool ScrollOverflow { get; set; }
 		
 		/**
 		 * {@inheritDoc}

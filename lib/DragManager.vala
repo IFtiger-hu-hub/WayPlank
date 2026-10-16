@@ -280,40 +280,85 @@ namespace Plank
 				if (raw_uris != null && raw_uris.length > 0) {
 					foreach (unowned string s in raw_uris) {
 						string cleaned = s.strip ();
-						if (cleaned.length > 0 && !drag_data.contains (cleaned))
-							drag_data.add (cleaned);
+						if (cleaned.length == 0 || cleaned.has_prefix ("#"))
+							continue;
+						
+						string? resolved = null;
+						if (cleaned.has_prefix ("application://")) {
+							var desktop_id = cleaned.replace ("application://", "").strip ();
+							while (desktop_id.has_suffix ("/"))
+								desktop_id = desktop_id.slice (0, desktop_id.length - 1);
+							var app_info = new DesktopAppInfo (desktop_id);
+							if (app_info == null && !desktop_id.has_suffix (".desktop"))
+								app_info = new DesktopAppInfo (desktop_id + ".desktop");
+							if (app_info != null && app_info.get_filename () != null)
+								resolved = File.new_for_path (app_info.get_filename ()).get_uri ();
+							else
+								resolved = cleaned;
+						} else if (cleaned.has_prefix ("file://")) {
+							resolved = cleaned;
+						} else if (cleaned.has_prefix ("/")) {
+							resolved = File.new_for_path (cleaned).get_uri ();
+						} else {
+							var f = File.new_for_commandline_arg (cleaned);
+							if (f.query_exists ()) {
+								resolved = f.get_uri ();
+							} else {
+								var app_info = new DesktopAppInfo (cleaned);
+								if (app_info == null && !cleaned.has_suffix (".desktop"))
+									app_info = new DesktopAppInfo (cleaned + ".desktop");
+								if (app_info != null && app_info.get_filename () != null)
+									resolved = File.new_for_path (app_info.get_filename ()).get_uri ();
+								else
+									resolved = cleaned;
+							}
+						}
+						
+						if (resolved != null && !drag_data.contains (resolved))
+							drag_data.add (resolved);
 					}
 				}
 				
 				if (drag_data.size == 0 && data != null) {
-					var uris = Uri.list_extract_uris (data);
-					if (uris.length == 0) {
-						var plain_uri = data.strip ();
-						if (plain_uri.has_prefix ("application://") || plain_uri.has_prefix ("file://")) {
-							drag_data.add (plain_uri);
-						} else {
-							var f = File.new_for_commandline_arg (plain_uri);
-							if (f.query_exists ())
-								drag_data.add (f.get_uri ());
-						}
-					}
-
-					foreach (unowned string s in uris) {
-						string cleaned = s.strip ();
-						if (cleaned.length == 0)
+					var lines = data.split ("\n");
+					foreach (unowned string line in lines) {
+						var item_str = line.strip ();
+						if (item_str.length == 0 || item_str.has_prefix ("#"))
 							continue;
 						
-						string? uri = null;
-						if (cleaned.has_prefix ("file://") || cleaned.has_prefix ("application://")) {
-							uri = File.new_for_uri (cleaned).get_uri ();
+						string? resolved = null;
+						if (item_str.has_prefix ("application://")) {
+							var desktop_id = item_str.replace ("application://", "").strip ();
+							while (desktop_id.has_suffix ("/"))
+								desktop_id = desktop_id.slice (0, desktop_id.length - 1);
+							var app_info = new DesktopAppInfo (desktop_id);
+							if (app_info == null && !desktop_id.has_suffix (".desktop"))
+								app_info = new DesktopAppInfo (desktop_id + ".desktop");
+							if (app_info != null && app_info.get_filename () != null)
+								resolved = File.new_for_path (app_info.get_filename ()).get_uri ();
+							else
+								resolved = item_str;
+						} else if (item_str.has_prefix ("file://")) {
+							resolved = item_str;
+						} else if (item_str.has_prefix ("/")) {
+							resolved = File.new_for_path (item_str).get_uri ();
 						} else {
-							var f = File.new_for_commandline_arg (cleaned);
-							if (f.query_exists ())
-								uri = f.get_uri ();
+							var f = File.new_for_commandline_arg (item_str);
+							if (f.query_exists ()) {
+								resolved = f.get_uri ();
+							} else {
+								var app_info = new DesktopAppInfo (item_str);
+								if (app_info == null && !item_str.has_suffix (".desktop"))
+									app_info = new DesktopAppInfo (item_str + ".desktop");
+								if (app_info != null && app_info.get_filename () != null)
+									resolved = File.new_for_path (app_info.get_filename ()).get_uri ();
+								else
+									resolved = item_str;
+							}
 						}
 						
-						if (uri != null && !drag_data.contains (uri))
-							drag_data.add (uri);
+						if (resolved != null && !drag_data.contains (resolved))
+							drag_data.add (resolved);
 					}
 				}
 				
@@ -330,9 +375,24 @@ namespace Plank
 					return;
 				}
 				
+				for (int i = 0; i < drag_data.size; i++) {
+					var u = drag_data[i].strip ();
+					if (u.has_prefix ("application://")) {
+						var desktop_id = u.replace ("application://", "").strip ();
+						while (desktop_id.has_suffix ("/"))
+							desktop_id = desktop_id.slice (0, desktop_id.length - 1);
+						var app_info = new DesktopAppInfo (desktop_id);
+						if (app_info == null && !desktop_id.has_suffix (".desktop"))
+							app_info = new DesktopAppInfo (desktop_id + ".desktop");
+						if (app_info != null && app_info.get_filename () != null) {
+							drag_data[i] = File.new_for_path (app_info.get_filename ()).get_uri ();
+						}
+					}
+				}
+				
 				if (drag_data.size == 1) {
 					var uri = drag_data[0];
-					DragNeedsCheck = !uri.has_suffix (".desktop");
+					DragNeedsCheck = !(uri.has_suffix (".desktop") || uri.has_prefix ("application://"));
 				} else {
 					DragNeedsCheck = true;
 				}
@@ -350,7 +410,7 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void accept_external_drop (Gdk.DragContext context, uint time_)
 		{
-			if (drag_data == null) {
+			if (drag_data == null || drag_data.size == 0) {
 				Gtk.drag_finish (context, false, false, time_);
 				drop_target_item = null;
 				return;
@@ -368,46 +428,95 @@ namespace Plank
 			if (provider == null)
 				provider = controller.default_provider;
 
+			bool all_desktop = (drag_data.size > 0);
 			bool contains_directory = false;
 			foreach (string uri in drag_data) {
-				if (File.new_for_uri (uri).query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY) {
+				if (!uri.has_suffix (".desktop") && !uri.has_prefix ("application://"))
+					all_desktop = false;
+				if (File.new_for_uri (uri).query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
 					contains_directory = true;
-					break;
-				}
 			}
 			
 			bool handled = false;
-			bool item_can_drop = (item != null && item.can_accept_drop (drag_data));
-			if (item_can_drop && (item is TrashDockItem || item is FileDockItem || (!contains_directory && DragNeedsCheck) || (item is ApplicationDockItem && (!contains_directory || ((ApplicationDockItem) item).can_accept_directory ()) && DragNeedsCheck)))
+
+			// Direct drop onto Trash: Trash always takes precedence
+			if (item is TrashDockItem && item.can_accept_drop (drag_data)) {
 				handled = item.accept_drop (drag_data);
-			else if ((item == null || !DragNeedsCheck) && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data))
+			}
+			// PRIORITY 1: When payload consists solely of .desktop launchers, PINNING ALWAYS HAS PRIORITY
+			else if (all_desktop) {
+				if (!controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data))
+					handled = provider.accept_drop (drag_data);
+			}
+			// PRIORITY 2: Non-desktop payloads dropped onto specific dock items (Folder, App)
+			else if (item != null && item.can_accept_drop (drag_data)) {
+				if (item is FileDockItem) {
+					handled = item.accept_drop (drag_data);
+				} else if (item is ApplicationDockItem && (!contains_directory || ((ApplicationDockItem) item).can_accept_directory ())) {
+					handled = item.accept_drop (drag_data);
+				}
+			}
+			// PRIORITY 3: Non-desktop payloads dropped on empty dock space (pin as FileDockItem)
+			else if (item == null && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data)) {
 				handled = provider.accept_drop (drag_data);
+			}
 			
+			if (handled) {
+				unowned DefaultApplicationDockItemProvider? def_prov = controller.default_provider as DefaultApplicationDockItemProvider;
+				if (def_prov != null) {
+					def_prov.refresh_separators ();
+				}
+				controller.schedule_serialize_item_positions ();
+				if (controller.renderer != null) {
+					controller.renderer.reset_buffers ();
+					controller.renderer.animated_draw ();
+				}
+				window.update_icon_regions ();
+				window.set_input_mask ();
+			}
+
 			Gtk.drag_finish (context, handled, false, time_);
 			ExternalDragActive = false;
 			drag_data = null;
 			dropped_on_target = false;
-			controller.renderer.animated_draw ();
+			if (controller.renderer != null)
+				controller.renderer.animated_draw ();
 		}
 
 		[CCode (instance_pos = -1)]
 		bool drag_drop (Gtk.Widget w, Gdk.DragContext context, int x, int y, uint time_)
 		{
 			dropped_on_target = true;
-			controller.renderer.update_local_cursor (x, y);
+			if (controller.renderer != null)
+				controller.renderer.update_local_cursor (x, y);
 			controller.hide_manager.update_hovered_with_coords (x, y);
 			controller.window.update_hovered (x, y);
 			drop_target_item = controller.window.HoveredItem;
+			if (drop_target_item != null && !(drop_target_item is TrashDockItem || drop_target_item is FileDockItem))
+				drop_target_item = null;
 			
-			if (drop_target_item == null || !(drop_target_item is TrashDockItem)) {
+			if (drop_target_item == null) {
 				unowned PositionManager pos_mgr = controller.position_manager;
-				foreach (var el in controller.default_provider.Elements) {
-					if (el is TrashDockItem) {
-						var r = pos_mgr.get_hover_region_for_element (el as DockItem);
+				foreach (var el in controller.default_provider.VisibleElements) {
+					var item = el as DockItem;
+					if (item != null && (item is TrashDockItem || item is FileDockItem)) {
+						var r = pos_mgr.get_hover_region_for_element (item);
 						if (x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height) {
-							drop_target_item = (DockItem) el;
-							last_hovered_trash = true;
+							drop_target_item = item;
+							if (item is TrashDockItem)
+								last_hovered_trash = true;
 							break;
+						}
+					}
+				}
+				if (drop_target_item == null) {
+					var nearest = pos_mgr.get_nearest_item_at (x, y);
+					if (nearest != null && (nearest is TrashDockItem || nearest is FileDockItem)) {
+						var r = pos_mgr.get_hover_region_for_element (nearest);
+						if (x >= r.x - 16 && x <= r.x + r.width + 16 && y >= r.y - 16 && y <= r.y + r.height + 16) {
+							drop_target_item = nearest;
+							if (nearest is TrashDockItem)
+								last_hovered_trash = true;
 						}
 					}
 				}
@@ -420,7 +529,8 @@ namespace Plank
 				drag_hover_timer_id = 0U;
 			}
 			
-			if (ExternalDragActive) {
+			if (ExternalDragActive || !InternalDragActive) {
+				ExternalDragActive = true;
 				drag_data = null;
 				drag_data_requested = true;
 				var target_atom = Gtk.drag_dest_find_target (controller.window, context, null);
