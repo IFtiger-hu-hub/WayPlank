@@ -126,6 +126,9 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		bool draw_timeout (Gtk.Widget widget, Gdk.FrameClock frame_clock)
 		{
+			if (!is_updating)
+				return true;
+
 			frame_time = GLib.get_monotonic_time ();
 			initialize_frame (frame_time);
 			widget.queue_draw ();

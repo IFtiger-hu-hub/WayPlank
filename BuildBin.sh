@@ -86,14 +86,14 @@ if valac -g \
     -o "${OUT_DIR}/wayplank"; then
     rm -f "${BASE_DIR}/lib/resources.c"
     echo "✅ Binary ready: ${OUT_DIR}/wayplank"
-    if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ]; then
+    if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
 else
     rm -f "${BASE_DIR}/lib/resources.c"
     echo ""
     echo "❌ Error: Compilation failed!"
-    if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ]; then
+    if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1

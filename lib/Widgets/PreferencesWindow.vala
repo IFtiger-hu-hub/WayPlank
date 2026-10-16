@@ -53,6 +53,12 @@ namespace Plank
 		unowned Gtk.Scale s_offset;
 		[GtkChild]
 		unowned Gtk.Scale s_zoom_percent;
+		[GtkChild]
+		unowned Gtk.Scale s_iconsize;
+		[GtkChild]
+		unowned Gtk.SpinButton sp_iconsize;
+		[GtkChild]
+		unowned Gtk.Label l_iconsize_hint;
 		
 		[GtkChild]
 		unowned Gtk.Adjustment adj_hide_delay;
@@ -73,6 +79,8 @@ namespace Plank
 		unowned Gtk.Switch sw_workspace_only;
 		[GtkChild]
 		unowned Gtk.Switch sw_show_unpinned;
+		[GtkChild]
+		unowned Gtk.Switch sw_scroll_overflow;
 		[GtkChild]
 		unowned Gtk.Switch sw_lock_items;
 		[GtkChild]
@@ -253,10 +261,12 @@ namespace Plank
 			this.map.connect (() => {
 				is_open = true;
 				update_accordion_visibility ();
+				update_icon_size_feedback ();
 			});
 			this.show.connect (() => {
 				is_open = true;
 				update_accordion_visibility ();
+				update_icon_size_feedback ();
 			});
 			this.hide.connect (() => {
 				is_open = false;
@@ -275,6 +285,8 @@ namespace Plank
 			disconnect_signals ();
 			if (popup_css_screen != null && popup_css != null)
 				Gtk.StyleContext.remove_provider_for_screen (popup_css_screen, popup_css);
+			if (s_iconsize != null && slider_css != null)
+				s_iconsize.get_style_context ().remove_provider (slider_css);
 		}
 
 		void configure_hide_mode_rows ()
@@ -330,6 +342,11 @@ namespace Plank
 				break;
 			case "IconSize":
 				adj_iconsize.value = prefs.IconSize;
+				update_icon_size_feedback ();
+				break;
+			case "ScrollOverflow":
+				sw_scroll_overflow.set_active (prefs.ScrollOverflow);
+				update_icon_size_feedback ();
 				break;
 			case "ItemsAlignment":
 				cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();
@@ -688,6 +705,115 @@ namespace Plank
 		void iconsize_changed (Gtk.Adjustment adj)
 		{
 			prefs.IconSize = (int) adj.value;
+			update_icon_size_feedback ();
+		}
+
+		void scroll_overflow_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.ScrollOverflow = ((Gtk.Switch) widget).get_active ();
+			update_icon_size_feedback ();
+		}
+
+		Gtk.CssProvider? slider_css = null;
+		int last_fit_size = -1;
+		int last_scroll_mode = -1;
+
+		void update_icon_size_feedback ()
+		{
+			if (s_iconsize == null || adj_iconsize == null || controller == null || controller.position_manager == null)
+				return;
+
+			int fit_size = controller.position_manager.get_max_screen_fit_icon_size ();
+			int current_val = (int) adj_iconsize.value;
+			bool scroll_mode = prefs.ScrollOverflow;
+			int current_scroll_mode_int = scroll_mode ? 1 : 0;
+
+			bool structure_changed = (fit_size != last_fit_size || current_scroll_mode_int != last_scroll_mode);
+
+			if (structure_changed) {
+				last_fit_size = fit_size;
+				last_scroll_mode = current_scroll_mode_int;
+
+				s_iconsize.clear_marks ();
+
+				if (scroll_mode) {
+					s_iconsize.get_style_context ().remove_class ("slider-has-limit");
+					if (slider_css != null) {
+						s_iconsize.get_style_context ().remove_provider (slider_css);
+					}
+				} else {
+					s_iconsize.get_style_context ().add_class ("slider-has-limit");
+
+					if (fit_size < DockPreferences.MAX_ICON_SIZE) {
+						s_iconsize.add_mark (fit_size, Gtk.PositionType.BOTTOM, 
+							"<small><span color='#e06c75'><b>%dpx</b></span></small>".printf (fit_size));
+					}
+
+					double min_sz = DockPreferences.MIN_ICON_SIZE;
+					double max_sz = DockPreferences.MAX_ICON_SIZE;
+					double pct = ((fit_size - min_sz) / (max_sz - min_sz)) * 100.0;
+					pct = pct.clamp (0.0, 100.0);
+
+					if (slider_css == null) {
+						slider_css = new Gtk.CssProvider ();
+					} else {
+						s_iconsize.get_style_context ().remove_provider (slider_css);
+					}
+
+					try {
+						string css = "trough {\n" +
+						             "    background-image: linear-gradient(to right, rgba(120, 120, 120, 0.25) 0%, rgba(120, 120, 120, 0.25) %.1f%%, rgba(224, 27, 36, 0.50) %.1f%%, rgba(224, 27, 36, 0.85) 100%%);\n".printf (pct, pct) +
+						             "}\n" +
+						             ".slider-exceeded highlight, .slider-exceeded trough.highlight {\n" +
+						             "    background-color: #e01b24;\n" +
+						             "}\n" +
+						             ".slider-exceeded slider {\n" +
+						             "    background-color: #ff5252;\n" +
+						             "    border-color: #b71c1c;\n" +
+						             "}\n";
+						slider_css.load_from_data (css);
+						s_iconsize.get_style_context ().add_provider (slider_css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+					} catch (GLib.Error e) {
+						warning ("Unable to apply slider CSS: %s", e.message);
+					}
+				}
+			}
+
+			if (scroll_mode) {
+				s_iconsize.get_style_context ().remove_class ("slider-exceeded");
+				if (l_iconsize_hint != null) {
+					l_iconsize_hint.set_markup ("<small><span alpha='75%'>%s</span></small>".printf (
+						_("Scroll on Overflow active: %dpx preserved").printf (current_val)));
+				}
+
+				string tt = _("Target icon size: %dpx.\n'Scroll on Overflow' is enabled in Behaviour: icons will never shrink, and the dock smoothly scrolls with mouse wheel when items exceed screen space.").printf (current_val);
+				s_iconsize.tooltip_text = tt;
+				sp_iconsize.tooltip_text = tt;
+				return;
+			}
+
+			bool exceeded = (current_val > fit_size);
+			if (exceeded) {
+				s_iconsize.get_style_context ().add_class ("slider-exceeded");
+				if (l_iconsize_hint != null) {
+					l_iconsize_hint.set_markup (
+						"<small><span foreground='#e01b24'><b>%s</b></span></small>".printf (
+							_("⚠️ Limited to %dpx by screen space (auto-shrunk)").printf (fit_size)));
+				}
+				string tt = _("⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\nIcons will auto-shrink to fit on screen.\nTo unlock larger sizes without shrinking, enable 'Scroll on Overflow' in Behaviour.").printf (current_val, fit_size);
+				s_iconsize.tooltip_text = tt;
+				sp_iconsize.tooltip_text = tt;
+			} else {
+				s_iconsize.get_style_context ().remove_class ("slider-exceeded");
+				if (l_iconsize_hint != null) {
+					l_iconsize_hint.set_markup (
+						"<small><span alpha='75%'>%s</span></small>".printf (
+							_("Fits on screen without shrinking (limit: %dpx)").printf (fit_size)));
+				}
+				string tt = _("Target icon size: %dpx.\nFits comfortably on screen (screen capacity limit: %dpx before auto-shrinking activates).").printf (current_val, fit_size);
+				s_iconsize.tooltip_text = tt;
+				sp_iconsize.tooltip_text = tt;
+			}
 		}
 		
 		void offset_changed (Gtk.Adjustment adj)
@@ -751,6 +877,7 @@ namespace Plank
 			sw_workspace_only.notify["active"].connect (workspace_only_toggled);
 			sw_autostart.notify["active"].connect (autostart_toggled);
 			sw_show_unpinned.notify["active"].connect (show_unpinned_toggled);
+			sw_scroll_overflow.notify["active"].connect (scroll_overflow_toggled);
 			sw_lock_items.notify["active"].connect (lock_items_toggled);
 			sw_pressure_reveal.notify["active"].connect (pressure_reveal_toggled);
 			sw_zoom_enabled.notify["active"].connect (zoom_enabled_toggled);
@@ -806,6 +933,7 @@ namespace Plank
 			sw_workspace_only.notify["active"].disconnect (workspace_only_toggled);
 			sw_autostart.notify["active"].disconnect (autostart_toggled);
 			sw_show_unpinned.notify["active"].disconnect (show_unpinned_toggled);
+			sw_scroll_overflow.notify["active"].disconnect (scroll_overflow_toggled);
 			sw_lock_items.notify["active"].disconnect (lock_items_toggled);
 			sw_pressure_reveal.notify["active"].disconnect (pressure_reveal_toggled);
 			sw_zoom_enabled.notify["active"].disconnect (zoom_enabled_toggled);
@@ -923,6 +1051,7 @@ namespace Plank
 				Path.build_filename (Environment.get_user_config_dir (), "autostart", "wayplank.desktop"),
 				FileTest.IS_REGULAR));
 			sw_show_unpinned.set_active (!prefs.PinnedOnly);
+			sw_scroll_overflow.set_active (prefs.ScrollOverflow);
 			sw_lock_items.set_active (prefs.LockItems);
 			sw_pressure_reveal.set_active (prefs.PressureReveal);
 			sw_pressure_reveal.sensitive = (prefs.HideMode != HideType.NONE);
@@ -937,6 +1066,7 @@ namespace Plank
 			cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
 			cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();
 			cb_items_alignment.sensitive = (prefs.Alignment == Gtk.Align.FILL);
+			update_icon_size_feedback ();
 		}
 
 		void init_window_tab ()
@@ -1038,6 +1168,7 @@ namespace Plank
 		void default_provider_elements_changed (Gee.List<DockElement> added, Gee.List<DockElement> removed)
 		{
 			init_docklets_tab ();
+			update_icon_size_feedback ();
 		}
 
 		void init_docklets_tab ()

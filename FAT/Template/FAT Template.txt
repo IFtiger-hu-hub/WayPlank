@@ -8,6 +8,14 @@ Milestone: V0.6.1 (KWin Multi-Monitor Brightness Synchronization, Global
 Author & Tester: Sergio Melas
 
 
+Test Status Legend (ISA-88 Qualification Standard):
+  - [ok]      : Compliant / Passed (Verified during v0.6.1 testing)
+  - [ko]      : Non-conformance / Defect logged
+  - [ko->ok]  : Remediation verified / Passed on re-test
+  - [ko->imp] : Remediation verified / Passed on re-test but need minor improvement
+  - [NA]      : Not Applicable / Deferred (De-scoped from current test cycle;
+               formally transferred to and tracked under next Milestone FAT
+
 ================================================================================
 SESSION 1: GNOME (Mutter Backend)
 ================================================================================
