@@ -44,7 +44,7 @@ The fork branched from upstream at tag `v0.5.2` (`5729885`) and produced 17 comm
 | **`a19c053`**<br>**`af0293a`**<br>**`b9f8ba7`**<br>**`10809c4`** | `v0.5.4` / `DND` | Drag-and-drop file/URL delivery (`launch_with_uris`), smart drop capsule tooltip, hover window popup activation. | 🟡 **Partial overlap**. Upstream v0.6.1 solved 0-byte MIME fallbacks, folder drops, and bounce feedback. | **Phase 2: Merge Enhancements**. Adopt `launch_with_uris` (remote URLs) & hover window raising. |
 | **`81430b3`** | `Themes` | Restored classic Default theme; moved reverse rounded dark theme to standalone `Dark`. | 🟡 **Theme styling**. | **Phase 3: Theme Catalog**. Add `Dark` and `Light` as packaged stock themes. |
 | **`5693d80`** | `v0.5.5` / `Core` | **Launcher Deduplication & Item Reuse** in `ItemFactory.vala`; filter `xwaylandvideobridge` in `ApplicationDiscovery.vala` and KWin bridge. | 🟢 **High Value Fix**. Prevents duplicated `.dockitem` generation and ghost bridge windows. | **Phase 1: Port Deduplication & Ghost Filter**. High stability impact. |
-| **`81ea31a`** | `Visual` / `Cards` | Multi-window card expansion, reverse fillet skirt rendering, `RecentFilesService.vala`. | ⚠️ **Architectural Divergence**. Modifies `ApplicationDockItem` with custom card widgets and deep `lib/Services` hooks. | **Phase 3: Deep Evaluation**. Needs careful inspection to prevent breaking upstream menu/cairo architecture. |
+| **`81ea31a`** | `Visual` / `Cards` | Multi-window card expansion, reverse fillet skirt rendering, `RecentFilesService.vala`. | ⚠️ **Architectural Divergence**. Modifies `ApplicationDockItem` with custom card widgets. Redundant with right-click window list and causes dock width bloat. | ❌ **REJECTED (Cards)**: Multi-window inline cards rejected. `RecentFilesService` evaluated separately. |
 
 ---
 
@@ -55,6 +55,7 @@ flowchart TD
     classDef integrated fill:#1b5e20,stroke:#81c784,stroke-width:2px,color:#ffffff;
     classDef upstream fill:#1565c0,stroke:#64b5f6,stroke-width:1px,color:#ffffff;
     classDef pending fill:#37474f,stroke:#90a4ae,stroke-width:1px,color:#ffffff;
+    classDef rejected fill:#b71c1c,stroke:#ef5350,stroke-width:2px,color:#ffffff;
 
     subgraph Upstream_v061["Upstream v0.6.1 Strengths"]
         U1["KWin DRM Multi-Monitor Brightness (kscreen-doctor)"]:::upstream
@@ -66,13 +67,14 @@ flowchart TD
         U7["100% FAT PASS on KDE Plasma 6"]:::upstream
     end
 
-    subgraph Fork_Features["Fork High-Value Innovations by IFtiger-hu"]
+    subgraph Fork_Features["Fork Innovations by IFtiger-hu"]
         F1["✅ [INTEGRATED - Round 1]<br/>Native openSUSE / Fedora RPM Builder (BuildRpm.sh)"]:::integrated
         F2["✅ [INTEGRATED - Round 1]<br/>Dock Overflow Smooth Scrolling (PositionManager + Wheel)"]:::integrated
         F3["Launcher Deduplication & File Reuse (ItemFactory)"]:::pending
         F4["Ghost Window Filtering (xwaylandvideobridge)"]:::pending
         F5["DND Remote URL Delivery & Hover Window Activation"]:::pending
         F6["Recent Files Jump List Service (RecentFilesService)"]:::pending
+        F7["❌ [REJECTED]<br/>Multi-Window Inline Cards (WindowCardDockItem)"]:::rejected
     end
 
     subgraph Unified_v062["WayPlank v0.6.2 Unified Milestone"]
@@ -84,7 +86,12 @@ flowchart TD
     end
 
     Upstream_v061 --> Unified_v062
-    Fork_Features --> Unified_v062
+    F1 --> Unified_v062
+    F2 --> Unified_v062
+    F3 --> Unified_v062
+    F4 --> Unified_v062
+    F5 --> Unified_v062
+    F6 --> Unified_v062
 ```
 
 ---
@@ -132,7 +139,7 @@ flowchart TD
 ---
 
 ### Phase 3: Visual Polish & Extended Themes
-*Goal: Enrich theme offerings and explore multi-window cards.*
+*Goal: Enrich theme offerings and integrate Recent Files jump list (Multi-Window Cards rejected).*
 
 1. **Stock Theme Suite (`data/themes/`)**:
    - Integrate `Dark` and `Light` stock themes from `81430b3` and `9108354`.
@@ -140,9 +147,12 @@ flowchart TD
 2. **Recent Files Jump List (`lib/Services/RecentFilesService.vala`)**:
    - Port `RecentFilesService` querying `Gtk.RecentManager`.
    - Add "Recent Documents" submenu to compatible application right-click menus.
-3. **Multi-Window Window Cards Evaluation**:
-   - Evaluate fork's `WindowCardDockItem` against upstream Cairo-Dock style folder menus.
-   - Ensure complete compositor neutrality across KWin, Mutter, and Labwc before adopting.
+3. **Multi-Window Window Cards: ❌ REJECTED**:
+   - **Decision**: Formally rejected from upstream integration.
+   - **Rationale**:
+     1. *Redundant Functionality*: Active windows are already fully accessible via the existing Right-Click context menu and mouse-wheel scrolling.
+     2. *Dock Geometry Distortion*: Expanding inline cards adds $+220\text{px}$ per open window directly onto the dock bar, causing unwanted dock widening, displacing pinned icons, and prematurely triggering overflow scrolling.
+     3. *Compositor Neutrality*: Preserves WayPlank's clean, compact Cairo elevation menu architecture across KWin, Mutter, and Labwc without compositor-specific card hacks.
 
 ---
 
