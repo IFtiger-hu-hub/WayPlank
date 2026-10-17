@@ -95,7 +95,8 @@ SESSION 1: GNOME (Mutter Backend)
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
-        in FAT folder
+        in FAT folder (Note: Under KDE Plasma, Konsole must be running/open
+        prior to executing test).
    [  ] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection:
@@ -467,7 +468,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
-        in FAT folder
+        in FAT folder (Note: Under KDE Plasma, Konsole must be running/open
+        prior to executing test).
    [  ] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection:
@@ -835,7 +837,8 @@ SESSION 3: LABWC (wlroots Backend)
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
-        in FAT folder
+        in FAT folder (Note: Under KDE Plasma, Konsole must be running/open
+        prior to executing test).
    [  ] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection:

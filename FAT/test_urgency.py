@@ -49,6 +49,16 @@ def detect_compositor():
     return "generic"
 
 def run_kwin_konsole():
+    # Verify Konsole is running so KWin can target it
+    has_konsole = subprocess.run(["pgrep", "-x", "konsole"], capture_output=True).returncode == 0
+    if not has_konsole:
+        print("⚠️  REMINDER FOR TESTER:")
+        print("   Konsole must be open/running before launching this test on KDE Plasma!")
+        print("   Please start Konsole first, then re-run test_urgency.py.")
+        print("")
+        sys.exit(1)
+
+    print("ℹ️  TESTER NOTE: Konsole is running and will be targeted for urgency.")
     print("👉 Switch focus to another window (e.g. Browser or Editor) RIGHT NOW!")
     print("   In 3 seconds, KWin will trigger 'demandsAttention' on Konsole.")
     print("")
