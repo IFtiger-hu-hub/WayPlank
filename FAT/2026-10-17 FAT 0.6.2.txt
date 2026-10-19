@@ -122,10 +122,11 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
           in browser with working Table of Contents anchor jumps.
         - Right-click on ANY item or dock background includes
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
-   [ko] 2.7 Attention / Urgent State:
+   [ko->ok] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
         in FAT folder
-        BUG: after fork integration is not working anymore
+        - Remediation: Updated test_urgency.py to use console terminal bell
+          trigger without blocking GUI popups; bouncing verified on re-test.
    [ok] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
    [ok] 2.9 Window List Selection:
@@ -508,10 +509,11 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
    [ok] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
         - Accordion in-line expand/collapse operates harmoniously alongside
           overflow scrolling
-   [ko] 10.6 Urgent Window Auto-Scrolling:
+   [ko->ok] 10.6 Urgent Window Auto-Scrolling:
         - Off-screen dock items receiving urgent state call ensure_item_visible
           and scroll into view
-          BUG: The dock do not scroll to the urgent icon
+        - Remediation: Verified on re-test with console urgency trigger; dock
+          auto-scrolls off-screen urgent icon into view cleanly.
    [ok] 10.7 "Scroll on Overflow" Preference Switch:
         - Preferences -> Behaviour -> Item Management toggle switch (GSettings:
           scroll-overflow)
@@ -563,10 +565,12 @@ GNOME BUGS / NOTES:
      bridge to misclassify the dialog as a dock.
    * Fix: Set window title after set_titlebar(), properly classifying it as a
      dialog and centering it on screen.
- - BUG 6 (Item 10.6 - [ko]): Dock Overflow Urgent Window Auto-Scrolling.
-   * Symptom: Off-screen dock items receiving urgent state fail to auto-scroll
-     into view.
-   * Required Fix: Hook urgency signal to PositionManager.ensure_item_visible().
+ - BUG 6 (Item 10.6 - [ko->ok] Squashed in v0.6.2): Dock Overflow Urgent Window
+   Auto-Scrolling.
+   * Symptom: Off-screen dock items receiving urgent state appeared not to
+     auto-scroll due to previous test script popup block.
+   * Fix: Re-tested with console test_urgency.py; dock cleanly calls
+     ensure_item_visible() and scrolls urgent icon into view.
  - BUG 7 (Item 10.9 - Squashed in v0.6.2): Overflow Chevron Line Artifact.
    * Root Cause: Right chevron line_to was missing (+ rect.width -) offset,
      causing a full-width horizontal line artifact.
@@ -677,9 +681,12 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
           in browser with working Table of Contents anchor jumps.
         - [ok] Right-click on ANY item or dock background includes
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
-   [ok] 2.7 Attention / Urgent State:
+   [ko->ok] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
-        in FAT folder
+        in FAT folder (Note: Under KDE Plasma, Konsole must be running/open
+        prior to executing test).
+        - Remediation: Test script FAT/test_urgency.py updated to verify Konsole
+          is running prior to execution; attention bounce verified on re-test.
    [ok] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
    [ok] 2.9 Window List Selection:
@@ -1053,9 +1060,11 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
    [ok] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
         - Accordion in-line expand/collapse operates harmoniously alongside
           overflow scrolling
-   [ok] 10.6 Urgent Window Auto-Scrolling:
+   [ko->ok] 10.6 Urgent Window Auto-Scrolling:
         - Off-screen dock items receiving urgent state call ensure_item_visible
           and scroll into view
+        - Remediation: Verified on re-test with active Konsole instance; dock
+          smoothly auto-scrolls to bring urgent icon into view.
    [ok] 10.7 "Scroll on Overflow" Preference Switch:
         - Preferences -> Behaviour -> Item Management toggle switch (GSettings:
           scroll-overflow)
@@ -1090,15 +1099,18 @@ PLASMA BUGS / NOTES:
      "Open with application" instead of pinning the launcher to the dock.
    * Fix: Enforced strict dock item pinning precedence over application drop
      handlers whenever the drag payload consists solely of .desktop files.
- - BUG 2 (Item 2.7 - [ko]): Attention / Urgent Window State Broken.
-   * Symptom: Window attention requesting bounce/pulse animation using
-     test_urgency.py is no longer functional after fork integration.
-   * Required Fix: Restore urgency state detection and bounce animation loops in
-     ApplicationDockItem and WindowManager.
- - BUG 3 (Item 10.6 - [ko]): Dock Overflow Urgent Window Auto-Scrolling.
-   * Symptom: Off-screen dock items receiving urgent state fail to auto-scroll
-     into view.
-   * Required Fix: Hook urgency signal to PositionManager.ensure_item_visible().
+ - BUG 2 (Item 2.7 - [ko->ok] Squashed in v0.6.2): Attention / Urgent Window
+   State Setup.
+   * Symptom: Window attention test did not trigger when Konsole was not open
+     prior to running the test script.
+   * Fix: Added active process check and reminder in FAT/test_urgency.py.
+     Verified on re-test: Konsole bounces and clears urgency on focus.
+ - BUG 3 (Item 10.6 - [ko->ok] Squashed in v0.6.2): Dock Overflow Urgent Window
+   Auto-Scrolling.
+   * Symptom: Auto-scrolling appeared to fail due to dependency on Konsole
+     attention trigger.
+   * Fix: Verified on re-test with active Konsole instance; dock auto-scrolls
+     cleanly to bring urgent icon into view.
  - BUG 4 (Item 10.9 - Squashed in v0.6.2): Overflow Chevron Line Artifact.
    * Root Cause: Right chevron line_to was missing (+ rect.width -) offset,
      causing a full-width horizontal line artifact.

@@ -103,9 +103,13 @@ To compile Wayplank from source and enable all docklets, ensure your distributio
   ```bash
   sudo pacman -S --needed base-devel vala gtk3 gtk-layer-shell wayland json-glib libgee glib2 grim slurp
   ```
-- **Fedora:**
+- **Fedora / RHEL:**
   ```bash
-  sudo dnf install gcc vala gtk3-devel gtk-layer-shell-devel wayland-devel json-glib-devel libgee-devel glib2-devel grim slurp
+  sudo dnf install gcc vala gtk3-devel gtk-layer-shell-devel wayland-devel json-glib-devel libgee-devel glib2-devel grim slurp rpm-build
+  ```
+- **openSUSE (Tumbleweed / Leap):**
+  ```bash
+  sudo zypper install gcc vala gtk3-devel gtk-layer-shell-devel wayland-devel json-glib-devel libgee-devel glib2-devel grim slurp rpm-build
   ```
 
 ---
@@ -182,10 +186,32 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
 # Install with automatic dependency resolution:
-sudo apt install ./build/wayplank_0.6.1_amd64.deb
+sudo apt install ./build/wayplank_0.6.2_amd64.deb
 # Or via dpkg:
-# sudo dpkg -i build/wayplank_0.6.1_amd64.deb && sudo apt install -f
+# sudo dpkg -i build/wayplank_0.6.2_amd64.deb && sudo apt install -f
 ```
+
+---
+
+## 4. AUTOMATED OPENSUSE / FEDORA / RHEL RPM PACKAGE CREATION
+
+If running openSUSE (Tumbleweed / Leap), Fedora, or RHEL-based distributions, run the automated RPM packager:
+
+```bash
+chmod +x BuildRpm.sh
+./BuildRpm.sh
+
+# Install on openSUSE with zypper:
+sudo zypper install ./build/wayplank-0.6.2-1.x86_64.rpm
+
+# Or install on Fedora/RHEL with dnf:
+sudo dnf install ./build/wayplank-0.6.2-1.x86_64.rpm
+
+# Or install via rpm directly:
+sudo rpm -Uvh ./build/wayplank-0.6.2-1.x86_64.rpm
+```
+
+> 💡 **Headless / CI Environments:** You can bypass interactive prompts across all build scripts using `WAYPLANK_NO_PROMPT=1` (e.g. `WAYPLANK_NO_PROMPT=1 ./BuildRpm.sh`).
 
 ---
 
