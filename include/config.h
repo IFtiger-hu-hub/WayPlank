@@ -2,14 +2,14 @@
  *  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
  *  Copyright (C) 2026 Sergio Melas
  *
- *  This file is part of Wayplank.
+ *  This file is part of WayPlank.
  *
- *  Wayplank is free software: you can redistribute it and/or modify
+ *  WayPlank is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  Wayplank is distributed in the hope that it will be useful,
+ *  WayPlank is distributed in the hope that it will be useful,
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
@@ -20,18 +20,18 @@
 
 #pragma once
 
-#define PACKAGE_NAME "Wayplank"
+#define PACKAGE_NAME "WayPlank"
 #define PACKAGE_TARNAME "wayplank"
-#define PACKAGE_VERSION "0.6.2"
-#define PACKAGE_STRING "Wayplank 0.6.2"
+#define PACKAGE_VERSION "0.6.2.1"
+#define PACKAGE_STRING "WayPlank 0.6.2.1"
 #define PACKAGE_BUGREPORT "https://github.com/sergiomelas/wayplank/issues"
 #define PACKAGE_URL "https://github.com/sergiomelas/wayplank"
-#define VERSION "0.6.2"
+#define VERSION "0.6.2.1"
 #define GETTEXT_PACKAGE "wayplank"
 
 #define PREFIX "/usr"
 #define DATADIR "/usr/share"
 #define PKGDATADIR "/usr/share/wayplank"
-#define RELEASE_NAME "Wayplank"
-#define VERSION_INFO "Wayplank 0.6.2 - Release Build"
+#define RELEASE_NAME "WayPlank"
+#define VERSION_INFO "WayPlank 0.6.2.1 - Alpha Build"
 #define TEST_DATA_DIR ""

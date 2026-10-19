@@ -2,14 +2,14 @@
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -196,7 +196,7 @@ namespace Plank
 		
 		construct
 		{
-			set_title (_("Wayplank Preferences"));
+			set_title (_("WayPlank Preferences"));
 			set_role ("preferences");
 			configure_hide_mode_rows ();
 			set_decorated (true);
@@ -590,7 +590,7 @@ namespace Plank
 						FileUtils.set_contents (autostart_path,
 							"[Desktop Entry]\n" +
 							"Type=Application\n" +
-							"Name=Wayplank\n" +
+							"Name=WayPlank\n" +
 							"Comment=Stupidly simple dock for Wayland\n" +
 							"Exec=wayplank\n" +
 							"Icon=plank\n" +

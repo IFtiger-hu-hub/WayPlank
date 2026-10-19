@@ -5,7 +5,7 @@
 > Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Release: v0.6.2 (Alpha)](https://img.shields.io/badge/Release-v0.6.2_(Alpha)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
+> [![Release: v0.6.2.1 (Round 1)](https://img.shields.io/badge/Release-v0.6.2.1_(Round_1)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
 
 ![Wayplank Release Banner](Release%20Pic.png)
 
@@ -24,9 +24,10 @@ Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL
 ## 🤝 Acknowledgments & Contributors
 
 
-**A huge thank you to our 300+ community users: with 750+ clones and real-world feedback, 75+ bugs have been squashed across 250+ validation points! Testing, bug reports, and pull requests are warmly welcome.**
+**A huge thank you to our 400+ community users: with 1,600+ lifetime downloads & clones and real-world feedback, 75+ bugs have been squashed across 279 validation points (100% FAT pass rate)! Testing, bug reports, and pull requests are warmly welcome.**
 
 * **史有虎 (IFtiger-hu)** ([@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub)): Author of the WayPlank community fork, contributor of native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), dock overflow smooth scrolling architecture, and launcher deduplication engine.
+
 
 ## 📖 Documentation
 
@@ -186,9 +187,9 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
 # Install with automatic dependency resolution:
-sudo apt install ./build/wayplank_0.6.2_amd64.deb
+sudo apt install ./build/wayplank_0.6.2.1_amd64.deb
 # Or via dpkg:
-# sudo dpkg -i build/wayplank_0.6.2_amd64.deb && sudo apt install -f
+# sudo dpkg -i build/wayplank_0.6.2.1_amd64.deb && sudo apt install -f
 ```
 
 ---
@@ -202,13 +203,13 @@ chmod +x BuildRpm.sh
 ./BuildRpm.sh
 
 # Install on openSUSE with zypper:
-sudo zypper install ./build/wayplank-0.6.2-1.x86_64.rpm
+sudo zypper install ./build/wayplank-0.6.2.1-1.x86_64.rpm
 
 # Or install on Fedora/RHEL with dnf:
-sudo dnf install ./build/wayplank-0.6.2-1.x86_64.rpm
+sudo dnf install ./build/wayplank-0.6.2.1-1.x86_64.rpm
 
 # Or install via rpm directly:
-sudo rpm -Uvh ./build/wayplank-0.6.2-1.x86_64.rpm
+sudo rpm -Uvh ./build/wayplank-0.6.2.1-1.x86_64.rpm
 ```
 
 > 💡 **Headless / CI Environments:** You can bypass interactive prompts across all build scripts using `WAYPLANK_NO_PROMPT=1` (e.g. `WAYPLANK_NO_PROMPT=1 ./BuildRpm.sh`).
@@ -294,7 +295,15 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
-* 🌟 **v0.6.2 (Alpha) — 2026-10-15:** The Community Unification & Distribution Release — Native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), launcher deduplication & item reuse, ghost bridge window shielding, dock overflow smooth scrolling, and DND URL delivery.
+* 🎨 **v0.6.2.3 (Round 3,Pre Beta) — [PLANNED]**:  
+  Packaged classic stock theme suite (Dark and Light), Recent Files jump list in context menus (`RecentFilesService`),  
+  and universal multi-window Cairo preview cards across all Wayland compositors.
+* 🚀 **v0.6.2.2 (Round 2,Pre Beta) — [IN PROGRESS]**:  
+  Remote web URL drag-and-drop delivery (`DesktopAppInfo.launch_uris`), automatic window raising on drag hover,  
+  and real-time dark/light mode synchronization via FreeDesktop Settings Portal (`org.freedesktop.portal.Settings`).
+* 🌟 **v0.6.2.1 (Round 1,Pre Beta) — 2026-10-19 [COMPLETED / 100% FAT PASSED]**:  
+  Native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), launcher deduplication & item reuse, ghost bridge window shield,  
+  dock overflow smooth scrolling with tachometer redline capacity indicator, and multi-monitor DDC/CI sync with SP/PV decoupling.
 * 💡 **v0.6.1 (Alpha) — 2026-10-15:** The Bug Hunting Release — Multi-monitor KWin brightness sync, unified Global System Pressure engine, drag-and-drop payload delivery & 0-byte MIME fix, docklet icon standardization & adaptive dynamic Gtk+ theme engine.
 * ✨ **v0.6.0 (Alpha) — 2026-10-11:** Smart first-run auto-configuration (categorized English app drawers, auto-detected pinned apps, docklets & trash), universal "Change Icon..." dialog with FreeDesktop & GIO metadata, integrated User Guide, and clean release polish.
 * 🚀 **v0.5.2 (Alpha) — 2026-10-09:** Cairo folder launcher menu, 14 built-in docklets, category layout grouping and deep audit fixing stack overflows & GObject assertions.

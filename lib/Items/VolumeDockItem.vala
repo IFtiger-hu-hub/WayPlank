@@ -1,14 +1,14 @@
 //
 //  Copyright (C) 2026 Sergio Melas
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -96,7 +96,6 @@ namespace Plank
 							double val = double.parse (num_part);
 							volume = (int) Math.round (val * 100.0);
 							if (volume < 0) volume = 0;
-							if (volume > 150) volume = 150;
 							update_display ();
 							return;
 						}
@@ -115,7 +114,7 @@ namespace Plank
 						if (last_space >= 0) {
 							string num_str = sub.slice (last_space + 1, sub.length).strip ();
 							int v = int.parse (num_str);
-							if (v >= 0 && v <= 150)
+							if (v >= 0)
 								volume = v;
 						}
 					}
@@ -159,30 +158,50 @@ namespace Plank
 		
 		public void change_volume (int delta)
 		{
+			// If already at or above maximum and trying to increase, block
+			if (delta > 0 && volume >= 150)
+				return;
+			// If already at zero or below and trying to decrease, block
+			if (delta < 0 && volume <= 0)
+				return;
+
 			// If muted and raising volume, unmute immediately!
 			if (is_muted && delta > 0) {
 				is_muted = false;
-				try {
-					Process.spawn_command_line_async ("pactl set-sink-mute @DEFAULT_SINK@ 0");
-				} catch (Error e) {
+				if (Environment.find_program_in_path ("wpctl") != null) {
 					try {
-						Process.spawn_command_line_async ("amixer set Master unmute");
-					} catch (Error e2) { }
+						Process.spawn_command_line_async ("wpctl set-mute @DEFAULT_AUDIO_SINK@ 0");
+					} catch (Error e) { }
+				} else {
+					try {
+						Process.spawn_command_line_async ("pactl set-sink-mute @DEFAULT_SINK@ 0");
+					} catch (Error e) {
+						try {
+							Process.spawn_command_line_async ("amixer set Master unmute");
+						} catch (Error e2) { }
+					}
 				}
 			}
 			
-			volume += delta;
-			if (volume < 0) volume = 0;
-			if (volume > 150) volume = 150;
+			int base_vol = (volume > 150) ? 150 : volume;
+			int new_volume = base_vol + delta;
+			if (new_volume < 0) new_volume = 0;
+			if (new_volume > 150) new_volume = 150;
+			volume = new_volume;
 			
-			string sign = (delta > 0) ? "+" : "-";
-			int abs_delta = (delta > 0) ? delta : -delta;
-			try {
-				Process.spawn_command_line_async ("pactl set-sink-volume @DEFAULT_SINK@ %s%d%%".printf (sign, abs_delta));
-			} catch (Error e) {
+			// Always set ABSOLUTE volume to prevent unlimited relative runaway
+			if (Environment.find_program_in_path ("wpctl") != null) {
 				try {
-					Process.spawn_command_line_async ("amixer set Master %d%%%s".printf (abs_delta, sign));
-				} catch (Error e2) { }
+					Process.spawn_command_line_async ("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ %d%%".printf (volume));
+				} catch (Error e) { }
+			} else {
+				try {
+					Process.spawn_command_line_async ("pactl set-sink-volume @DEFAULT_SINK@ %d%%".printf (volume));
+				} catch (Error e) {
+					try {
+						Process.spawn_command_line_async ("amixer set Master %d%%".printf (volume));
+					} catch (Error e2) { }
+				}
 			}
 			
 			update_display ();
@@ -193,12 +212,18 @@ namespace Plank
 		{
 			is_muted = !is_muted;
 			
-			try {
-				Process.spawn_command_line_async ("pactl set-sink-mute @DEFAULT_SINK@ %s".printf (is_muted ? "1" : "0"));
-			} catch (Error e) {
+			if (Environment.find_program_in_path ("wpctl") != null) {
 				try {
-					Process.spawn_command_line_async ("amixer set Master toggle");
-				} catch (Error e2) { }
+					Process.spawn_command_line_async ("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle");
+				} catch (Error e) { }
+			} else {
+				try {
+					Process.spawn_command_line_async ("pactl set-sink-mute @DEFAULT_SINK@ %s".printf (is_muted ? "1" : "0"));
+				} catch (Error e) {
+					try {
+						Process.spawn_command_line_async ("amixer set Master toggle");
+					} catch (Error e2) { }
+				}
 			}
 			
 			update_display ();

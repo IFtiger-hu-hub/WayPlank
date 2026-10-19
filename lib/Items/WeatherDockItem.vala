@@ -1,14 +1,14 @@
 //
 //  Copyright (C) 2026 Sergio Melas
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -25,6 +25,8 @@ namespace Plank
 		public double temp_max = 0.0;
 		public int weather_code = 0;
 		public string icon_name = "weather-few-clouds";
+		public int humidity = 0;
+		public double wind_speed = 0.0;
 	}
 
 	public class WeatherDockItemPreferences : DockItemPreferences
@@ -61,7 +63,11 @@ namespace Plank
 		public double wind_speed { get; private set; default = 0.0; }
 		public string units { get; private set; default = "C"; }
 		public int current_code { get; private set; default = 1; }
+		public double today_temp_max { get; private set; default = 0.0; }
+		public double today_temp_min { get; private set; default = 0.0; }
+		public bool has_today_minmax { get; private set; default = false; }
 		public WeatherForecastDay[] forecast_days;
+		public string yr_location_id { get; private set; default = ""; }
 
 		private unowned WeatherDockItemPreferences weather_prefs;
 		private uint timer_id = 0;
@@ -142,7 +148,33 @@ namespace Plank
 
 		public string get_current_icon_name ()
 		{
+			if (current_code == -1)
+				return "dialog-warning;;weather-severe-alert;;weather-few-clouds;;weather";
 			return code_to_icon_name (current_code);
+		}
+
+		public string get_details_url (int day_offset = 0)
+		{
+			if (yr_location_id.length == 0) {
+				string query = city_name;
+				if (query.length > 0 && query != _("Detecting location...") && query != _("Offline") && query != _("Checking weather...")) {
+					resolve_yr_direct_url (query, 0.0, 0.0);
+				}
+			}
+
+			if (yr_location_id.length > 0) {
+				if (day_offset > 0)
+					return "https://www.yr.no/en/forecast/hourly-table/%s?i=%d".printf (yr_location_id, day_offset);
+				else
+					return "https://www.yr.no/en/forecast/daily-table/" + yr_location_id;
+			}
+
+			string query = city_name;
+			if (country_name.length > 0)
+				query += " " + country_name;
+			if (query.length == 0 || query == _("Detecting location...") || query == _("Offline") || query == _("Checking weather..."))
+				query = "weather";
+			return "https://www.yr.no/en/search?q=" + GLib.Uri.escape_string (query);
 		}
 
 		public void refresh_weather ()
@@ -270,7 +302,7 @@ namespace Plank
 
 			// 2. Fetch Open-Meteo forecast
 			string unit_param = (units == "F") ? "&temperature_unit=fahrenheit&wind_speed_unit=mph" : "";
-			string forecast_cmd = "curl -s --max-time 5 'https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto%s'".printf (lat, lon, unit_param);
+			string forecast_cmd = "curl -s --max-time 5 'https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,relative_humidity_2m_max,relative_humidity_2m_min&timezone=auto%s'".printf (lat, lon, unit_param);
 			string forecast_out;
 			int f_status;
 
@@ -300,8 +332,18 @@ namespace Plank
 							var max_arr = daily.get_array_member ("temperature_2m_max");
 							var min_arr = daily.get_array_member ("temperature_2m_min");
 							var code_arr = daily.get_array_member ("weather_code");
+							var wind_arr = daily.has_member ("wind_speed_10m_max") ? daily.get_array_member ("wind_speed_10m_max") : null;
+							var h_max_arr = daily.has_member ("relative_humidity_2m_max") ? daily.get_array_member ("relative_humidity_2m_max") : null;
+							var h_min_arr = daily.has_member ("relative_humidity_2m_min") ? daily.get_array_member ("relative_humidity_2m_min") : null;
 
-							uint len = (uint) uint.min (3, (uint) max_arr.get_length ());
+							if (max_arr.get_length () > 0 && min_arr.get_length () > 0) {
+								today_temp_max = max_arr.get_double_element (0);
+								today_temp_min = min_arr.get_double_element (0);
+								has_today_minmax = true;
+							}
+
+							uint total_days = (uint) max_arr.get_length ();
+							uint len = (uint) uint.min (4, total_days);
 							var days = new WeatherForecastDay[len];
 							for (uint i = 0; i < len; i++) {
 								days[i] = new WeatherForecastDay ();
@@ -309,6 +351,13 @@ namespace Plank
 								days[i].temp_min = min_arr.get_double_element (i);
 								days[i].weather_code = (int) code_arr.get_int_element (i);
 								days[i].icon_name = code_to_icon_name (days[i].weather_code);
+								if (wind_arr != null && i < wind_arr.get_length ())
+									days[i].wind_speed = wind_arr.get_double_element (i);
+								if (h_max_arr != null && h_min_arr != null && i < h_max_arr.get_length () && i < h_min_arr.get_length ()) {
+									int h_max = (int) h_max_arr.get_int_element (i);
+									int h_min = (int) h_min_arr.get_int_element (i);
+									days[i].humidity = (h_max + h_min) / 2;
+								}
 							}
 							forecast_days = days;
 						}
@@ -318,11 +367,65 @@ namespace Plank
 				warning ("WeatherDockItem: error fetching forecast: %s", e.message);
 			}
 
+			// 2b. Resolve Yr.no direct location URL
+			string yr_target_city = (resolved_city.length > 0) ? resolved_city : configured_city;
+			if (yr_target_city.length > 0)
+				resolve_yr_direct_url (yr_target_city, lat, lon);
+
 			// 3. Update UI on Main GTK Thread
 			GLib.Idle.add (() => {
 				update_display ();
 				return false;
 			});
+		}
+
+		private void resolve_yr_direct_url (string query, double target_lat, double target_lon)
+		{
+			if (query.length == 0 || query == _("Detecting location...") || query == _("Offline") || query == _("Checking weather..."))
+				return;
+
+			string yr_search_cmd = "curl -s --max-time 4 'https://www.yr.no/api/v0/locations/search?q=%s'".printf (GLib.Uri.escape_string (query));
+			string yr_out;
+			int yr_status;
+			try {
+				if (Process.spawn_command_line_sync (yr_search_cmd, out yr_out, null, out yr_status) && yr_status == 0) {
+					var parser = new Json.Parser ();
+					parser.load_from_data (yr_out);
+					var root = parser.get_root ();
+					if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
+						var obj = root.get_object ();
+						if (obj.has_member ("_embedded")) {
+							var embedded = obj.get_object_member ("_embedded");
+							if (embedded.has_member ("location")) {
+								var loc_arr = embedded.get_array_member ("location");
+								string best_id = "";
+								double min_dist = 1e12;
+								for (uint i = 0; i < loc_arr.get_length (); i++) {
+									var loc = loc_arr.get_object_element (i);
+									string id = loc.get_string_member ("id");
+									if (loc.has_member ("position") && (target_lat != 0.0 || target_lon != 0.0)) {
+										var pos = loc.get_object_member ("position");
+										double plat = pos.get_double_member ("lat");
+										double plon = pos.get_double_member ("lon");
+										double d = (plat - target_lat) * (plat - target_lat) + (plon - target_lon) * (plon - target_lon);
+										if (d < min_dist) {
+											min_dist = d;
+											best_id = id;
+										}
+									} else if (best_id.length == 0) {
+										best_id = id;
+									}
+								}
+								if (best_id.length > 0) {
+									yr_location_id = best_id;
+								}
+							}
+						}
+					}
+				}
+			} catch (GLib.Error e) {
+				warning ("WeatherDockItem: error resolving Yr.no URL: %s", e.message);
+			}
 		}
 
 		private void update_display ()

@@ -1,15 +1,16 @@
 //
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
+//  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -121,8 +122,25 @@ namespace Plank
 			return null;
 		}
 
+		// Downstream contribution by IFtiger-hu (史有虎): Shield dock from ghost helper windows (xwaylandvideobridge)
+		public static bool is_ignored_app (string? app_id)
+		{
+			if (app_id == null || app_id == "")
+				return false;
+			var lower = app_id.down ();
+			return lower.contains ("xwaylandvideobridge")
+				|| lower == "wayplank"
+				|| lower == "plank";
+		}
+
 		public File? best_desktop_file_for_window (WindowInfo window)
 		{
+			if (is_ignored_app (window.ApplicationId)
+				|| is_ignored_app (window.ResourceClass)
+				|| is_ignored_app (window.ResourceName)
+				|| is_ignored_app (window.DesktopFileName))
+				return null;
+
 			var best_score = 0;
 			string? best_id = null;
 			foreach (var entry in identities.entries) {
@@ -150,6 +168,12 @@ namespace Plank
 			var best_by_window = new Gee.HashMap<string, string> ();
 			var score_by_window = new Gee.HashMap<string, int> ();
 			foreach (var window in windows) {
+				if (is_ignored_app (window.ApplicationId)
+					|| is_ignored_app (window.ResourceClass)
+					|| is_ignored_app (window.ResourceName)
+					|| is_ignored_app (window.DesktopFileName))
+					continue;
+
 				var best_score = 0;
 				string? best_id = null;
 				foreach (var entry in identities.entries) {
@@ -212,6 +236,47 @@ namespace Plank
 			folders.add (Paths.DataHomeFolder.get_child ("applications"));
 			foreach (var folder in Paths.DataDirFolders)
 				folders.add (folder.get_child ("applications"));
+
+			// Also discover any drawer / folder launchers configured on any dock
+			var dock_config_dir = Paths.ConfigHomeFolder.get_child ("wayplank");
+			if (dock_config_dir.query_exists ()) {
+				try {
+					var d_enum = dock_config_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+					FileInfo? d_info = null;
+					while ((d_info = d_enum.next_file ()) != null) {
+						var launchers_dir = dock_config_dir.get_child (d_info.get_name ()).get_child ("launchers");
+						if (!launchers_dir.query_exists ())
+							continue;
+						var l_enum = launchers_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+						FileInfo? l_info = null;
+						while ((l_info = l_enum.next_file ()) != null) {
+							var item_file = launchers_dir.get_child (l_info.get_name ());
+							var key_file = new KeyFile ();
+							try {
+								key_file.load_from_file (item_file.get_path (), KeyFileFlags.NONE);
+								if (key_file.has_key ("PlankDockItemPreferences", "Launcher")) {
+									var uri = key_file.get_string ("PlankDockItemPreferences", "Launcher");
+									if (uri != null && uri.has_prefix ("file://")) {
+										var target = File.new_for_uri (uri);
+										if (target.query_exists () && target.query_file_type (FileQueryInfoFlags.NONE) == FileType.DIRECTORY) {
+											bool already_has = false;
+											foreach (var f in folders) {
+												if (f.equal (target)) {
+													already_has = true;
+													break;
+												}
+											}
+											if (!already_has)
+												folders.add (target);
+										}
+									}
+								}
+							} catch (Error e) { }
+						}
+					}
+				} catch (Error e) { }
+			}
+
 			return folders;
 		}
 		

@@ -1,14 +1,14 @@
 //
 //  Copyright (C) 2026 Sergio Melas
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -71,7 +71,7 @@ namespace Plank
 			set_decorated (true);
 			set_destroy_with_parent (true);
 			set_position (Gtk.WindowPosition.CENTER);
-			set_default_size (420, 360);
+			set_default_size (480, 430);
 			resizable = false;
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
@@ -116,9 +116,37 @@ namespace Plank
 			current_card.margin_top = 4;
 			current_card.margin_bottom = 4;
 
-			img_condition = new Gtk.Image.from_icon_name ("weather-few-clouds", Gtk.IconSize.DIALOG);
-			img_condition.pixel_size = 64;
-			current_card.pack_start (img_condition, false, false, 0);
+			img_condition = new Gtk.Image ();
+			set_image_icon (img_condition, "weather-few-clouds;;weather", 64);
+
+			var img_event_box = new Gtk.EventBox ();
+			img_event_box.set_visible_window (false);
+			img_event_box.add (img_condition);
+			img_event_box.button_press_event.connect ((e) => {
+				if (e.button == 1 && weather_item != null && weather_item.yr_location_id.length > 0) {
+					open_weather_details ();
+					return true;
+				}
+				return false;
+			});
+			img_event_box.enter_notify_event.connect ((e) => {
+				if (weather_item != null && weather_item.yr_location_id.length > 0) {
+					var win = img_event_box.get_window ();
+					if (win != null) {
+						var cursor = new Gdk.Cursor.for_display (img_event_box.get_display (), Gdk.CursorType.HAND2);
+						win.set_cursor (cursor);
+					}
+				}
+				return false;
+			});
+			img_event_box.leave_notify_event.connect ((e) => {
+				var win = img_event_box.get_window ();
+				if (win != null)
+					win.set_cursor (null);
+				return false;
+			});
+
+			current_card.pack_start (img_event_box, false, false, 0);
 
 			var temp_box = new Gtk.Box (Gtk.Orientation.VERTICAL, 2);
 			lbl_temp = new Gtk.Label ("");
@@ -202,9 +230,22 @@ namespace Plank
 				lbl_desc.set_markup ("<span size='medium' weight='semibold' color='#e05555'>%s</span>".printf (GLib.Markup.escape_text (weather_item.condition_desc)));
 				lbl_details.set_markup (_("Please verify internet connection or location in Settings."));
 			} else {
-				lbl_temp.set_markup ("<span size='xx-large' weight='bold'>%d%s</span>".printf ((int) Math.round (weather_item.current_temp), unit_symbol));
+				string temp_markup = "<span size='xx-large' weight='bold'>%d%s</span>".printf ((int) Math.round (weather_item.current_temp), unit_symbol);
+				if (weather_item.has_today_minmax) {
+					temp_markup += "   <span size='medium' weight='normal' color='#888888'>▲ %d%s   ▼ %d%s</span>".printf (
+						(int) Math.round (weather_item.today_temp_max), unit_symbol,
+						(int) Math.round (weather_item.today_temp_min), unit_symbol
+					);
+				}
+				lbl_temp.set_markup (temp_markup);
+				var now = new GLib.DateTime.now_local ();
+				string today_day = format_weekday (now);
+				lbl_desc.set_markup ("<span size='medium' weight='semibold'>%s, %s — %s</span>".printf (
+					_("Today"),
+					today_day,
+					GLib.Markup.escape_text (weather_item.condition_desc)
+				));
 				string feels_like_str = _("Feels like %d%s").printf ((int) Math.round (weather_item.feels_like_temp), unit_symbol);
-				lbl_desc.set_markup ("<span size='medium' weight='semibold'>%s</span>".printf (GLib.Markup.escape_text (weather_item.condition_desc)));
 				lbl_details.set_markup ("%s   •   💧 %d%%   •   💨 %.1f %s".printf (
 					feels_like_str,
 					weather_item.humidity,
@@ -213,8 +254,7 @@ namespace Plank
 				));
 			}
 
-			img_condition.set_from_icon_name (weather_item.get_current_icon_name (), Gtk.IconSize.DIALOG);
-			img_condition.pixel_size = 64;
+			set_image_icon (img_condition, weather_item.get_current_icon_name (), 64);
 
 			// Rebuild forecast cards
 			if (forecast_box != null) {
@@ -222,29 +262,71 @@ namespace Plank
 					forecast_box.remove (child);
 				}
 
-				if (weather_item.forecast_days != null && weather_item.forecast_days.length > 0) {
-					string[] day_names = { _("Today"), _("Tomorrow"), _("Day After") };
-					for (int i = 0; i < 3 && i < weather_item.forecast_days.length; i++) {
+				if (weather_item.forecast_days != null && weather_item.forecast_days.length > 1) {
+					var now = new GLib.DateTime.now_local ();
+					for (int i = 1; i <= 3 && i < weather_item.forecast_days.length; i++) {
 						var day = weather_item.forecast_days[i];
 						if (day == null) continue;
-						var card = new Gtk.Box (Gtk.Orientation.VERTICAL, 4);
+
+						var event_box = new Gtk.EventBox ();
+						event_box.set_visible_window (false);
+
+						var card = new Gtk.Box (Gtk.Orientation.VERTICAL, 3);
 						card.margin = 4;
 						card.get_style_context ().add_class ("card");
 
-						var lbl_day = new Gtk.Label (day_names[i]);
+						var target_dt = now.add_days (i);
+						string day_label = format_weekday (target_dt);
+						var lbl_day = new Gtk.Label (day_label);
 						lbl_day.use_markup = true;
-						lbl_day.set_markup ("<b>%s</b>".printf (day_names[i]));
+						lbl_day.set_markup ("<b>%s</b>".printf (day_label));
 						card.pack_start (lbl_day, false, false, 0);
 
-						var day_icon = new Gtk.Image.from_icon_name (day.icon_name, Gtk.IconSize.BUTTON);
-						day_icon.pixel_size = 32;
+						var day_icon = new Gtk.Image ();
+						set_image_icon (day_icon, day.icon_name, 64);
 						card.pack_start (day_icon, false, false, 2);
 
 						var lbl_day_temp = new Gtk.Label ("%d%s / %d%s".printf ((int) Math.round (day.temp_max), unit_symbol, (int) Math.round (day.temp_min), unit_symbol));
 						lbl_day_temp.get_style_context ().add_class ("dim-label");
 						card.pack_start (lbl_day_temp, false, false, 0);
 
-						forecast_box.pack_start (card, true, true, 0);
+						string day_wind_str = "%.0f %s".printf (day.wind_speed, wind_unit);
+						var lbl_day_details = new Gtk.Label ("<span size='small'>💧 %d%%   💨 %s</span>".printf (day.humidity, day_wind_str));
+						lbl_day_details.use_markup = true;
+						lbl_day_details.get_style_context ().add_class ("dim-label");
+						card.pack_start (lbl_day_details, false, false, 0);
+
+						event_box.add (card);
+
+						int day_offset = i;
+						event_box.button_press_event.connect ((e) => {
+							if (e.button == 1 && weather_item != null && weather_item.yr_location_id.length > 0) {
+								open_weather_details (day_offset);
+								return true;
+							}
+							return false;
+						});
+
+						event_box.enter_notify_event.connect ((e) => {
+							if (weather_item != null && weather_item.yr_location_id.length > 0) {
+								var win = event_box.get_window ();
+								if (win != null) {
+									var display = event_box.get_display ();
+									var cursor = new Gdk.Cursor.for_display (display, Gdk.CursorType.HAND2);
+									win.set_cursor (cursor);
+								}
+							}
+							return false;
+						});
+
+						event_box.leave_notify_event.connect ((e) => {
+							var win = event_box.get_window ();
+							if (win != null)
+								win.set_cursor (null);
+							return false;
+						});
+
+						forecast_box.pack_start (event_box, true, true, 0);
 					}
 				} else {
 					var lbl_no_data = new Gtk.Label (_("No forecast data available"));
@@ -253,6 +335,37 @@ namespace Plank
 				}
 				forecast_box.show_all ();
 			}
+		}
+
+		private void open_weather_details (int day_offset = 0)
+		{
+			if (weather_item == null || weather_item.yr_location_id.length == 0)
+				return;
+			string url = weather_item.get_details_url (day_offset);
+			try {
+				Gtk.show_uri_on_window (this, url, Gdk.CURRENT_TIME);
+			} catch (GLib.Error e) {
+				warning ("WeatherWindow: failed to open details URL '%s': %s", url, e.message);
+			}
+		}
+
+		private void set_image_icon (Gtk.Image img, string icon_names, int pixel_size)
+		{
+			var pb = DrawingService.load_icon (icon_names, pixel_size, pixel_size);
+			if (pb != null) {
+				img.set_from_pixbuf (pb);
+			} else {
+				img.set_from_icon_name ("weather-few-clouds", Gtk.IconSize.DIALOG);
+			}
+			img.pixel_size = pixel_size;
+		}
+
+		private string format_weekday (GLib.DateTime dt)
+		{
+			string formatted = dt.format ("%A");
+			if (formatted == null || formatted.length == 0)
+				return "";
+			return formatted.substring (0, 1).up () + formatted.substring (1);
 		}
 	}
 }

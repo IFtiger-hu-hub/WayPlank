@@ -2,14 +2,14 @@
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -469,19 +469,25 @@ namespace Plank
 				case "weather-clouds":
 				case "weather-overcast":
 				case "weather-many-clouds":
+				case "weather-overcast-symbolic":
 					return Plank.G_RESOURCE_PATH + "/docklets/weather-overcast.svg";
 				case "weather-showers":
 				case "weather-showers-scattered":
 				case "weather-rain":
+				case "weather-freezing-rain":
+				case "weather-showers-symbolic":
 					return Plank.G_RESOURCE_PATH + "/docklets/weather-showers.svg";
 				case "weather-snow":
 				case "weather-snow-scattered":
+				case "weather-snow-symbolic":
 					return Plank.G_RESOURCE_PATH + "/docklets/weather-snow.svg";
 				case "weather-storm":
 				case "weather-severe-alert":
+				case "weather-storm-symbolic":
 					return Plank.G_RESOURCE_PATH + "/docklets/weather-storm.svg";
 				case "weather-fog":
 				case "weather-mist":
+				case "weather-fog-symbolic":
 					return Plank.G_RESOURCE_PATH + "/docklets/weather-fog.svg";
 				case "weather":
 					return Plank.G_RESOURCE_PATH + "/docklets/weather.svg";

@@ -1,15 +1,16 @@
 //
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
+//  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -233,12 +234,7 @@ namespace Plank
 					if (item == null)
 						continue;
 					
-					unowned DockItem? dupe;
-					if ((dupe = find_item_for_uri (result, item.Launcher)) != null) {
-						warning ("The launcher '%s' in dock item '%s' is already managed by dock item '%s'. Removing '%s'.",
-							item.Launcher, file.get_path (), dupe.DockItemFilename, item.DockItemFilename);
-						item.delete ();
-					} else if (!item.is_valid ()) {
+					if (!item.is_valid ()) {
 						warning ("The launcher '%s' in dock item '%s' does not exist. Removing '%s'.", item.Launcher, file.get_path (), item.DockItemFilename);
 						item.delete ();
 					} else {
@@ -249,15 +245,41 @@ namespace Plank
 				critical ("Error loading dock elements from '%s'. (%s)", source_dir.get_path () ?? "", e.message);
 			}
 			
-			if (ordering != null)
+			// Downstream contribution by IFtiger-hu (史有虎): Clean launcher deduplication & duplicate disk pruning
+			if (ordering != null) {
 				foreach (unowned string dockitem in ordering) {
 					DockElement? element;
 					elements.unset (dockitem, out element);
-					if (element != null)
-						result.add (element);
+					if (element == null)
+						continue;
+
+					unowned DockItem? item = (element as DockItem);
+					if (item != null && item.Launcher != "") {
+						unowned DockItem? dupe = find_item_for_uri (result, item.Launcher);
+						if (dupe != null) {
+							warning ("The launcher '%s' in dock item '%s' is already managed by dock item '%s'. Removing '%s'.",
+								item.Launcher, item.DockItemFilename, dupe.DockItemFilename, item.DockItemFilename);
+							item.delete ();
+							continue;
+						}
+					}
+					result.add (element);
 				}
+			}
 			
-			result.add_all (elements.values);
+			foreach (var element in elements.values) {
+				unowned DockItem? item = (element as DockItem);
+				if (item != null && item.Launcher != "") {
+					unowned DockItem? dupe = find_item_for_uri (result, item.Launcher);
+					if (dupe != null) {
+						warning ("The launcher '%s' in dock item '%s' is already managed by dock item '%s'. Removing '%s'.",
+							item.Launcher, item.DockItemFilename, dupe.DockItemFilename, item.DockItemFilename);
+						item.delete ();
+						continue;
+					}
+				}
+				result.add (element);
+			}
 			elements.clear ();
 			
 			return result;
@@ -559,8 +581,22 @@ namespace Plank
 						try { dockitem_file.delete (null); } catch { }
 					}
 					
+					// Downstream contribution by IFtiger-hu (史有虎): Reuse existing dock item to avoid duplicate files
+					if (dockitem_file.query_exists ()) {
+						var existing_launcher = get_launcher_from_dockitem (dockitem_file);
+						if (existing_launcher == uri || existing_launcher == target_uri) {
+							debug ("Reusing existing dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
+							return dockitem_file;
+						}
+					}
+					
 					var counter = 1;
 					while (dockitem_file.query_exists ()) {
+						var existing_launcher = get_launcher_from_dockitem (dockitem_file);
+						if (existing_launcher == uri || existing_launcher == target_uri) {
+							debug ("Reusing existing dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
+							return dockitem_file;
+						}
 						dockitem = "%s-%d.dockitem".printf (launcher_base, counter++);
 						dockitem_file = target_dir.get_child (dockitem);
 					}

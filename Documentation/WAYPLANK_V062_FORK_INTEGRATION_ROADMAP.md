@@ -71,8 +71,8 @@ flowchart TD
     subgraph Fork_Features["Fork Innovations by IFtiger-hu"]
         F1["✅ [INTEGRATED - Round 1]<br/>Native openSUSE / Fedora RPM Builder (BuildRpm.sh)"]:::integrated
         F2["✅ [INTEGRATED - Round 1]<br/>Dock Overflow Smooth Scrolling (PositionManager + Wheel)"]:::integrated
-        F3["Launcher Deduplication & File Reuse (ItemFactory)"]:::pending
-        F4["Ghost Window Filtering (xwaylandvideobridge)"]:::pending
+        F3["✅ [INTEGRATED - Round 1]<br/>Launcher Deduplication & File Reuse (ItemFactory)"]:::integrated
+        F4["✅ [INTEGRATED - Round 1]<br/>Ghost Window Filtering (xwaylandvideobridge)"]:::integrated
         F5["DND Remote URL Delivery & Hover Window Activation"]:::pending
         F6["Recent Files Jump List Service (RecentFilesService)"]:::pending
         F7["🔄 [TO MODIFY / GENERALIZE]<br/>Universal Multi-Window Cards (HAL Positioning)"]:::modify
@@ -80,7 +80,7 @@ flowchart TD
 
     subgraph Unified_v062["WayPlank v0.6.2 Unified Milestone"]
         M1["✅ [INTEGRATED - Round 1]<br/>Unified Package Ecosystem: DEB + RPM + Headless CI"]:::integrated
-        M2["Rock-Solid Multi-Compositor HAL + Ghost Window Shield"]:::pending
+        M2["✅ [INTEGRATED - Round 1]<br/>Rock-Solid Multi-Compositor HAL + Ghost Window Shield"]:::integrated
         M3["✅ [INTEGRATED - Round 1]<br/>Infinite Capacity: Smooth Overflow Scrolling + Redline Slider"]:::integrated
         M4["Rich DND Ecosystem: Files, Folders, URLs & Hover Raise"]:::pending
         M5["Complete Multi-Theme Suite: Gtk+ Adaptive + Dark + Light"]:::pending
@@ -97,31 +97,42 @@ flowchart TD
 
 ---
 
-## 4. 🚀 Step-by-Step Integration Phases for v0.6.2
+## 4. 🚀 Step-by-Step Integration Phases & Version Alignment
 
-### Phase 1: Zero-Risk Quick Wins (Packaging & Core Deduplication)
+To preserve linear versioning, eliminate ambiguity, and provide clean standalone packages for each integration milestone, every Round maps directly to a sequential sub-version (`v0.6.2.x`):
+
+* **v0.6.2.1 (Round 1)**: Native RPM Packaging, Overflow Scrolling, Launcher Deduplication, Ghost Window Shield & Multi-Monitor DDC/CI Sync.
+* **v0.6.2.2 (Round 2)**: DND Remote URLs, Hover Window Raising & FreeDesktop Portal Color-Scheme.
+* **v0.6.2.3 (Round 3)**: Packaged Stock Themes, Recent Files Jump List & Universal Multi-Window Cards.
+
+---
+
+### Phase 1 (Round 1): Zero-Risk Quick Wins & Core Foundation — 🏁 RELEASE MILESTONE: v0.6.2.1
 *Goal: Immediate high-value additions with zero risk to the runtime dock or HAL.*
 
-1. **Native openSUSE / Fedora RPM Packaging (`BuildRpm.sh`)** — ✅ **COMPLETED (Round 1)**:
+1. **Native openSUSE / Fedora RPM Packaging (`BuildRpm.sh`)** — ✅ **COMPLETED (v0.6.2.1)**:
    - Port `BuildRpm.sh` from commit `ccb79c0`.
-   - Update script to dynamic version extraction (`v0.6.2`).
+   - Update script to dynamic version extraction (`v0.6.2.1`).
    - Add automated detection of package managers (`zypper`, `dnf`, `apt` for `rpmbuild`).
    - Add `--define "_dbpath %{_topdir}/rpmdb"` to suppress Debian/Ubuntu sqlite database lookup warnings.
    - Add non-interactive headless bypass flags (`WAYPLANK_NO_PROMPT=1`, `CI=1`, `NONINTERACTIVE=1`).
    - Document RPM build steps in `README.md` alongside Debian/Arch instructions.
-2. **Launcher Deduplication & Item Reuse (`lib/Factories/ItemFactory.vala`)**:
+2. **Launcher Deduplication & Item Reuse (`lib/Factories/ItemFactory.vala`)** — ✅ **COMPLETED (v0.6.2.1)**:
    - Port deduplication logic from commit `5693d80`.
    - In `get_dock_elements_from_dir`: if duplicate URI launcher exists, cleanly prune it.
    - In `create_dock_item`: reuse existing `.dockitem` file matching the URI instead of incrementing `-1.dockitem`, `-2.dockitem`.
-3. **Ghost Window & Screen-Sharing Bridge Shielding (`lib/Services/ApplicationDiscovery.vala`)**:
+   - Attributed to IFtiger-hu (史有虎) downstream fork contribution.
+3. **Ghost Window & Screen-Sharing Bridge Shielding (`lib/Services/ApplicationDiscovery.vala` & `lib/Services/KWinBridge.vala`)** — ✅ **COMPLETED (v0.6.2.1)**:
    - Port `is_ignored_app()` to filter out `xwaylandvideobridge` (which generates transparent 1x1 ghost windows during Discord/WebRTC screen sharing on Wayland).
+   - Filter `skipTaskbar == true` and `specialWindow == true` in `KWinBridge.vala` and `ApplicationDiscovery.vala`.
+   - Attributed to IFtiger-hu (史有虎) downstream fork contribution.
 
 ---
 
-### Phase 2: User Experience & Ergonomic Enhancements
+### Phase 2 (Round 2): User Experience & Ergonomic Enhancements — 🎯 TARGET MILESTONE: v0.6.2.2
 *Goal: Expand dock navigation and Drag-and-Drop capabilities.*
 
-1. **Dock Overflow Smooth Scrolling (`lib/PositionManager.vala`, `lib/DockRenderer.vala`, `lib/Widgets/DockWindow.vala`)** — ✅ **COMPLETED (Round 1)**:
+1. **Dock Overflow Smooth Scrolling (`lib/PositionManager.vala`, `lib/DockRenderer.vala`, `lib/Widgets/DockWindow.vala`)** — ✅ **COMPLETED (Early in v0.6.2.1)**:
    - Port overflow bounding logic from `e1d6a03`:
      - Calculate `available_content_span` and `max_scroll_offset`.
      - When total icons exceed screen span, clamp background and enable horizontal/vertical scroll offset.
@@ -139,7 +150,7 @@ flowchart TD
 
 ---
 
-### Phase 3: Visual Polish & Extended Themes
+### Phase 3 (Round 3): Visual Polish & Extended Themes — 🎯 TARGET MILESTONE: v0.6.2.3
 *Goal: Enrich theme offerings, Recent Files jump list & generalized Multi-Window Cards.*
 
 1. **Stock Theme Suite (`data/themes/`)**:
@@ -148,7 +159,7 @@ flowchart TD
 2. **Recent Files Jump List (`lib/Services/RecentFilesService.vala`)**:
    - Port `RecentFilesService` querying `Gtk.RecentManager`.
    - Add "Recent Documents" submenu to compatible application right-click menus.
-3. **Multi-Window Window Cards: 🔄 TO MODIFY / GENERALIZE (v0.6.2 Round 3)**:
+3. **Multi-Window Window Cards: 🔄 TO MODIFY / GENERALIZE (v0.6.2.3 Round 3)**:
    - **Status**: Re-evaluated from Rejected to To Modify / Generalize.
    - **Architectural Scope**:
      1. *Universal HAL Window Tracking*: Ensure window identification and activation (`WindowControl.queue_command`) operates with identical fidelity across KWin, Mutter, and Labwc.

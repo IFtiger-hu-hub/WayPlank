@@ -1,14 +1,14 @@
 //
 //  Copyright (C) 2026 Sergio Melas
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -53,7 +53,9 @@ namespace Plank
 
 		private string? backlight_device = null;
 		private uint32 max_raw_brightness = 100;
+		private int target_sp = 100;
 		private int current_percent = 100;
+		private bool user_has_set_sp = false;
 		private uint timer_id = 0;
 		private uint apply_timer_id = 0;
 		private int pending_hardware_target = -1;
@@ -68,6 +70,9 @@ namespace Plank
 		private Gee.ArrayList<string> kscreen_outputs = new Gee.ArrayList<string> ();
 		private Gee.ArrayList<int> ddcutil_displays = new Gee.ArrayList<int> ();
 		private Gee.ArrayList<string> backlight_devices = new Gee.ArrayList<string> ();
+		private Mutex ddc_mutex;
+		private int pending_ddc_target = -1;
+		private bool ddc_worker_active = false;
 		private ulong mon_add_id = 0;
 		private ulong mon_rem_id = 0;
 
@@ -83,6 +88,7 @@ namespace Plank
 
 		construct
 		{
+			ddc_mutex = Mutex ();
 			Text = _("Screen Brightness");
 			Icon = get_brightness_icon_name (current_percent);
 			Button = PopupButton.RIGHT;
@@ -221,27 +227,51 @@ namespace Plank
 
 		private void on_kde_brightness_changed (GLib.DBusConnection conn, string? sender, string path, string iface, string sig_name, GLib.Variant sig_params)
 		{
+			// Ignore self-echo during and right after user action (8s settling window)
+			if (last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) < 8000000)
+				return;
+
+			if (sig_params.n_children () < 1)
+				return;
+
 			var child = sig_params.get_child_value (0);
 			if (child != null) {
 				int val = child.get_int32 ();
 				if (kde_max_brightness <= 0)
 					kde_max_brightness = 10000;
-				current_percent = (int) Math.round (((double) val / (double) kde_max_brightness) * 100.0);
-				current_percent = current_percent.clamp (1, 100);
-				update_display ();
+				int new_pct = (int) Math.round (((double) val / (double) kde_max_brightness) * 100.0);
+				new_pct = new_pct.clamp (1, 100);
+				if ((new_pct - target_sp).abs () > 3) {
+					target_sp = new_pct;
+					current_percent = new_pct;
+					update_display ();
+					queue_ddc_target (target_sp);
+				}
 			}
 		}
 
 		private void on_gnome_properties_changed (GLib.DBusConnection conn, string? sender, string path, string iface, string sig_name, GLib.Variant sig_params)
 		{
+			// Ignore self-echo during and right after user action (8s settling window)
+			if (last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) < 8000000)
+				return;
+
+			if (sig_params.n_children () < 2)
+				return;
+
 			string target_iface = sig_params.get_child_value (0).get_string ();
 			if (target_iface == "org.gnome.SettingsDaemon.Power.Screen") {
 				var changed_props = sig_params.get_child_value (1);
 				var bright_var = changed_props.lookup_value ("Brightness", null);
 				if (bright_var != null) {
 					int val = bright_var.get_variant ().get_int32 ();
-					current_percent = val.clamp (1, 100);
-					update_display ();
+					int new_pct = val.clamp (1, 100);
+					if ((new_pct - target_sp).abs () > 3) {
+						target_sp = new_pct;
+						current_percent = new_pct;
+						update_display ();
+						queue_ddc_target (target_sp);
+					}
 				}
 			}
 		}
@@ -369,8 +399,10 @@ namespace Plank
 							}
 						}
 						GLib.Idle.add (() => {
+							ddc_mutex.lock ();
 							ddcutil_displays.clear ();
 							ddcutil_displays.add_all (detected);
+							ddc_mutex.unlock ();
 							return GLib.Source.REMOVE;
 						});
 					}
@@ -381,9 +413,11 @@ namespace Plank
 
 		private void refresh_brightness ()
 		{
-			// Skip refresh if user recently adjusted brightness via scroll or click (3 second debounce)
-			if (last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) < 3000000)
+			// If user has set an authoritative Set Point (SP), do not let periodic polling overwrite it!
+			if (user_has_set_sp)
 				return;
+
+			int initial_pct = -1;
 
 			// 1. Try KDE Solid PowerManagement D-Bus
 			if (session_bus != null) {
@@ -415,47 +449,44 @@ namespace Plank
 						kde_max_brightness = reply_max.get_child_value (0).get_int32 ();
 					}
 					if (kde_max_brightness > 0) {
-						current_percent = (int) Math.round (((double) cur / (double) kde_max_brightness) * 100.0);
-						current_percent = current_percent.clamp (1, 100);
+						initial_pct = (int) Math.round (((double) cur / (double) kde_max_brightness) * 100.0);
 						kde_available = true;
-						update_display ();
-						return;
 					}
 				} catch (GLib.Error e) {
 					kde_available = false;
 				}
 
 				// 2. Try GNOME SettingsDaemon Power D-Bus
-				try {
-					var reply = session_bus.call_sync (
-						"org.gnome.SettingsDaemon.Power",
-						"/org/gnome/SettingsDaemon/Power",
-						"org.freedesktop.DBus.Properties",
-						"Get",
-						new GLib.Variant ("(ss)", "org.gnome.SettingsDaemon.Power.Screen", "Brightness"),
-						null,
-						GLib.DBusCallFlags.NONE,
-						200,
-						null
-					);
-					GLib.Variant val_var = reply.get_child_value (0).get_variant ();
-					int val = 0;
-					if (val_var.is_of_type (GLib.VariantType.INT32)) val = val_var.get_int32 ();
-					else if (val_var.is_of_type (GLib.VariantType.UINT32)) val = (int) val_var.get_uint32 ();
-					else if (val_var.is_of_type (GLib.VariantType.DOUBLE)) val = (int) Math.round (val_var.get_double ());
-					if (val > 0) {
-						current_percent = val.clamp (1, 100);
-						gnome_available = true;
-						update_display ();
-						return;
+				if (initial_pct < 0) {
+					try {
+						var reply = session_bus.call_sync (
+							"org.gnome.SettingsDaemon.Power",
+							"/org/gnome/SettingsDaemon/Power",
+							"org.freedesktop.DBus.Properties",
+							"Get",
+							new GLib.Variant ("(ss)", "org.gnome.SettingsDaemon.Power.Screen", "Brightness"),
+							null,
+							GLib.DBusCallFlags.NONE,
+							200,
+							null
+						);
+						GLib.Variant val_var = reply.get_child_value (0).get_variant ();
+						int val = 0;
+						if (val_var.is_of_type (GLib.VariantType.INT32)) val = val_var.get_int32 ();
+						else if (val_var.is_of_type (GLib.VariantType.UINT32)) val = (int) val_var.get_uint32 ();
+						else if (val_var.is_of_type (GLib.VariantType.DOUBLE)) val = (int) Math.round (val_var.get_double ());
+						if (val > 0) {
+							initial_pct = val;
+							gnome_available = true;
+						}
+					} catch (GLib.Error e) {
+						gnome_available = false;
 					}
-				} catch (GLib.Error e) {
-					gnome_available = false;
 				}
 			}
 
 			// 3. Try /sys/class/backlight/<device>/brightness
-			if (backlight_device != null) {
+			if (initial_pct < 0 && backlight_device != null) {
 				string path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
 				try {
 					string content;
@@ -464,16 +495,13 @@ namespace Plank
 					if (raw > max_raw_brightness)
 						max_raw_brightness = (uint32) raw;
 					if (max_raw_brightness > 0) {
-						current_percent = (int) Math.round (((double) raw / (double) max_raw_brightness) * 100.0);
-						current_percent = current_percent.clamp (1, 100);
-						update_display ();
-						return;
+						initial_pct = (int) Math.round (((double) raw / (double) max_raw_brightness) * 100.0);
 					}
 				} catch (GLib.Error e) { }
 			}
 
 			// 4. Try brightnessctl -m
-			if (GLib.Environment.find_program_in_path ("brightnessctl") != null) {
+			if (initial_pct < 0 && GLib.Environment.find_program_in_path ("brightnessctl") != null) {
 				try {
 					string out_str;
 					int exit_code;
@@ -483,26 +511,28 @@ namespace Plank
 							string pct_str = parts[3].replace ("%", "").strip ();
 							int pct = int.parse (pct_str);
 							if (pct > 0) {
-								current_percent = pct.clamp (1, 100);
-								update_display ();
-								return;
+								initial_pct = pct;
 							}
 						}
 					}
 				} catch (GLib.Error e) { }
 			}
 
-			update_display ();
+			if (initial_pct > 0) {
+				target_sp = initial_pct.clamp (1, 100);
+				current_percent = target_sp;
+				update_display ();
+			}
 		}
 
 		private void update_display ()
 		{
-			Count = current_percent;
-			BadgeText = "%d%%".printf (current_percent);
+			Count = target_sp;
+			BadgeText = "%d%%".printf (target_sp);
 			CountVisible = true;
-			Text = _("Screen Brightness: %d%%").printf (current_percent);
+			Text = _("Screen Brightness: %d%%").printf (target_sp);
 
-			Icon = get_brightness_icon_name (current_percent);
+			Icon = get_brightness_icon_name (target_sp);
 
 			reset_icon_buffer ();
 		}
@@ -515,13 +545,18 @@ namespace Plank
 
 		public void adjust_brightness (int delta)
 		{
-			set_brightness_percent (current_percent + delta, false);
+			int next = target_sp + delta;
+			// Snap to nearest multiple of 5 for clean increments
+			next = ((next + 2) / 5) * 5;
+			set_brightness_percent (next, false);
 		}
 
 		public void set_brightness_percent (int percent, bool immediate = false)
 		{
 			int target = percent.clamp (5, 100);
+			target_sp = target;
 			current_percent = target;
+			user_has_set_sp = true;
 			last_user_action_time = GLib.get_monotonic_time ();
 			update_display ();
 
@@ -537,8 +572,8 @@ namespace Plank
 				pending_hardware_target = -1;
 				apply_hardware_brightness (t);
 			} else {
-				// Debounce by 150ms to allow smooth mouse wheel scrolling without dropping I2C DDC/CI packets on external monitors
-				apply_timer_id = GLib.Timeout.add (150, () => {
+				// Settle debounce window (350ms): allows smooth mouse wheel scrolling and eliminates I2C DDC/CI packet collisions
+				apply_timer_id = GLib.Timeout.add (350, () => {
 					apply_timer_id = 0;
 					if (pending_hardware_target >= 0) {
 						int t = pending_hardware_target;
@@ -574,24 +609,7 @@ namespace Plank
 			}
 
 			// 2. Try KDE Solid PowerManagement D-Bus
-			if (session_bus != null) {
-				if (kde_max_brightness <= 0) {
-					try {
-						var reply_max = session_bus.call_sync (
-							"org.kde.Solid.PowerManagement",
-							"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
-							"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
-							"brightnessMax",
-							null,
-							null,
-							GLib.DBusCallFlags.NONE,
-							200,
-							null
-						);
-						kde_max_brightness = reply_max.get_child_value (0).get_int32 ();
-					} catch (GLib.Error e) { }
-				}
-
+			if (session_bus != null && is_kde) {
 				if (kde_max_brightness > 0) {
 					int kde_val = (int) Math.round (((double) target / 100.0) * (double) kde_max_brightness);
 					session_bus.call.begin (
@@ -606,102 +624,128 @@ namespace Plank
 						null
 					);
 				}
-
-				// 3. Try GNOME SettingsDaemon Power D-Bus (Mutter internal screen)
-				session_bus.call.begin (
-					"org.gnome.SettingsDaemon.Power",
-					"/org/gnome/SettingsDaemon/Power",
-					"org.freedesktop.DBus.Properties",
-					"Set",
-					new GLib.Variant ("(ssv)", "org.gnome.SettingsDaemon.Power.Screen", "Brightness", new GLib.Variant.int32 (target)),
-					null,
-					GLib.DBusCallFlags.NONE,
-					500,
-					null
-				);
 			}
 
-			// 4. Try brightnessctl and light CLI tools across all detected backlight devices (Internal panels)
-			if (GLib.Environment.find_program_in_path ("brightnessctl") != null) {
-				if (!backlight_devices.is_empty) {
-					foreach (var dev in backlight_devices) {
+			// 3. For Non-KDE (Mutter / Labwc): Single clean hardware write to internal panel (zero PWM flicker)
+			if (!is_kde) {
+				if (GLib.Environment.find_program_in_path ("brightnessctl") != null) {
+					if (!backlight_devices.is_empty) {
+						foreach (var dev in backlight_devices) {
+							try {
+								GLib.Process.spawn_command_line_async ("brightnessctl -d %s set %d%%".printf (dev, target));
+							} catch (GLib.Error e) { }
+						}
+					} else {
 						try {
-							GLib.Process.spawn_command_line_async ("brightnessctl -d %s set %d%%".printf (dev, target));
+							GLib.Process.spawn_command_line_async ("brightnessctl set %d%%".printf (target));
 						} catch (GLib.Error e) { }
 					}
-				} else {
+				} else if (system_bus != null && backlight_device != null && max_raw_brightness > 0) {
+					uint32 target_raw = (uint32) Math.round (((double) target / 100.0) * (double) max_raw_brightness);
+					if (target_raw < 1) target_raw = 1;
+					system_bus.call.begin (
+						"org.freedesktop.login1",
+						"/org/freedesktop/login1/session/auto",
+						"org.freedesktop.login1.Session",
+						"SetBrightness",
+						new GLib.Variant ("(ssu)", "backlight", backlight_device, target_raw),
+						null,
+						GLib.DBusCallFlags.NONE,
+						500,
+						null
+					);
+				} else if (backlight_device != null) {
+					uint32 target_raw = (uint32) Math.round (((double) target / 100.0) * (double) max_raw_brightness);
+					if (target_raw < 1) target_raw = 1;
+					string path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
 					try {
-						GLib.Process.spawn_command_line_async ("brightnessctl set %d%%".printf (target));
+						GLib.FileUtils.set_contents (path, target_raw.to_string ());
 					} catch (GLib.Error e) { }
 				}
-			} else if (GLib.Environment.find_program_in_path ("light") != null) {
-				try {
-					GLib.Process.spawn_command_line_async ("light -S %d".printf (target));
-				} catch (GLib.Error e) { }
-			}
 
-			// 5. Try systemd-logind system bus SetBrightness & direct sysfs across all devices
-			if (!backlight_devices.is_empty) {
-				foreach (var dev in backlight_devices) {
-					uint32 dev_max = get_device_max_brightness (dev);
-					if (dev_max > 0) {
-						uint32 target_raw = (uint32) Math.round (((double) target / 100.0) * (double) dev_max);
-						if (target_raw < 1) target_raw = 1;
-						if (system_bus != null) {
-							system_bus.call.begin (
-								"org.freedesktop.login1",
-								"/org/freedesktop/login1/session/auto",
-								"org.freedesktop.login1.Session",
-								"SetBrightness",
-								new GLib.Variant ("(ssu)", "backlight", dev, target_raw),
-								null,
-								GLib.DBusCallFlags.NONE,
-								500,
-								null
-							);
-						}
-						string path = "/sys/class/backlight/%s/brightness".printf (dev);
-						try {
-							GLib.FileUtils.set_contents (path, target_raw.to_string ());
-						} catch (GLib.Error e) { }
-					}
+				// 4. Non-KDE External Display Synchronization via Dedicated Serialized Coalescing Worker
+				queue_ddc_target (target);
+			}
+		}
+
+		private void queue_ddc_target (int target)
+		{
+			var desktop = (GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ();
+			bool is_kde = kde_available || desktop.contains ("kde") || desktop.contains ("plasma");
+			if (is_kde || GLib.Environment.find_program_in_path ("ddcutil") == null)
+				return;
+
+			ddc_mutex.lock ();
+			pending_ddc_target = target;
+			if (!ddc_worker_active) {
+				ddc_worker_active = true;
+				ddc_mutex.unlock ();
+				new GLib.Thread<void*> ("ddc-sync-worker", () => {
+					run_ddc_worker ();
+					return null;
+				});
+			} else {
+				ddc_mutex.unlock ();
+			}
+		}
+
+		private void run_ddc_worker ()
+		{
+			while (true) {
+				int target_to_apply = -1;
+				ddc_mutex.lock ();
+				if (pending_ddc_target < 0) {
+					ddc_worker_active = false;
+					ddc_mutex.unlock ();
+					break;
 				}
-			} else if (system_bus != null && backlight_device != null && max_raw_brightness > 0) {
-				uint32 target_raw = (uint32) Math.round (((double) target / 100.0) * (double) max_raw_brightness);
-				if (target_raw < 1) target_raw = 1;
-				system_bus.call.begin (
-					"org.freedesktop.login1",
-					"/org/freedesktop/login1/session/auto",
-					"org.freedesktop.login1.Session",
-					"SetBrightness",
-					new GLib.Variant ("(ssu)", "backlight", backlight_device, target_raw),
-					null,
-					GLib.DBusCallFlags.NONE,
-					500,
-					null
-				);
-				string path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
-				try {
-					GLib.FileUtils.set_contents (path, target_raw.to_string ());
-				} catch (GLib.Error e) { }
-			}
+				target_to_apply = pending_ddc_target;
+				pending_ddc_target = -1;
+				ddc_mutex.unlock ();
 
-			// 6. Non-KDE Multi-Monitor External Display Synchronization via Asynchronous DDC/CI (Mutter / Labwc)
-			if (!is_kde && GLib.Environment.find_program_in_path ("ddcutil") != null) {
+				// Snapshot of displays to process
+				var displays = new Gee.ArrayList<int> ();
+				ddc_mutex.lock ();
 				if (!ddcutil_displays.is_empty) {
-					foreach (int d_num in ddcutil_displays) {
-						try {
-							GLib.Process.spawn_command_line_async (
-								"ddcutil setvcp 10 %d --display %d --noverify --sleep-multiplier .1".printf (target, d_num)
-							);
-						} catch (GLib.Error e) { }
-					}
-				} else {
-					// Dynamic multi-display fallback if probe hasn't finished or monitor freshly connected
+					displays.add_all (ddcutil_displays);
+				}
+				ddc_mutex.unlock ();
+				if (displays.is_empty) {
+					// Dynamic fallback if monitor was plugged in after startup
 					try {
-						GLib.Process.spawn_command_line_async (
-							"sh -c 'for d in $(ddcutil detect --terse 2>/dev/null | awk \"/^Display / {print \\$2}\"); do ddcutil setvcp 10 %d --display \"$d\" --noverify --sleep-multiplier .1; done'".printf (target)
-						);
+						string out_str;
+						int exit_code;
+						if (GLib.Process.spawn_command_line_sync ("ddcutil detect --terse", out out_str, null, out exit_code) && exit_code == 0) {
+							var lines = out_str.split ("\n");
+							foreach (var line in lines) {
+								var trimmed = line.strip ();
+								if (trimmed.has_prefix ("Display ")) {
+									var parts = trimmed.split (" ");
+									if (parts.length >= 2) {
+										int d_num = int.parse (parts[1]);
+										if (d_num > 0 && !displays.contains (d_num)) {
+											displays.add (d_num);
+										}
+									}
+								}
+							}
+						}
+					} catch (GLib.Error e) { }
+				}
+
+				foreach (int d_num in displays) {
+					// Check if a newer target arrived while waiting for slow I2C bus!
+					ddc_mutex.lock ();
+					if (pending_ddc_target >= 0) {
+						ddc_mutex.unlock ();
+						break; // Break early to discard stale target and apply newest!
+					}
+					ddc_mutex.unlock ();
+
+					string cmd = "ddcutil setvcp 10 %d --display %d --noverify --sleep-multiplier .1".printf (target_to_apply, d_num);
+					try {
+						int exit_code;
+						GLib.Process.spawn_command_line_sync (cmd, null, null, out exit_code);
 					} catch (GLib.Error e) { }
 				}
 			}
@@ -723,10 +767,10 @@ namespace Plank
 		{
 			if (button == PopupButton.LEFT) {
 				int next;
-				if (current_percent < 25) next = 25;
-				else if (current_percent < 50) next = 50;
-				else if (current_percent < 75) next = 75;
-				else if (current_percent < 100) next = 100;
+				if (target_sp < 25) next = 25;
+				else if (target_sp < 50) next = 50;
+				else if (target_sp < 75) next = 75;
+				else if (target_sp < 100) next = 100;
 				else next = 25;
 
 				set_brightness_percent (next, true);
@@ -740,7 +784,7 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 
-			var header_item = new Gtk.MenuItem.with_label (_("Brightness: %d%%").printf (current_percent));
+			var header_item = new Gtk.MenuItem.with_label (_("Brightness: %d%%").printf (target_sp));
 			header_item.sensitive = false;
 			items.add (header_item);
 
