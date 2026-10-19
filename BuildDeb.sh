@@ -3,14 +3,14 @@
 #  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 #  Copyright (C) 2026 Sergio Melas
 #
-#  This file is part of Wayplank.
+#  This file is part of WayPlank.
 #
-#  Wayplank is free software: you can redistribute it and/or modify
+#  WayPlank is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Wayplank is distributed in the hope that it will be useful,
+#  WayPlank is distributed in the hope that it will be useful,
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
@@ -34,7 +34,7 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.6.2"
+PKG_VER="0.6.2.1"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
 OUT_DIR="${BASE_DIR}/build"
@@ -109,6 +109,7 @@ Source: https://github.com/sergiomelas/WayPlank
 Files: *
 Copyright: 2011-2015 Robert Dyer, Michal Hruby, Rico Tzschichholz
            2026 Sergio Melas <sergiomelas@gmail.com>
+           2026 史有虎 (IFtiger-hu)
 License: GPL-3.0-or-later
 
 Files: data/docklets/*

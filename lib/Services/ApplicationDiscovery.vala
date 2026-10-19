@@ -1,15 +1,16 @@
 //
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
+//  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -121,8 +122,25 @@ namespace Plank
 			return null;
 		}
 
+		// Downstream contribution by IFtiger-hu (史有虎): Shield dock from ghost helper windows (xwaylandvideobridge)
+		public static bool is_ignored_app (string? app_id)
+		{
+			if (app_id == null || app_id == "")
+				return false;
+			var lower = app_id.down ();
+			return lower.contains ("xwaylandvideobridge")
+				|| lower == "wayplank"
+				|| lower == "plank";
+		}
+
 		public File? best_desktop_file_for_window (WindowInfo window)
 		{
+			if (is_ignored_app (window.ApplicationId)
+				|| is_ignored_app (window.ResourceClass)
+				|| is_ignored_app (window.ResourceName)
+				|| is_ignored_app (window.DesktopFileName))
+				return null;
+
 			var best_score = 0;
 			string? best_id = null;
 			foreach (var entry in identities.entries) {
@@ -150,6 +168,12 @@ namespace Plank
 			var best_by_window = new Gee.HashMap<string, string> ();
 			var score_by_window = new Gee.HashMap<string, int> ();
 			foreach (var window in windows) {
+				if (is_ignored_app (window.ApplicationId)
+					|| is_ignored_app (window.ResourceClass)
+					|| is_ignored_app (window.ResourceName)
+					|| is_ignored_app (window.DesktopFileName))
+					continue;
+
 				var best_score = 0;
 				string? best_id = null;
 				foreach (var entry in identities.entries) {

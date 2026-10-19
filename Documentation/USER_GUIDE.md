@@ -23,6 +23,8 @@ This manual provides an in-depth reference for all features, configuration optio
    - [Categorized Layout Order](#categorized-layout-order)
    - [Permanent Trash Anchoring](#permanent-trash-anchoring)
    - [Dynamic Separators](#dynamic-separators)
+   - [Dock Overflow Smooth Scrolling & Capacity Indicator](#dock-overflow-smooth-scrolling--capacity-indicator)
+   - [Launcher Deduplication & Item Reuse](#launcher-deduplication--item-reuse)
 6. [Mouse Gestures & Shortcuts](#6-mouse-gestures--shortcuts)
    - [Click Actions](#click-actions)
    - [Scroll Gestures](#scroll-gestures)
@@ -32,7 +34,7 @@ This manual provides an in-depth reference for all features, configuration optio
    - [Monitor Selection & Alignment](#monitor-selection--alignment)
    - [Intelligent Hide & Edge Pressure](#intelligent-hide--edge-pressure)
    - [Multi-Monitor Topology & DPMS Wake Stability](#multi-monitor-topology--dpms-wake-stability)
-   - [Multi-Monitor Hardware Brightness Control](#multi-monitor-hardware-brightness-control)
+   - [Multi-Monitor Hardware Brightness Control (SP/PV Decoupling)](#multi-monitor-hardware-brightness-control-sppv-decoupling)
 8. [Hardware Abstraction Layer (HAL) & Compositor Architecture](#8-hardware-abstraction-layer-hal--compositor-architecture)
    - [The Wayland Security Model & Why WayPlank Needs an HAL](#the-wayland-security-model--why-wayplank-needs-an-hal)
    - [KDE Plasma: KWin D-Bus Scripting Bridge](#kde-plasma-kwin-d-bus-scripting-bridge)
@@ -43,8 +45,9 @@ This manual provides an in-depth reference for all features, configuration optio
    - [Built-in Themes](#built-in-themes)
    - [Installing Custom Themes](#installing-custom-themes)
    - [Dock Size & Zoom Level](#dock-size--zoom-level)
-10. [Command Line Usage & Configuration Files](#10-command-line-usage--configuration-files)
+10. [Command Line Usage, Packaging & Configuration Files](#10-command-line-usage-packaging--configuration-files)
    - [CLI Commands](#cli-commands)
+   - [Automated Packaging (Debian/Ubuntu & openSUSE/Fedora/RHEL)](#automated-packaging-debianubuntu--opensusefedorarhel)
    - [Configuration File Paths](#configuration-file-paths)
    - [GSettings Database Keys](#gsettings-database-keys)
 11. [Troubleshooting & FAQ](#11-troubleshooting--faq)
@@ -207,6 +210,18 @@ WayPlank automatically inserts subtle vertical separator lines between adjacent,
 - When an unpinned application opens, a separator appears before it: `[Apps] | [Active App] | [Trash]`.
 - When the application closes, the separator cleanly vanishes without animation stutter.
 
+### Dock Overflow Smooth Scrolling & Capacity Indicator
+When pinning a high number of applications or operating on smaller displays (such as 1366×768 or 1080p laptop panels), dock items may exceed the monitor's physical boundaries:
+- **Boundary Clamping**: WayPlank automatically clamps its background rendering strictly to the monitor's visible dimensions (`int.min(monitor_geo.width, background_width)`), guaranteeing the dock never extends off-screen or clips awkwardly.
+- **Smooth Mouse Wheel Panning**: With the `Scroll on Overflow` toggle enabled (**Preferences $\rightarrow$ Behaviour**), rotating your mouse wheel over the dock surface shifts items smoothly with interpolated motion (`scroll_offset += (target_scroll_offset - scroll_offset) * 0.35`). Scrolling specifically over the Volume docklet continues to adjust audio volume without triggering overflow dock pan.
+- **Tachometer Redline Capacity Indicator**: In the Preferences dialog (**Appearance $\rightarrow$ Icon Size**), a real-time capacity meter visually monitors total dock width against available screen pixels. When item dimensions approach screen capacity, the slider transitions into the redline zone and surfaces an explanatory tooltip detailing total pixel utilization.
+
+### Launcher Deduplication & Item Reuse
+To maintain a clean and reliable configuration:
+- **Automatic Deduplication on Load**: When initializing or reloading launchers from disk, WayPlank queries active URIs. If duplicate `.dockitem` files exist for the same application, redundant files are safely removed from disk and ignored.
+- **Deterministic Item Reuse**: Dragging or pinning an application that already exists in the dock reuses its existing `.dockitem` configuration rather than spawning redundant incremented filenames (such as `app-1.dockitem` or `app-2.dockitem`).
+- **Auxiliary Bridge Window Shielding**: Internal background windows—such as `xwaylandvideobridge` surfaces used by Discord, Slack, and OBS for Wayland screen-sharing—are automatically detected and filtered out, preventing phantom 1×1 ghost launcher icons from cluttering your running apps list.
+
 ---
 
 ## 6. Mouse Gestures & Shortcuts
@@ -221,6 +236,9 @@ WayPlank offers an extensive set of mouse gestures and keyboard shortcuts design
 
 ### Scroll Gestures
 - **Mouse Scroll on App Icon**: Smoothly cycle through all open windows of that application.
+- **Mouse Scroll on Dock Surface (Overflow Mode)**: When dock items exceed available display boundaries and overflow scrolling is active, smoothly pan the dock items left/right or up/down.
+- **Mouse Scroll on Volume Docklet**: Directly raise or lower the master system volume.
+- **Mouse Scroll on Screen Brightness Docklet**: Adjust backlight intensity up or down in discrete 5% steps.
 - **Ctrl + Mouse Scroll Up**: Dynamically increase dock icon size in real time.
 - **Ctrl + Mouse Scroll Down**: Dynamically decrease dock icon size in real time.
 
@@ -264,10 +282,12 @@ In complex multi-monitor environments, dynamic display changes—such as hotplug
 - **Persistent Output Mapping**: Monitor connector identifiers are tracked across sleep and resume cycles, ensuring the dock never jumps unexpectedly between displays when external docks or monitors re-enumerate.
 - **Heterogeneous DPI & Fractional Scaling**: Layer-shell geometry and Cairo surface buffers automatically adjust scaling factors when moved across displays with differing device pixel ratios (HiDPI / LoDPI).
 
-### Multi-Monitor Hardware Brightness Control
+### Multi-Monitor Hardware Brightness Control (SP/PV Decoupling)
 WayPlank's integrated Screen Brightness docklet features per-monitor hardware backlight and DDC/CI level synchronization:
-- On multi-monitor setups, external displays connected over HDMI, DisplayPort, or USB-C often lack unprivileged `/sys/class/backlight` interfaces.
-- WayPlank synchronizes brightness levels through KWin's DRM `kscreen-doctor` bridge and kernel interfaces, allowing fluid backlight adjustments across all connected displays without requiring root permissions or external background daemons.
+- **KWin DRM Integration**: On KDE Plasma, WayPlank synchronizes brightness levels through KWin's DRM `kscreen-doctor` bridge and kernel interfaces, allowing fluid backlight adjustments across all connected displays without requiring root permissions or external background daemons.
+- **Dedicated Background Worker with Target Coalescing**: On GNOME/Mutter and Labwc/wlroots, slow synchronous DDC/CI hardware I2C bus calls (`ddcutil`, `brightnessctl`) can introduce latency. WayPlank serializes hardware communication across a dedicated background worker thread with rapid target coalescing, keeping the dock completely fluid at 60 FPS even during heavy multi-monitor I2C transactions.
+- **Set Point (SP) vs Process Variable (PV) Decoupling**: In industrial process control, an operator's commanded Set Point must never be clobbered by delayed sensor feedback. WayPlank implements an authoritative SP architecture: once you dial a brightness value, background polling cannot overwrite your target.
+- **8-Second Settling Window & ±3% Deadband**: External D-Bus property updates originating from self-echoes or intermediate hardware steps are filtered through an 8-second settling window and a ±3% deadband, preventing badge bounce, slider flicker, and hardware oscillation across external HDMI/DP monitors and internal laptop panels.
 
 ---
 
@@ -372,7 +392,7 @@ They will instantly appear in the **Preferences $\rightarrow$ Theme** dropdown m
 
 ---
 
-## 10. Command Line Usage & Configuration Files
+## 10. Command Line Usage, Packaging & Configuration Files
 
 ### CLI Commands
 ```bash
@@ -388,6 +408,28 @@ wayplank -d
 # Show current version and build information
 wayplank --version
 ```
+
+### Automated Packaging (Debian/Ubuntu & openSUSE/Fedora/RHEL)
+WayPlank provides native, standalone packaging scripts requiring zero manual Makefile manipulation:
+
+- **Debian, Ubuntu & Derivatives (`.deb`)**:
+  ```bash
+  chmod +x BuildDeb.sh
+  ./BuildDeb.sh
+  sudo apt install ./build/wayplank_0.6.2.1_amd64.deb
+  ```
+
+- **openSUSE, Fedora & RHEL (`.rpm`)**:
+  ```bash
+  chmod +x BuildRpm.sh
+  ./BuildRpm.sh
+  # On openSUSE:
+  sudo zypper install ./build/wayplank-0.6.2.1-1.x86_64.rpm
+  # On Fedora / RHEL:
+  sudo dnf install ./build/wayplank-0.6.2.1-1.x86_64.rpm
+  ```
+
+> 💡 **Headless / CI Automation**: All build scripts support non-interactive execution via `WAYPLANK_NO_PROMPT=1` (e.g., `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh`).
 
 ### Configuration File Paths
 - **Launchers Directory**: `~/.config/wayplank/dock1/launchers/`
@@ -406,6 +448,9 @@ gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1
 
 # Toggle accordion docklets
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ accordion-docklets true
+
+# Toggle dock overflow smooth scrolling
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ scroll-overflow true
 
 # Change dock theme
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ theme 'Arian Theme Light'

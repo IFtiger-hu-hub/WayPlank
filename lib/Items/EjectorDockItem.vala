@@ -1,14 +1,14 @@
 //
 //  Copyright (C) 2026 Sergio Melas
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -175,7 +175,7 @@ namespace Plank
 			try {
 				var bus = GLib.Bus.get_sync (GLib.BusType.SESSION, null);
 				var builder = new GLib.VariantBuilder (new GLib.VariantType ("(susssasa{sv}i)"));
-				builder.add ("s", "Wayplank");
+				builder.add ("s", "WayPlank");
 				builder.add ("u", 0U);
 				builder.add ("s", "media-eject");
 				builder.add ("s", _("Safe to Remove"));
@@ -239,7 +239,7 @@ namespace Plank
 		private void notify_no_devices ()
 		{
 			try {
-				Process.spawn_command_line_async ("notify-send -i drive-removable-media 'Wayplank' '%s'".printf (_("No removable devices connected")));
+				Process.spawn_command_line_async ("notify-send -i drive-removable-media 'WayPlank' '%s'".printf (_("No removable devices connected")));
 			} catch (Error e) { }
 		}
 

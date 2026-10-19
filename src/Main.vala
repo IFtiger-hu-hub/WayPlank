@@ -2,14 +2,14 @@
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -34,7 +34,7 @@ namespace Plank
                 return 0;
             }
             if (argv[i] == "--version" || argv[i] == "-v" || argv[i] == "-V") {
-                print ("Wayplank %s\n", Build.VERSION);
+                print ("WayPlank %s\n", Build.VERSION);
                 return 0;
             }
             if (argv[i] == "--shortcuts" || argv[i] == "-s" || argv[i] == "--gestures") {
@@ -62,9 +62,9 @@ namespace Plank
                 Gtk.DialogFlags.MODAL,
                 Gtk.MessageType.WARNING,
                 Gtk.ButtonsType.OK,
-                "Wayplank is designed exclusively for Wayland sessions."
+                "WayPlank is designed exclusively for Wayland sessions."
             );
-            dialog.title = "Wayplank - Unsupported Session";
+            dialog.title = "WayPlank - Unsupported Session";
             dialog.run ();
             dialog.destroy ();
             return 1;
@@ -103,7 +103,7 @@ namespace Plank
                 build_version : Build.VERSION,
                 build_version_info : Build.VERSION_INFO,
 
-                program_name : "Wayplank",
+                program_name : "WayPlank",
                 exec_name : "wayplank",
 
                 app_copyright : "2026 Sergio Melas\nCopyright © 2011-2017 Plank Developers",
@@ -142,7 +142,7 @@ namespace Plank
     static void print_shortcuts_cheatsheet ()
     {
         print ("\n=======================================================\n");
-        print ("  Wayplank — Shortcuts, Mouse Controls & Gestures Guide\n");
+        print ("  WayPlank — Shortcuts, Mouse Controls & Gestures Guide\n");
         print ("=======================================================\n\n");
         print ("MOUSE ACTIONS ON ICONS:\n");
         print ("  Left Click                    Launch application, or activate/minimize/cycle open windows\n");

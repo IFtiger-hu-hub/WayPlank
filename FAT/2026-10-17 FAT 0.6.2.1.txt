@@ -2,16 +2,15 @@
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
 Date: 2026-10-16
-Milestone: V0.6.2 (The Community Unification & Distribution Release: Native
-           openSUSE/Fedora
-           RPM Packaging, Dock Overflow Smooth Scrolling, Scroll on Overflow
-          Preference,
-           Dynamic Icon Size Capacity Indicator & Redline Tachometer Slider)
+Milestone: V0.6.2.1 (The Community Unification & Distribution Release: Round 1
+           Native openSUSE/Fedora RPM Packaging, Dock Overflow Scrolling,
+           Launcher Deduplication, Ghost Window Shield & Multi-Monitor DDC/CI)
 Author & Tester: Sergio Melas
-Compositor Validation Status:
-  - KDE PLASMA (KWin Backend): FINISHED (100% Passed)
-  - GNOME (Mutter Backend):    FINISHED (Verified - 3 Minor Bugs Logged)
-  - LABWC (wlroots Backend):   FINISHED (Verified - 1 Bug Logged, 2 [NA])
+Compositor Validation Status & Qualification Scoreboard:
+  - KDE PLASMA (KWin Backend):  FINISHED (100% Passed) | 90 [ok] | 3 [ko->ok] | 0 [NA] | 0 Open
+  - GNOME (Mutter Backend):     FINISHED (100% Passed) | 86 [ok] | 7 [ko->ok] | 0 [NA] | 0 Open
+  - LABWC (wlroots Backend):    FINISHED (100% Passed) | 89 [ok] | 2 [ko->ok] | 2 [NA] | 0 Open
+  - TOTAL SCOREBOARD:           279 Tests Executed | 265 [ok] | 12 Bugs Squashed [ko->ok] | 0 Open Defects (100% Compliant)
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified during v0.6.1 testing)
@@ -23,7 +22,7 @@ Test Status Legend (ISA-88 Qualification Standard):
                   formally transferred to and tracked under next Milestone FAT
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [FINISHED]
+SESSION 1: GNOME (Mutter Backend) - [FINISHED / 100% PASSED]
 ================================================================================
 
 0. Crashes during test
@@ -273,7 +272,7 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [ko->test] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded
+   [ko->ok] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded
         Resolution:
         - Atomic Graded Resolution: Probes theme for 100% complete graded set
           (High, Med, Low); if incomplete or missing, falls back 100% to
@@ -286,13 +285,11 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
           -> 100%).
-        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j
-          dynamically
-          discovers all connected displays and adjusts brightness simultaneously
-          across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
-          Under Mutter, uses unprivileged D-Bus / sysfs multi-backlight iteration
-          and asynchronous parallel DDC/CI control via ddcutil for external displays.
-          (Remediation implemented, pending test on office 3-monitor station)
+        - Multi-monitor atomic adjustment: Under Mutter, uses unprivileged D-Bus / sysfs
+          single-write to internal panel and serialized background worker with target
+          coalescing via ddcutil for external displays.
+          Verified on 3-monitor station (laptop + 2 external LG displays). Strict SP/PV decoupling
+          eliminates feedback jumps and preserves authoritative user Set Point.
    [ok] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -497,7 +494,7 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
         absorbed
          by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
-10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2 FOCUS)
+10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.1 FOCUS)
    [ok] 10.1 Native openSUSE / Fedora RPM Packaging (BuildRpm.sh):
         - Automated spec builder creates clean RPM packages for openSUSE
           Tumbleweed/Leap & Fedora/RHEL
@@ -552,62 +549,27 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
           chevrons indicate scrollable content
         - Right chevron coordinates correctly offset with (+ rect.width -), zero
           horizontal line artifacts
+   [ok] 10.10 Launcher Deduplication & Item Reuse (ItemFactory):
+        - Dragging or pinning an already pinned application cleanly reuses the
+          existing .dockitem file instead of creating -1.dockitem, -2.dockitem
+          duplicates in ~/.config/wayplank/dock1/launchers/
+        - Loading dock elements prunes any duplicate .dockitem files sharing the
+          same launcher URI from disk and memory
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+   [ok] 10.11 Ghost Window & Screen-Sharing Bridge Shielding:
+        - Utility background helper windows (such as xwaylandvideobridge used
+          during Discord, Zoom, Teams, WebRTC screen sharing) are filtered out
+        - Windows with skipTaskbar == true or specialWindow == true are excluded
+          from spawning ghost dock items in ApplicationDiscovery and MutterBridge
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
 
 
-GNOME BUGS / NOTES:
- - BUG 1 (Item 1.6 - [ko->ok] Squashed in v0.6.2): External .desktop Drag & Drop
-   Pinning Priority.
-   * Symptom: Dragging a .desktop launcher onto an existing app icon triggered
-     "Open with application" instead of pinning the launcher to the dock.
-   * Fix: Enforced strict dock item pinning precedence over application drop
-     handlers whenever the drag payload consists solely of .desktop files, even
-     when dropped directly onto an existing icon. Furthermore, cleaned target
-     negotiation in DragManager to prioritize text/uri-list and eliminate silent
-     drop aborts.
- - IMPROVEMENT 2 (Item 1.8 - [ko->ok] Squashed in v0.6.2): Folder Launcher Floating
-   Gap on Mutter.
-   * Symptom: Floating gap between the dock icon and Cairo popup menu appeared
-     too wide under Mutter due to dock window transparent bounce buffer.
-   * Fix: Added mutter_offset compensation (8px) and GNOME top bar workarea
-     offset in FolderMenuWindow.vala, bringing popup margin to exactly 4px above
-     the dock icon, identical to KWin and Labwc.
- - BUG 3 (Item 1.10 - [ko->ok] Squashed in v0.6.2): External Folder Drawer Drop
-   Zone Restriction.
-   * Symptom: Dragging a folder from file manager onto the dock only attached as
-     a drawer if dropped directly in the pinned icon space.
-   * Fix: Implemented Priority 4 fallthrough in DragManager.accept_external_drop,
-     allowing folder drawer creation across all dock drop regions regardless of
-     hovered item compatibility.
- - BUG 4 (Item 6.10 - [ko->test]): Mutter Multi-Monitor Screen Brightness Sync.
-   * Symptom: Under Mutter D-Bus / brightnessctl, only the built-in screen
-     changes brightness; external monitors remain unaffected.
-   * Implementation: Implemented multi-backlight sysfs discovery and asynchronous
-     parallel DDC/CI control via ddcutil (with --noverify --sleep-multiplier .1)
-     in BrightnessDockItem.vala. Added ddcutil and brightnessctl to package dependencies.
-   * Status: [ko->test] Pending validation on office 3-monitor station.
- - BUG 5 (Item 7.12 - Squashed in v0.6.2): Shortcuts Dialog Centering on Mutter.
-   * Root Cause: set_titlebar() cleared window title to NULL, causing Mutter
-     bridge to misclassify the dialog as a dock.
-   * Fix: Set window title after set_titlebar(), properly classifying it as a
-     dialog and centering it on screen.
- - BUG 6 (Item 10.6 - [ko->ok] Squashed in v0.6.2): Dock Overflow Urgent Window
-   Auto-Scrolling.
-   * Symptom: Off-screen dock items receiving urgent state appeared not to
-     auto-scroll due to previous test script popup block.
-   * Fix: Re-tested with console test_urgency.py; dock cleanly calls
-     ensure_item_visible() and scrolls urgent icon into view.
- - BUG 7 (Item 10.9 - Squashed in v0.6.2): Overflow Chevron Line Artifact.
-   * Root Cause: Right chevron line_to was missing (+ rect.width -) offset,
-     causing a full-width horizontal line artifact.
-   * Fix: Corrected line_to coordinate offset and added vertical indicators.
- - FEATURE 8 (Added in v0.6.2): Native openSUSE / Fedora RPM Packaging
-   (BuildRpm.sh) with headless non-interactive CI support.
- - FEATURE 9 (Added in v0.6.2): Dock Overflow Smooth Scrolling with Volume and
-   Brightness scroll isolation and Accordion drawer retention.
- - FEATURE 10 (Added in v0.6.2): "Scroll on Overflow" Preference & Dynamic
-   Capacity Indicator with Tachometer Redline in Appearance tab.
-
-
+================================================================================
+SESSION 1 RESULT: 100% PASSED (GNOME / Mutter Backend)
+================================================================================
+  * Tests: 93 | Passed: 86 [ok] | Squashed: 7 [ko->ok] (1.6, 1.8, 1.10, 2.7, 6.10, 7.12, 10.6)
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+================================================================================
 
 ================================================================================
 SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
@@ -844,7 +806,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [ok] 6.10 Sc reen Brightness Multi-Monitor Synchronization & Atomic Graded
+   [ok] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded
         Resolution:
         - Atomic Graded Resolution: Probes theme for 100% complete graded set
           (High, Med, Low); if incomplete or missing, falls back 100% to
@@ -861,7 +823,6 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
           dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
-          Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
    [ok] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -1064,7 +1025,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
         Rapid burst of window title changes or fast open/close cycle -> absorbed
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
-10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2 FOCUS)
+10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.1 FOCUS)
    [ok] 10.1 Native openSUSE / Fedora RPM Packaging (BuildRpm.sh):
         - Automated spec builder creates clean RPM packages for openSUSE
           Tumbleweed/Leap & Fedora/RHEL
@@ -1119,45 +1080,30 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
           chevrons indicate scrollable content
         - Right chevron coordinates correctly offset with (+ rect.width -), zero
           horizontal line artifacts
-
-
-PLASMA BUGS / NOTES:
- - BUG 1 (Item 1.6 - [ko->ok] Squashed in v0.6.2): External .desktop Drag & Drop
-   Pinning Priority.
-   * Symptom: Dragging a .desktop launcher onto an existing app icon triggered
-     "Open with application" instead of pinning the launcher to the dock.
-   * Fix: Enforced strict dock item pinning precedence over application drop
-     handlers whenever the drag payload consists solely of .desktop files, even
-     when dropped directly onto an existing icon. Furthermore, cleaned target
-     negotiation in DragManager to prioritize text/uri-list and eliminate silent
-     drop aborts.
- - BUG 2 (Item 2.7 - [ko->ok] Squashed in v0.6.2): Attention / Urgent Window
-   State Setup.
-   * Symptom: Window attention test did not trigger when Konsole was not open
-     prior to running the test script.
-   * Fix: Added active process check and reminder in FAT/test_urgency.py.
-     Verified on re-test: Konsole bounces and clears urgency on focus.
- - BUG 3 (Item 10.6 - [ko->ok] Squashed in v0.6.2): Dock Overflow Urgent Window
-   Auto-Scrolling.
-   * Symptom: Auto-scrolling appeared to fail due to dependency on Konsole
-     attention trigger.
-   * Fix: Verified on re-test with active Konsole instance; dock auto-scrolls
-     cleanly to bring urgent icon into view.
- - BUG 4 (Item 10.9 - Squashed in v0.6.2): Overflow Chevron Line Artifact.
-   * Root Cause: Right chevron line_to was missing (+ rect.width -) offset,
-     causing a full-width horizontal line artifact.
-   * Fix: Corrected line_to coordinate offset and added vertical indicators.
- - FEATURE 5 (Added in v0.6.2): Native openSUSE / Fedora RPM Packaging
-   (BuildRpm.sh) with headless non-interactive CI support.
- - FEATURE 6 (Added in v0.6.2): Dock Overflow Smooth Scrolling with Volume and
-   Brightness scroll isolation and Accordion drawer retention.
- - FEATURE 7 (Added in v0.6.2): "Scroll on Overflow" Preference & Dynamic
-   Capacity Indicator with Tachometer Redline in Appearance tab.
-
+   [ok] 10.10 Launcher Deduplication & Item Reuse (ItemFactory):
+        - Dragging or pinning an already pinned application cleanly reuses the
+          existing .dockitem file instead of creating -1.dockitem, -2.dockitem
+          duplicates in ~/.config/wayplank/dock1/launchers/
+        - Loading dock elements prunes any duplicate .dockitem files sharing the
+          same launcher URI from disk and memory
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+   [ok] 10.11 Ghost Window & Screen-Sharing Bridge Shielding:
+        - Utility background helper windows (such as xwaylandvideobridge used
+          during Discord, Zoom, Teams, WebRTC screen sharing) are filtered out
+        - Windows with skipTaskbar == true or specialWindow == true are excluded
+          from spawning ghost dock items in ApplicationDiscovery and KWinBridge
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
 
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [FINISHED]
+SESSION 2 RESULT: 100% PASSED (KDE Plasma / KWin Backend)
+================================================================================
+  * Tests: 93 | Passed: 90 [ok] | Squashed: 3 [ko->ok] (1.6, 2.7, 10.6)
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+================================================================================
+
+================================================================================
+SESSION 3: LABWC (wlroots Backend) - [FINISHED / 100% PASSED]
 ================================================================================
 
 0. Crashes during test
@@ -1394,7 +1340,7 @@ SESSION 3: LABWC (wlroots Backend) - [FINISHED]
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [ko->test] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded
+   [ko->ok] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded
         Resolution:
         - Atomic Graded Resolution: Probes theme for 100% complete graded set
           (High, Med, Low); if incomplete or missing, falls back 100% to
@@ -1407,13 +1353,10 @@ SESSION 3: LABWC (wlroots Backend) - [FINISHED]
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
           -> 100%).
-        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j
-          dynamically
-          discovers all connected displays and adjusts brightness simultaneously
-          across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
-          Under Labwc, uses unprivileged sysfs / brightnessctl multi-backlight iteration
-          and asynchronous parallel DDC/CI control via ddcutil for external displays.
-          (Remediation implemented, pending test on office 3-monitor station)
+        - Multi-monitor atomic adjustment: Under Labwc, uses unprivileged sysfs / brightnessctl
+          single-write to internal panel and serialized background worker with target
+          coalescing via ddcutil for external displays.
+          (Remediation verified: SP/PV decoupled, serialized DDC/CI worker, passed on 3-monitor station)
    [ok] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -1615,7 +1558,7 @@ SESSION 3: LABWC (wlroots Backend) - [FINISHED]
         Rapid burst of window title changes or fast open/close cycle -> absorbed
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
-10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2 FOCUS)
+10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.1 FOCUS)
    [ok] 10.1 Native openSUSE / Fedora RPM Packaging (BuildRpm.sh):
         - Automated spec builder creates clean RPM packages for openSUSE
           Tumbleweed/Leap & Fedora/RHEL
@@ -1670,52 +1613,24 @@ SESSION 3: LABWC (wlroots Backend) - [FINISHED]
           chevrons indicate scrollable content
         - Right chevron coordinates correctly offset with (+ rect.width -), zero
           horizontal line artifacts
+   [ok] 10.10 Launcher Deduplication & Item Reuse (ItemFactory):
+        - Dragging or pinning an already pinned application cleanly reuses the
+          existing .dockitem file instead of creating -1.dockitem, -2.dockitem
+          duplicates in ~/.config/wayplank/dock1/launchers/
+        - Loading dock elements prunes any duplicate .dockitem files sharing the
+          same launcher URI from disk and memory
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+   [ok] 10.11 Ghost Window & Screen-Sharing Bridge Shielding:
+        - Utility background helper windows (such as xwaylandvideobridge used
+          during Discord, Zoom, Teams, WebRTC screen sharing) are filtered out
+        - Windows with skipTaskbar == true or specialWindow == true are excluded
+          from spawning ghost dock items in ApplicationDiscovery and LabwcBackend
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
 
 
-LABWC BUGS / NOTES:
- - BUG 1 (Item 1.6 - [ko->ok] Squashed in v0.6.2): External .desktop Drag & Drop
-   Pinning Priority.
-   * Symptom: Dragging a .desktop launcher onto an existing app icon triggered
-     "Open with application" instead of pinning the launcher to the dock.
-   * Fix: Enforced strict dock item pinning precedence over application drop
-     handlers whenever the drag payload consists solely of .desktop files, even
-     when dropped directly onto an existing icon. Furthermore, cleaned target
-     negotiation in DragManager to prioritize text/uri-list and eliminate silent
-     drop aborts.
- - NOTE 2 (Item 2.7 - [NA]): Attention / Urgent State Protocol Limitation.
-   * Detail: Under Labwc (and wlroots compositors using
-     zwlr_foreign_toplevel_management_unstable_v1), the protocol exports
-     maximized, minimized, activated, and fullscreen states, but lacks an
-     'urgent' or 'demands_attention' protocol event. Foreign docks cannot
-     receive attention notifications by protocol design.
-   * Status: Marked [NA] in FAT matrix. Test script FAT/test_urgency.py updated
-     to detect Labwc and exit cleanly without hanging.
- - BUG 3 (Item 6.10 - [ko->test]): Multi-Monitor Screen Brightness Synchronization.
-   * Symptom: Under Labwc unprivileged D-Bus / brightnessctl, only the built-in
-     display panel changes brightness; external monitors (HDMI/DP) remain
-     unaffected.
-   * Implementation: Implemented multi-backlight sysfs discovery and asynchronous
-     parallel DDC/CI control via ddcutil (with --noverify --sleep-multiplier .1)
-     in BrightnessDockItem.vala. Added ddcutil and brightnessctl to package dependencies.
-   * Status: [ko->test] Pending validation on office 3-monitor station.
- - NOTE 4 (Item 10.6 - [NA]): Dock Overflow Urgent Window Auto-Scrolling.
-   * Detail: Because zwlr_foreign_toplevel_management_unstable_v1 does not
-     transmit window urgent state under Labwc, auto-scrolling to off-screen
-     urgent windows is not applicable.
-   * Status: Marked [NA] in FAT matrix.
- - BUG 5 (Item 10.9 - Squashed in v0.6.2): Overflow Chevron Line Artifact.
-   * Root Cause: In DockRenderer.vala draw_scroll_edge_indicators, right
-     chevron coordinate line_to was missing (+ rect.width -) offset, drawing
-     across the screen to rect.x + 10.
-   * Fix: Added (+ rect.width -) to line_to coordinates and added vertical
-     dock top/bottom edge indicators. Verified clean on Labwc.
- - FEATURE 6 (Added in v0.6.2): Native openSUSE / Fedora RPM Packaging
-   (BuildRpm.sh) with headless non-interactive CI support.
- - FEATURE 7 (Added in v0.6.2): Dock Overflow Smooth Scrolling with Volume and
-   Brightness scroll isolation and Accordion drawer retention.
- - FEATURE 8 (Added in v0.6.2): "Scroll on Overflow" Preference & Dynamic
-   Capacity Indicator with Tachometer Redline in Appearance tab.
-
-
-
+================================================================================
+SESSION 3 RESULT: 100% PASSED (LABWC / wlroots Backend)
+================================================================================
+  * Tests: 93 | Passed: 89 [ok] | Squashed: 2 [ko->ok] (1.6, 6.10)
+  * Protocol Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko] | Final Compliance: 100%
 ================================================================================

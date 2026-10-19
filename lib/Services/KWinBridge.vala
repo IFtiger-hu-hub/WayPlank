@@ -1,15 +1,16 @@
 //
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
+//  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -50,6 +51,8 @@ namespace Plank
 			+ "    allClients.forEach(function (client) {\n"
 			+ "        if (!client || client.deleted === true)\n"
 			+ "            return;\n"
+			+ "        if (client.skipTaskbar === true || client.specialWindow === true)\n"
+			+ "            return;\n"
 			+ "        var resClass = (client.resourceClass ? String(client.resourceClass).toLowerCase() : \"\");\n"
 			+ "        var resName = (client.resourceName ? String(client.resourceName).toLowerCase() : \"\");\n"
 			+ "        var capt = (client.caption ? String(client.caption).toLowerCase() : \"\");\n"
@@ -57,11 +60,16 @@ namespace Plank
 			+ "        if (resClass === \"wayplank\" || resClass === \"plank\" ||\n"
 			+ "            resName === \"wayplank\" || resName === \"plank\" ||\n"
 			+ "            dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
-			+ "            capt === \"wayplank\" || capt === \"wayplank-hover\") {\n"
+			+ "            capt === \"wayplank\" || capt === \"wayplank-hover\" ||\n"
+			+ "            resClass === \"xwaylandvideobridge\" || resName === \"xwaylandvideobridge\" ||\n"
+			+ "            dName === \"xwaylandvideobridge\" || dName === \"org.kde.xwaylandvideobridge\" ||\n"
+			+ "            capt.indexOf(\"xwaylandvideobridge\") !== -1) {\n"
 			+ "            try {\n"
-			+ "                client.onAllDesktops = true;\n"
-			+ "                client.skipTaskbar = true;\n"
-			+ "                client.skipPager = true;\n"
+			+ "                if (resClass.indexOf(\"wayplank\") !== -1 || resClass.indexOf(\"plank\") !== -1) {\n"
+			+ "                    client.onAllDesktops = true;\n"
+			+ "                    client.skipTaskbar = true;\n"
+			+ "                    client.skipPager = true;\n"
+			+ "                }\n"
 			+ "            } catch (e) { }\n"
 			+ "            return;\n"
 			+ "        }\n"
@@ -140,6 +148,8 @@ namespace Plank
 			+ "\n"
 			+ "function connectWindow (window) {\n"
 			+ "    if (!window) return;\n"
+			+ "    if (window.skipTaskbar === true || window.specialWindow === true)\n"
+			+ "        return;\n"
 			+ "    var resClass = (window.resourceClass ? String(window.resourceClass).toLowerCase() : \"\");\n"
 			+ "    var resName = (window.resourceName ? String(window.resourceName).toLowerCase() : \"\");\n"
 			+ "    var capt = (window.caption ? String(window.caption).toLowerCase() : \"\");\n"
@@ -147,7 +157,10 @@ namespace Plank
 			+ "    if (resClass === \"wayplank\" || resClass === \"plank\" ||\n"
 			+ "        resName === \"wayplank\" || resName === \"plank\" ||\n"
 			+ "        dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
-			+ "        capt === \"wayplank\" || capt === \"wayplank-hover\")\n"
+			+ "        capt === \"wayplank\" || capt === \"wayplank-hover\" ||\n"
+			+ "        resClass === \"xwaylandvideobridge\" || resName === \"xwaylandvideobridge\" ||\n"
+			+ "        dName === \"xwaylandvideobridge\" || dName === \"org.kde.xwaylandvideobridge\" ||\n"
+			+ "        capt.indexOf(\"xwaylandvideobridge\") !== -1)\n"
 			+ "        return;\n"
 			+ "    if (window.frameGeometryChanged)\n"
 			+ "        window.frameGeometryChanged.connect(scheduleWindowState);\n"

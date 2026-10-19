@@ -1,12 +1,16 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-10-14
-Milestone: V0.6.1 (KWin Multi-Monitor Brightness Synchronization, Global
-           System Pressure Engine, Docklet Icon Standardization & Preferences
-           Visual Parity)
+Date: 2026-10-19
+Milestone: V0.6.2.x (The Community Unification & Distribution Release: Native
+           openSUSE/Fedora RPM Packaging, Dock Overflow Scrolling,
+           Launcher Deduplication, Ghost Window Shield & Multi-Monitor DDC/CI)
 Author & Tester: Sergio Melas
-
+Compositor Validation Status & Qualification Scoreboard:
+  - KDE PLASMA (KWin Backend):  [NOT STARTED] | [  ] [ok] | [  ] [ko->ok] | [  ] [NA] | [  ] Open
+  - GNOME (Mutter Backend):     [NOT STARTED] | [  ] [ok] | [  ] [ko->ok] | [  ] [NA] | [  ] Open
+  - LABWC (wlroots Backend):    [NOT STARTED] | [  ] [ok] | [  ] [ko->ok] | [  ] [NA] | [  ] Open
+  - TOTAL SCOREBOARD:           [  ] Tests Executed | [  ] [ok] | [  ] Bugs Squashed | [  ] Open Defects
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified during v0.6.1 testing)
@@ -53,9 +57,7 @@ SESSION 1: GNOME (Mutter Backend)
         - Attempt to drag locked items (Preferences, Separator, Trash):
           drag cleanly aborts with zero GLib terminal warnings.
    [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
-        - Left-click on a folder dock item toggles the Folder Launcher menu:
-          BUG: The menu appear in the center of the screen.
-          Solution use tool-tips coordinates, Solved
+        - Left-click on a folder dock item toggles the Folder Launcher menu.
         - Right-click on folder dock item is dedicated to dock management
           ("Keep in Dock", "Open in File Browser", "Preferences").
         - Menu is non-modal and non-grabbing (does not freeze dock or desktop).
@@ -96,8 +98,7 @@ SESSION 1: GNOME (Mutter Backend)
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
-        in FAT folder (Note: Under KDE Plasma, Konsole must be running/open
-        prior to executing test).
+        in FAT folder.
    [  ] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection:
@@ -228,10 +229,9 @@ SESSION 1: GNOME (Mutter Backend)
         - Badge counter displays current brightness percentage (e.g. 75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
-        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
-          discovers all connected displays and adjusts brightness simultaneously
-          across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
-          Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
+        - Multi-monitor atomic adjustment: Under Mutter, uses unprivileged D-Bus / sysfs
+          single-write to internal panel and serialized background worker with target
+          coalescing via ddcutil for external displays.
    [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -387,10 +387,80 @@ SESSION 1: GNOME (Mutter Backend)
         Rapid burst of window title changes or fast open/close cycle -> absorbed
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
+10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.x FOCUS)
+   [  ] 10.1 Native openSUSE / Fedora RPM Packaging (BuildRpm.sh):
+        - Automated spec builder creates clean RPM packages for openSUSE
+          Tumbleweed/Leap & Fedora/RHEL
+        - Multi-distro package manager detection (zypper, dnf, apt for rpmbuild)
+        - Clean install with rpm -Uvh / zypper install
+   [  ] 10.2 Headless / Non-Interactive Packaging Variables:
+        - WAYPLANK_NO_PROMPT=1, CI=1, NONINTERACTIVE=1 bypass interactive
+          prompts across
+          BuildBin.sh, BuildDeb.sh, and BuildRpm.sh
+   [  ] 10.3 Dock Overflow Smooth Scrolling Engine:
+        - Clamps dock background to screen width/height when items exceed
+          monitor bounds
+        - Mouse wheel on dock surface smoothly scrolls items back and forth with
+          60 FPS interpolation
+        - Clipped rendering prevents scrolled-out items/shadows from bleeding
+          past background
+   [  ] 10.4 Docklet Scroll Conflict Isolation:
+        - Scrolling over Volume docklet adjusts audio volume without scrolling
+          dock
+        - Scrolling over Brightness docklet adjusts screen brightness without
+          scrolling dock
+   [  ] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
+        - Accordion in-line expand/collapse operates harmoniously alongside
+          overflow scrolling
+   [  ] 10.6 Urgent Window Auto-Scrolling:
+        - Off-screen dock items receiving urgent state call ensure_item_visible
+          and scroll into view
+   [  ] 10.7 "Scroll on Overflow" Preference Switch:
+        - Preferences -> Behaviour -> Item Management toggle switch (GSettings:
+          scroll-overflow)
+        - When ON: dock icons preserve target size and scroll with wheel
+        - When OFF: dock icons auto-shrink down to fit screen (classic Plank
+          behavior)
+   [  ] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline
+        (Appearance Tab):
+        - Icon Size slider remains uncapped (24px - 128px) preserving user
+          target size
+        - In Shrink Mode: physical limit tick mark appears at screen limit (e.g.
+          42px), track
+          displays dynamic CSS redline gradient for values beyond screen
+          capacity
+        - Moving thumb into red zone turns highlight/thumb warning red with
+          warning label:
+          "⚠️ Limited to 42px by screen space (auto-shrunk)" and explanatory
+          tooltip
+        - In Scroll Mode: redline clears, sub-label confirms "Scroll on Overflow
+          active"
+   [  ] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
+        - Left/right (and vertical top/bottom) subtle edge gradients and
+          chevrons indicate scrollable content
+        - Right chevron coordinates correctly offset with (+ rect.width -), zero
+          horizontal line artifacts
+   [  ] 10.10 Launcher Deduplication & Item Reuse (ItemFactory):
+        - Dragging or pinning an already pinned application cleanly reuses the
+          existing .dockitem file instead of creating -1.dockitem, -2.dockitem
+          duplicates in ~/.config/wayplank/dock1/launchers/
+        - Loading dock elements prunes any duplicate .dockitem files sharing the
+          same launcher URI from disk and memory
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+   [  ] 10.11 Ghost Window & Screen-Sharing Bridge Shielding:
+        - Utility background helper windows (such as xwaylandvideobridge used
+          during Discord, Zoom, Teams, WebRTC screen sharing) are filtered out
+        - Windows with skipTaskbar == true or specialWindow == true are excluded
+          from spawning ghost dock items in ApplicationDiscovery and MutterBridge
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
 
-GNOME BUGS / NOTES:
 
-
+================================================================================
+SESSION 1 RESULT: (GNOME / Mutter Backend)
+================================================================================
+  * Tests: [  ] | Passed: [  ] [ok] | Squashed: [  ] [ko->ok]
+  * Protocol Limitations: [  ] [NA] | Open Defects: [  ] [ko] | Final Compliance: [  ]%
+================================================================================
 
 ================================================================================
 SESSION 2: KDE PLASMA (KWin Backend)
@@ -598,7 +668,6 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
-          Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
    [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -756,10 +825,80 @@ SESSION 2: KDE PLASMA (KWin Backend)
         Rapid burst of window title changes or fast open/close cycle -> absorbed
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
+10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.x FOCUS)
+   [  ] 10.1 Native openSUSE / Fedora RPM Packaging (BuildRpm.sh):
+        - Automated spec builder creates clean RPM packages for openSUSE
+          Tumbleweed/Leap & Fedora/RHEL
+        - Multi-distro package manager detection (zypper, dnf, apt for rpmbuild)
+        - Clean install with rpm -Uvh / zypper install
+   [  ] 10.2 Headless / Non-Interactive Packaging Variables:
+        - WAYPLANK_NO_PROMPT=1, CI=1, NONINTERACTIVE=1 bypass interactive
+          prompts across
+          BuildBin.sh, BuildDeb.sh, and BuildRpm.sh
+   [  ] 10.3 Dock Overflow Smooth Scrolling Engine:
+        - Clamps dock background to screen width/height when items exceed
+          monitor bounds
+        - Mouse wheel on dock surface smoothly scrolls items back and forth with
+          60 FPS interpolation
+        - Clipped rendering prevents scrolled-out items/shadows from bleeding
+          past background
+   [  ] 10.4 Docklet Scroll Conflict Isolation:
+        - Scrolling over Volume docklet adjusts audio volume without scrolling
+          dock
+        - Scrolling over Brightness docklet adjusts screen brightness without
+          scrolling dock
+   [  ] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
+        - Accordion in-line expand/collapse operates harmoniously alongside
+          overflow scrolling
+   [  ] 10.6 Urgent Window Auto-Scrolling:
+        - Off-screen dock items receiving urgent state call ensure_item_visible
+          and scroll into view
+   [  ] 10.7 "Scroll on Overflow" Preference Switch:
+        - Preferences -> Behaviour -> Item Management toggle switch (GSettings:
+          scroll-overflow)
+        - When ON: dock icons preserve target size and scroll with wheel
+        - When OFF: dock icons auto-shrink down to fit screen (classic Plank
+          behavior)
+   [  ] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline
+        (Appearance Tab):
+        - Icon Size slider remains uncapped (24px - 128px) preserving user
+          target size
+        - In Shrink Mode: physical limit tick mark appears at screen limit (e.g.
+          42px), track
+          displays dynamic CSS redline gradient for values beyond screen
+          capacity
+        - Moving thumb into red zone turns highlight/thumb warning red with
+          warning label:
+          "⚠️ Limited to 42px by screen space (auto-shrunk)" and explanatory
+          tooltip
+        - In Scroll Mode: redline clears, sub-label confirms "Scroll on Overflow
+          active"
+   [  ] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
+        - Left/right (and vertical top/bottom) subtle edge gradients and
+          chevrons indicate scrollable content
+        - Right chevron coordinates correctly offset with (+ rect.width -), zero
+          horizontal line artifacts
+   [  ] 10.10 Launcher Deduplication & Item Reuse (ItemFactory):
+        - Dragging or pinning an already pinned application cleanly reuses the
+          existing .dockitem file instead of creating -1.dockitem, -2.dockitem
+          duplicates in ~/.config/wayplank/dock1/launchers/
+        - Loading dock elements prunes any duplicate .dockitem files sharing the
+          same launcher URI from disk and memory
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+   [  ] 10.11 Ghost Window & Screen-Sharing Bridge Shielding:
+        - Utility background helper windows (such as xwaylandvideobridge used
+          during Discord, Zoom, Teams, WebRTC screen sharing) are filtered out
+        - Windows with skipTaskbar == true or specialWindow == true are excluded
+          from spawning ghost dock items in ApplicationDiscovery and KWinBridge
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
 
-PLASMA BUGS / NOTES:
 
-
+================================================================================
+SESSION 2 RESULT: (KDE Plasma / KWin Backend)
+================================================================================
+  * Tests: [  ] | Passed: [  ] [ok] | Squashed: [  ] [ko->ok]
+  * Protocol Limitations: [  ] [NA] | Open Defects: [  ] [ko] | Final Compliance: [  ]%
+================================================================================
 
 ================================================================================
 SESSION 3: LABWC (wlroots Backend)
@@ -838,8 +977,7 @@ SESSION 3: LABWC (wlroots Backend)
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
-        in FAT folder (Note: Under KDE Plasma, Konsole must be running/open
-        prior to executing test).
+        in FAT folder.
    [  ] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection:
@@ -968,10 +1106,9 @@ SESSION 3: LABWC (wlroots Backend)
         - Badge counter displays current brightness percentage (e.g. 75%).
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75% -> 100%).
-        - Multi-monitor atomic adjustment: Under KWin, kscreen-doctor -j dynamically
-          discovers all connected displays and adjusts brightness simultaneously
-          across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
-          Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
+        - Multi-monitor atomic adjustment: Under Labwc, uses unprivileged sysfs / brightnessctl
+          single-write to internal panel and serialized background worker with target
+          coalescing via ddcutil for external displays.
    [  ] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -1128,9 +1265,77 @@ SESSION 3: LABWC (wlroots Backend)
         Rapid burst of window title changes or fast open/close cycle -> absorbed
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
+10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.x FOCUS)
+   [  ] 10.1 Native openSUSE / Fedora RPM Packaging (BuildRpm.sh):
+        - Automated spec builder creates clean RPM packages for openSUSE
+          Tumbleweed/Leap & Fedora/RHEL
+        - Multi-distro package manager detection (zypper, dnf, apt for rpmbuild)
+        - Clean install with rpm -Uvh / zypper install
+   [  ] 10.2 Headless / Non-Interactive Packaging Variables:
+        - WAYPLANK_NO_PROMPT=1, CI=1, NONINTERACTIVE=1 bypass interactive
+          prompts across
+          BuildBin.sh, BuildDeb.sh, and BuildRpm.sh
+   [  ] 10.3 Dock Overflow Smooth Scrolling Engine:
+        - Clamps dock background to screen width/height when items exceed
+          monitor bounds
+        - Mouse wheel on dock surface smoothly scrolls items back and forth with
+          60 FPS interpolation
+        - Clipped rendering prevents scrolled-out items/shadows from bleeding
+          past background
+   [  ] 10.4 Docklet Scroll Conflict Isolation:
+        - Scrolling over Volume docklet adjusts audio volume without scrolling
+          dock
+        - Scrolling over Brightness docklet adjusts screen brightness without
+          scrolling dock
+   [  ] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
+        - Accordion in-line expand/collapse operates harmoniously alongside
+          overflow scrolling
+   [  ] 10.6 Urgent Window Auto-Scrolling:
+        - Off-screen dock items receiving urgent state call ensure_item_visible
+          and scroll into view
+   [  ] 10.7 "Scroll on Overflow" Preference Switch:
+        - Preferences -> Behaviour -> Item Management toggle switch (GSettings:
+          scroll-overflow)
+        - When ON: dock icons preserve target size and scroll with wheel
+        - When OFF: dock icons auto-shrink down to fit screen (classic Plank
+          behavior)
+   [  ] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline
+        (Appearance Tab):
+        - Icon Size slider remains uncapped (24px - 128px) preserving user
+          target size
+        - In Shrink Mode: physical limit tick mark appears at screen limit (e.g.
+          42px), track
+          displays dynamic CSS redline gradient for values beyond screen
+          capacity
+        - Moving thumb into red zone turns highlight/thumb warning red with
+          warning label:
+          "⚠️ Limited to 42px by screen space (auto-shrunk)" and explanatory
+          tooltip
+        - In Scroll Mode: redline clears, sub-label confirms "Scroll on Overflow
+          active"
+   [  ] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
+        - Left/right (and vertical top/bottom) subtle edge gradients and
+          chevrons indicate scrollable content
+        - Right chevron coordinates correctly offset with (+ rect.width -), zero
+          horizontal line artifacts
+   [  ] 10.10 Launcher Deduplication & Item Reuse (ItemFactory):
+        - Dragging or pinning an already pinned application cleanly reuses the
+          existing .dockitem file instead of creating -1.dockitem, -2.dockitem
+          duplicates in ~/.config/wayplank/dock1/launchers/
+        - Loading dock elements prunes any duplicate .dockitem files sharing the
+          same launcher URI from disk and memory
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+   [  ] 10.11 Ghost Window & Screen-Sharing Bridge Shielding:
+        - Utility background helper windows (such as xwaylandvideobridge used
+          during Discord, Zoom, Teams, WebRTC screen sharing) are filtered out
+        - Windows with skipTaskbar == true or specialWindow == true are excluded
+          from spawning ghost dock items in ApplicationDiscovery and LabwcBackend
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
 
-LABWC BUGS / NOTES:
 
-
-
+================================================================================
+SESSION 3 RESULT: (LABWC / wlroots Backend)
+================================================================================
+  * Tests: [  ] | Passed: [  ] [ok] | Squashed: [  ] [ko->ok]
+  * Protocol Limitations: [  ] [NA] | Open Defects: [  ] [ko] | Final Compliance: [  ]%
 ================================================================================
