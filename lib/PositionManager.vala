@@ -361,13 +361,13 @@ namespace Plank
 		int win_x;
 		int win_y;
 
-		int VisibleDockHeight;
-		int DockHeight;
-		int DockBackgroundHeight;
+		public int VisibleDockHeight;
+		public int DockHeight;
+		public int DockBackgroundHeight;
 		
-		int VisibleDockWidth;
-		int DockWidth;
-		int DockBackgroundWidth;
+		public int VisibleDockWidth;
+		public int DockWidth;
+		public int DockBackgroundWidth;
 		
 		double ZoomPercent;
 		
@@ -690,6 +690,13 @@ namespace Plank
 			}
 			
 			if (!controller.hide_manager.Hidden || controller.hide_manager.unhide_pending ()) {
+				if (is_horizontal_dock ()) {
+					cursor_region.y = 0;
+					cursor_region.height = DockHeight;
+				} else {
+					cursor_region.x = 0;
+					cursor_region.width = DockWidth;
+				}
 				return cursor_region;
 			}
 			

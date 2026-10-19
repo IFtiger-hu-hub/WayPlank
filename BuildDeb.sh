@@ -160,7 +160,7 @@ Provides: plank (= ${PKG_VER}), libplank-common, libplank1
 Replaces: plank, libplank-common, libplank1
 Conflicts: plank, libplank-common, libplank1
 Breaks: plank, libplank-common, libplank1
-Depends: libgtk-3-0t64 | libgtk-3-0, libgtk-layer-shell0, libwayland-client0, libglib2.0-0t64 | libglib2.0-0, libjson-glib-1.0-0, libgee-0.8-2, libc6, dconf-gsettings-backend | gsettings-backend, grim, slurp
+Depends: libgtk-3-0t64 | libgtk-3-0, libgtk-layer-shell0, libwayland-client0, libglib2.0-0t64 | libglib2.0-0, libjson-glib-1.0-0, libgee-0.8-2, libc6, dconf-gsettings-backend | gsettings-backend, grim, slurp, ddcutil, brightnessctl
 Recommends: kde-spectacle | spectacle, xfce4-screenshooter | flameshot
 Description: Wayplank dock - Modern Standalone Fork (GPL-3.0+)
  Wayplank is a monolithic, standalone dock for modern desktop environments.

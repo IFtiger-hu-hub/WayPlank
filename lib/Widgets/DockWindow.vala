@@ -414,7 +414,7 @@ namespace Plank
 			}
 		}
 
-		bool is_hovering_docklets (int x, int y)
+		public bool is_hovering_docklets (int x, int y)
 		{
 			if (HoveredItem != null && DefaultApplicationDockItemProvider.is_docklet_element (HoveredItem))
 				return true;
@@ -740,9 +740,21 @@ namespace Plank
 			unowned DockItem? drag_item = controller.drag_manager.DragItem;
 			Gdk.Rectangle rect;
 
+			bool drag_active = (controller.drag_manager.ExternalDragActive || controller.drag_manager.InternalDragActive);
+
 			if (HoveredItem != null) {
 				rect = position_manager.get_hover_region_for_element (HoveredItem);
-				if (y >= rect.y && y < rect.y + rect.height && x >= rect.x && x < rect.x + rect.width)
+				bool within_hovered = false;
+				if (drag_active) {
+					if (position_manager.is_horizontal_dock ()) {
+						within_hovered = (x >= rect.x && x < rect.x + rect.width && y >= 0 && y < position_manager.DockHeight);
+					} else {
+						within_hovered = (y >= rect.y && y < rect.y + rect.height && x >= 0 && x < position_manager.DockWidth);
+					}
+				} else {
+					within_hovered = (y >= rect.y && y < rect.y + rect.height && x >= rect.x && x < rect.x + rect.width);
+				}
+				if (within_hovered) {
 					if (drag_item == HoveredItem) {
 						set_hovered_provider (HoveredItem.Container as DockItemProvider);
 						set_hovered (null);
@@ -750,6 +762,7 @@ namespace Plank
 					} else {
 						return true;
 					}
+				}
 			}
 
 			rect = position_manager.get_cursor_region ();
@@ -767,7 +780,17 @@ namespace Plank
 				item = (element as DockItem);
 				if (item != null) {
 					rect = position_manager.get_hover_region_for_element (item);
-					if (y < rect.y || y >= rect.y + rect.height || x < rect.x || x >= rect.x + rect.width)
+					bool matches = false;
+					if (drag_active) {
+						if (position_manager.is_horizontal_dock ()) {
+							matches = (x >= rect.x && x < rect.x + rect.width && y >= 0 && y < position_manager.DockHeight);
+						} else {
+							matches = (y >= rect.y && y < rect.y + rect.height && x >= 0 && x < position_manager.DockWidth);
+						}
+					} else {
+						matches = (y >= rect.y && y < rect.y + rect.height && x >= rect.x && x < rect.x + rect.width);
+					}
+					if (!matches)
 						continue;
 
 					if (drag_item == item)
@@ -783,7 +806,17 @@ namespace Plank
 					continue;
 
 				rect = position_manager.get_hover_region_for_element (provider);
-				if (y < rect.y || y >= rect.y + rect.height || x < rect.x || x >= rect.x + rect.width)
+				bool matches_prov = false;
+				if (drag_active) {
+					if (position_manager.is_horizontal_dock ()) {
+						matches_prov = (x >= rect.x && x < rect.x + rect.width && y >= 0 && y < position_manager.DockHeight);
+					} else {
+						matches_prov = (y >= rect.y && y < rect.y + rect.height && x >= rect.x && x < rect.x + rect.width);
+					}
+				} else {
+					matches_prov = (y >= rect.y && y < rect.y + rect.height && x >= rect.x && x < rect.x + rect.width);
+				}
+				if (!matches_prov)
 					continue;
 
 				set_hovered_provider (provider);
@@ -791,7 +824,17 @@ namespace Plank
 
 				foreach (var element2 in provider.VisibleElements) {
 					rect = position_manager.get_hover_region_for_element (element2);
-					if (y < rect.y || y >= rect.y + rect.height || x < rect.x || x >= rect.x + rect.width)
+					bool matches_el2 = false;
+					if (drag_active) {
+						if (position_manager.is_horizontal_dock ()) {
+							matches_el2 = (x >= rect.x && x < rect.x + rect.width && y >= 0 && y < position_manager.DockHeight);
+						} else {
+							matches_el2 = (y >= rect.y && y < rect.y + rect.height && x >= 0 && x < position_manager.DockWidth);
+						}
+					} else {
+						matches_el2 = (y >= rect.y && y < rect.y + rect.height && x >= rect.x && x < rect.x + rect.width);
+					}
+					if (!matches_el2)
 						continue;
 
 					if (drag_item == element2)
@@ -829,6 +872,7 @@ namespace Plank
 				controller.renderer.reset_buffers ();
 
 				update_icon_regions ();
+				input_rect = { -1, -1, -1, -1 };
 				set_input_mask ();
 				set_hovered_provider (null);
 				set_hovered (null);
@@ -1102,6 +1146,8 @@ namespace Plank
 			push_in = false;
 		}
 
+		Gdk.Rectangle input_rect = { 0, 0, 0, 0 };
+
 		public void set_input_mask ()
 		{
 			var window = get_window ();
@@ -1109,6 +1155,14 @@ namespace Plank
 				return;
 
 			var cursor_region = controller.position_manager.get_cursor_region ();
+			if (cursor_region.x == input_rect.x &&
+			    cursor_region.y == input_rect.y &&
+			    cursor_region.width == input_rect.width &&
+			    cursor_region.height == input_rect.height) {
+				return;
+			}
+			input_rect = cursor_region;
+
 			if (cursor_region.width <= 0 || cursor_region.height <= 0) {
 				window.input_shape_combine_region (new Cairo.Region (), 0, 0);
 				return;

@@ -506,8 +506,15 @@ namespace Plank
 			}
 			
 			string target_uri = uri.strip ();
-			if (target_uri.has_prefix ("application://")) {
-				var desktop_id = target_uri.replace ("application://", "").strip ();
+			if (target_uri.has_prefix ("application://") || target_uri.has_prefix ("applications://") || target_uri.has_prefix ("applications:")) {
+				string desktop_id = target_uri;
+				if (desktop_id.has_prefix ("applications://"))
+					desktop_id = desktop_id.replace ("applications://", "");
+				else if (desktop_id.has_prefix ("application://"))
+					desktop_id = desktop_id.replace ("application://", "");
+				else if (desktop_id.has_prefix ("applications:"))
+					desktop_id = desktop_id.replace ("applications:", "");
+				desktop_id = desktop_id.strip ();
 				while (desktop_id.has_suffix ("/"))
 					desktop_id = desktop_id.slice (0, desktop_id.length - 1);
 				var app_info = new DesktopAppInfo (desktop_id);

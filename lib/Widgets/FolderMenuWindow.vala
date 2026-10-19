@@ -692,20 +692,22 @@ namespace Plank
 				int target_x = mon_x + center_x - width / 2;
 				int target_y = mon_y + center_y;
 				int visual_thickness = pm.get_visual_thickness_for_item (TargetItem);
+				int mutter_offset = 8;
 
 				switch (pm.Position) {
 				case Gtk.PositionType.BOTTOM:
-					target_y = mon_y + mon_h - visual_thickness - GAP - height;
+					target_y = mon_y + mon_h - visual_thickness - GAP - height + mutter_offset;
 					break;
 				case Gtk.PositionType.TOP:
-					target_y = mon_y + visual_thickness + GAP;
+					int top_bar_offset = int.max (0, (monitor != null ? monitor.get_workarea ().y - monitor.get_geometry ().y : 0));
+					target_y = mon_y + top_bar_offset + visual_thickness + GAP - mutter_offset;
 					break;
 				case Gtk.PositionType.LEFT:
-					target_x = mon_x + visual_thickness + GAP;
+					target_x = mon_x + visual_thickness + GAP - mutter_offset;
 					target_y = mon_y + center_y - height / 2;
 					break;
 				case Gtk.PositionType.RIGHT:
-					target_x = mon_x + mon_w - visual_thickness - GAP - width;
+					target_x = mon_x + mon_w - visual_thickness - GAP - width + mutter_offset;
 					target_y = mon_y + center_y - height / 2;
 					break;
 				}

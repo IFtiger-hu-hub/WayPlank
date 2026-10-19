@@ -57,17 +57,15 @@ echo "🚀 Wayplank Standalone Builder — V${PKG_VER} (RPM Integration)"
 echo "─────────────────────────────────────────────────────────────"
 echo ""
 
-# 1. Call the binary build script (BuildBin.sh) if binary missing
-if [ ! -f "${OUT_DIR}/wayplank" ]; then
-    if [ -f "${BASE_DIR}/BuildBin.sh" ]; then
-        if ! WAYPLANK_NO_PROMPT=1 bash "${BASE_DIR}/BuildBin.sh"; then
-            echo "❌ Build failed! Compilation error in BuildBin.sh"
-            exit 1
-        fi
-    else
-        echo "❌ Error: BuildBin.sh not found!"
+# 1. Call the binary build script (BuildBin.sh)
+if [ -f "${BASE_DIR}/BuildBin.sh" ]; then
+    if ! WAYPLANK_NO_PROMPT=1 bash "${BASE_DIR}/BuildBin.sh"; then
+        echo "❌ Build failed! Compilation error in BuildBin.sh"
         exit 1
     fi
+else
+    echo "❌ Error: BuildBin.sh not found!"
+    exit 1
 fi
 
 rm -rf "$RPM_TOPDIR"
@@ -95,6 +93,7 @@ Group:          System/GUI/Other
 URL:            https://github.com/sergiomelas/WayPlank
 Provides:       plank = %{version}
 Conflicts:      plank
+Requires:       grim, slurp, ddcutil, brightnessctl
 
 %description
 Wayplank is a monolithic, standalone dock for modern desktop environments.

@@ -66,6 +66,8 @@ namespace Plank
 		private bool kde_available = false;
 		private bool gnome_available = false;
 		private Gee.ArrayList<string> kscreen_outputs = new Gee.ArrayList<string> ();
+		private Gee.ArrayList<int> ddcutil_displays = new Gee.ArrayList<int> ();
+		private Gee.ArrayList<string> backlight_devices = new Gee.ArrayList<string> ();
 		private ulong mon_add_id = 0;
 		private ulong mon_rem_id = 0;
 
@@ -88,12 +90,19 @@ namespace Plank
 			init_dbus ();
 			detect_backlight_device ();
 			refresh_kscreen_outputs ();
+			refresh_ddcutil_displays ();
 			refresh_brightness ();
 
 			var display = Gdk.Display.get_default ();
 			if (display != null) {
-				mon_add_id = display.monitor_added.connect ((m) => { refresh_kscreen_outputs (); });
-				mon_rem_id = display.monitor_removed.connect ((m) => { refresh_kscreen_outputs (); });
+				mon_add_id = display.monitor_added.connect ((m) => {
+					refresh_kscreen_outputs ();
+					refresh_ddcutil_displays ();
+				});
+				mon_rem_id = display.monitor_removed.connect ((m) => {
+					refresh_kscreen_outputs ();
+					refresh_ddcutil_displays ();
+				});
 			}
 
 			timer_id = GLib.Timeout.add_seconds (2, on_timer_tick);
@@ -239,29 +248,31 @@ namespace Plank
 
 		private void detect_backlight_device ()
 		{
+			backlight_devices.clear ();
 			var dir = GLib.File.new_for_path ("/sys/class/backlight");
 			try {
 				var enumerator = dir.enumerate_children ("standard::name", GLib.FileQueryInfoFlags.NONE);
 				GLib.FileInfo? info = null;
+				string? preferred_dev = null;
 				string? fallback_dev = null;
 				while ((info = enumerator.next_file ()) != null) {
 					string dev = info.get_name ();
 					string max_path = "/sys/class/backlight/%s/max_brightness".printf (dev);
 					string cur_path = "/sys/class/backlight/%s/brightness".printf (dev);
 					if (GLib.FileUtils.test (max_path, GLib.FileTest.EXISTS) && GLib.FileUtils.test (cur_path, GLib.FileTest.EXISTS)) {
+						backlight_devices.add (dev);
 						if (!dev.has_prefix ("acpi_video")) {
-							backlight_device = dev;
-							read_max_brightness ();
-							return;
+							if (preferred_dev == null)
+								preferred_dev = dev;
 						} else {
-							fallback_dev = dev;
+							if (fallback_dev == null)
+								fallback_dev = dev;
 						}
 					}
 				}
-				if (fallback_dev != null) {
-					backlight_device = fallback_dev;
+				backlight_device = (preferred_dev != null) ? preferred_dev : fallback_dev;
+				if (backlight_device != null)
 					read_max_brightness ();
-				}
 			} catch (GLib.Error e) {
 				backlight_device = null;
 			}
@@ -269,21 +280,23 @@ namespace Plank
 
 		private int64 last_user_action_time = 0;
 
-		private void read_max_brightness ()
+		private uint32 get_device_max_brightness (string dev)
 		{
-			if (backlight_device == null) return;
-			string path = "/sys/class/backlight/%s/max_brightness".printf (backlight_device);
+			string path = "/sys/class/backlight/%s/max_brightness".printf (dev);
 			try {
 				string content;
 				GLib.FileUtils.get_contents (path, out content);
 				int64 val = int64.parse (content.strip ());
 				if (val > 0)
-					max_raw_brightness = (uint32) val;
-				else
-					max_raw_brightness = 100;
-			} catch (GLib.Error e) {
-				max_raw_brightness = 100;
-			}
+					return (uint32) val;
+			} catch (GLib.Error e) { }
+			return 100;
+		}
+
+		private void read_max_brightness ()
+		{
+			if (backlight_device == null) return;
+			max_raw_brightness = get_device_max_brightness (backlight_device);
 		}
 
 		private void refresh_kscreen_outputs ()
@@ -323,6 +336,47 @@ namespace Plank
 			} catch (GLib.Error e) {
 				warning ("Failed to query kscreen-doctor outputs: %s", e.message);
 			}
+		}
+
+		private void refresh_ddcutil_displays ()
+		{
+			if (GLib.Environment.find_program_in_path ("ddcutil") == null)
+				return;
+
+			var desktop = (GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ();
+			if (desktop.contains ("kde") || desktop.contains ("plasma")) {
+				// Under KDE, kscreen-doctor already handles unified DDC/CI hardware sync
+				return;
+			}
+
+			new GLib.Thread<void*> ("ddcutil-probe", () => {
+				try {
+					string out_str;
+					int exit_code;
+					if (GLib.Process.spawn_command_line_sync ("ddcutil detect --terse", out out_str, null, out exit_code) && exit_code == 0) {
+						var detected = new Gee.ArrayList<int> ();
+						var lines = out_str.split ("\n");
+						foreach (var line in lines) {
+							var trimmed = line.strip ();
+							if (trimmed.has_prefix ("Display ")) {
+								var parts = trimmed.split (" ");
+								if (parts.length >= 2) {
+									int d_num = int.parse (parts[1]);
+									if (d_num > 0 && !detected.contains (d_num)) {
+										detected.add (d_num);
+									}
+								}
+							}
+						}
+						GLib.Idle.add (() => {
+							ddcutil_displays.clear ();
+							ddcutil_displays.add_all (detected);
+							return GLib.Source.REMOVE;
+						});
+					}
+				} catch (GLib.Error e) { }
+				return null;
+			});
 		}
 
 		private void refresh_brightness ()
@@ -498,9 +552,11 @@ namespace Plank
 
 		private void apply_hardware_brightness (int target)
 		{
+			var desktop = (GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ();
+			bool is_kde = kde_available || desktop.contains ("kde") || desktop.contains ("plasma");
+
 			// 1. Try kscreen-doctor on KDE to atomically adjust all connected displays
-			if (GLib.Environment.find_program_in_path ("kscreen-doctor") != null &&
-			    (kde_available || (GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ().contains ("kde"))) {
+			if (GLib.Environment.find_program_in_path ("kscreen-doctor") != null && is_kde) {
 				if (kscreen_outputs.is_empty) {
 					refresh_kscreen_outputs ();
 				}
@@ -551,7 +607,7 @@ namespace Plank
 					);
 				}
 
-				// 2. Try GNOME SettingsDaemon Power D-Bus (Legacy GNOME)
+				// 3. Try GNOME SettingsDaemon Power D-Bus (Mutter internal screen)
 				session_bus.call.begin (
 					"org.gnome.SettingsDaemon.Power",
 					"/org/gnome/SettingsDaemon/Power",
@@ -565,19 +621,52 @@ namespace Plank
 				);
 			}
 
-			// 4. Try brightnessctl and light CLI tools
+			// 4. Try brightnessctl and light CLI tools across all detected backlight devices (Internal panels)
 			if (GLib.Environment.find_program_in_path ("brightnessctl") != null) {
-				try {
-					GLib.Process.spawn_command_line_async ("brightnessctl set %d%%".printf (target));
-				} catch (GLib.Error e) { }
+				if (!backlight_devices.is_empty) {
+					foreach (var dev in backlight_devices) {
+						try {
+							GLib.Process.spawn_command_line_async ("brightnessctl -d %s set %d%%".printf (dev, target));
+						} catch (GLib.Error e) { }
+					}
+				} else {
+					try {
+						GLib.Process.spawn_command_line_async ("brightnessctl set %d%%".printf (target));
+					} catch (GLib.Error e) { }
+				}
 			} else if (GLib.Environment.find_program_in_path ("light") != null) {
 				try {
 					GLib.Process.spawn_command_line_async ("light -S %d".printf (target));
 				} catch (GLib.Error e) { }
 			}
 
-			// 5. Try systemd-logind system bus SetBrightness
-			if (system_bus != null && backlight_device != null && max_raw_brightness > 0) {
+			// 5. Try systemd-logind system bus SetBrightness & direct sysfs across all devices
+			if (!backlight_devices.is_empty) {
+				foreach (var dev in backlight_devices) {
+					uint32 dev_max = get_device_max_brightness (dev);
+					if (dev_max > 0) {
+						uint32 target_raw = (uint32) Math.round (((double) target / 100.0) * (double) dev_max);
+						if (target_raw < 1) target_raw = 1;
+						if (system_bus != null) {
+							system_bus.call.begin (
+								"org.freedesktop.login1",
+								"/org/freedesktop/login1/session/auto",
+								"org.freedesktop.login1.Session",
+								"SetBrightness",
+								new GLib.Variant ("(ssu)", "backlight", dev, target_raw),
+								null,
+								GLib.DBusCallFlags.NONE,
+								500,
+								null
+							);
+						}
+						string path = "/sys/class/backlight/%s/brightness".printf (dev);
+						try {
+							GLib.FileUtils.set_contents (path, target_raw.to_string ());
+						} catch (GLib.Error e) { }
+					}
+				}
+			} else if (system_bus != null && backlight_device != null && max_raw_brightness > 0) {
 				uint32 target_raw = (uint32) Math.round (((double) target / 100.0) * (double) max_raw_brightness);
 				if (target_raw < 1) target_raw = 1;
 				system_bus.call.begin (
@@ -591,12 +680,30 @@ namespace Plank
 					500,
 					null
 				);
-
-				// 6. Direct sysfs write fallback (if user has write permission via udev)
 				string path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
 				try {
 					GLib.FileUtils.set_contents (path, target_raw.to_string ());
 				} catch (GLib.Error e) { }
+			}
+
+			// 6. Non-KDE Multi-Monitor External Display Synchronization via Asynchronous DDC/CI (Mutter / Labwc)
+			if (!is_kde && GLib.Environment.find_program_in_path ("ddcutil") != null) {
+				if (!ddcutil_displays.is_empty) {
+					foreach (int d_num in ddcutil_displays) {
+						try {
+							GLib.Process.spawn_command_line_async (
+								"ddcutil setvcp 10 %d --display %d --noverify --sleep-multiplier .1".printf (target, d_num)
+							);
+						} catch (GLib.Error e) { }
+					}
+				} else {
+					// Dynamic multi-display fallback if probe hasn't finished or monitor freshly connected
+					try {
+						GLib.Process.spawn_command_line_async (
+							"sh -c 'for d in $(ddcutil detect --terse 2>/dev/null | awk \"/^Display / {print \\$2}\"); do ddcutil setvcp 10 %d --display \"$d\" --noverify --sleep-multiplier .1; done'".printf (target)
+						);
+					} catch (GLib.Error e) { }
+				}
 			}
 		}
 

@@ -14,12 +14,13 @@ Compositor Validation Status:
   - LABWC (wlroots Backend):   FINISHED (Verified - 1 Bug Logged, 2 [NA])
 
 Test Status Legend (ISA-88 Qualification Standard):
-  - [ok]      : Compliant / Passed (Verified during v0.6.1 testing)
-  - [ko]      : Non-conformance / Defect logged
-  - [ko->ok]  : Remediation verified / Passed on re-test
-  - [ko->imp] : Remediation verified / Passed on re-test but need minor improvement
-  - [NA]      : Not Applicable / Deferred (De-scoped from current test cycle);
-               formally transferred to and tracked under next Milestone FAT
+  - [ok]        : Compliant / Passed (Verified during v0.6.1 testing)
+  - [ko]        : Non-conformance / Defect logged
+  - [ko->test]  : Remediation need still to be tested
+  - [ko->ok]    : Remediation verified / Passed on re-test
+  - [ko->imp]   : Remediation verified / Passed on re-test but need minor improvement
+  - [NA]        : Not Applicable / Deferred (De-scoped from current test cycle);
+                  formally transferred to and tracked under next Milestone FAT
 
 ================================================================================
 SESSION 1: GNOME (Mutter Backend) - [FINISHED]
@@ -43,13 +44,17 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
         - Drag a running pinned app off dock (or onto Trash): poof
           animation plays, app unpins and moves to running transient
           section BEFORE Trash (never past Trash or into trash zone).
-   [ko] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+   [ko->ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
         - Verified 0-byte files (application/x-zerosize filename fallback),
           payloads with %F/%U, bounce feedback and window activation.
         - Verified dropping an incompatible file onto an icon cleanly rejects
           the drop without falling back to pinning the file to the dock.
-        BUG:Dragging only .desktop should trigger pinning instead trigger open with app.
-        =>apply same solution of kwin
+        BUG: Dragging only .desktop should trigger pinning instead of open with app.
+        => Solved: Enforced strict dock item pinning precedence over application
+           drop handlers whenever the drag payload consists solely of .desktop files,
+           even when dropped directly onto an existing icon. Furthermore, cleaned
+           target negotiation in DragManager to prioritize text/uri-list and eliminate
+           silent drop aborts.
    [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - In Categorized mode, dragging Folders is strictly clamped within
           Folders section.
@@ -62,7 +67,7 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
           Trash.
         - Attempt to drag locked items (Preferences, Separator, Trash):
           drag cleanly aborts with zero GLib terminal warnings.
-   [ok-imp] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+   [ko->ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click on a folder dock item toggles the Folder Launcher menu:
           BUG: The menu appear in the center of the screen.
           Solution use tool-tips coordinates, Solved
@@ -87,10 +92,14 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
           gap into
           the popup menu across all 4 positions (BOTTOM, TOP, LEFT, RIGHT).
           To improve thew gap is too big but the over extension zone is working
+          => Solved: Tightened floating margin under Mutter by introducing
+             mutter_offset compensation (8px) in FolderMenuWindow.vala to offset
+             the dock window's transparent bounce buffer and accounting for GNOME
+             top-bar workarea offset, matching KWin/Labwc 4px visual spacing.
    [ok] 1.9  First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [ko] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [ko->ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click App -> 'Change Icon...': instant search, custom
           icon applies cleanly, 'Restore Default' restores original.
         - Folder drawers accept custom icons via GIO metadata.
@@ -104,6 +113,9 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
           frosted
           tray instead of an empty blank card.
           BUG: The folders are attached only if dragged in the pinned icon space.
+          => Solved: Implemented automatic fallthrough to Priority 4 in DragManager
+             (provider.accept_drop) for unhandled non-desktop payloads. Dropping a
+             folder anywhere along the dock reliably attaches it as a folder drawer.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
@@ -261,7 +273,7 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [ko] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded
+   [ko->test] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded
         Resolution:
         - Atomic Graded Resolution: Probes theme for 100% complete graded set
           (High, Med, Low); if incomplete or missing, falls back 100% to
@@ -278,8 +290,9 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
           dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
-          Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.<<<<
-          BUG: only the built in screen change brightness
+          Under Mutter, uses unprivileged D-Bus / sysfs multi-backlight iteration
+          and asynchronous parallel DDC/CI control via ddcutil for external displays.
+          (Remediation implemented, pending test on office 3-monitor station)
    [ok] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -542,24 +555,36 @@ SESSION 1: GNOME (Mutter Backend) - [FINISHED]
 
 
 GNOME BUGS / NOTES:
- - BUG 1 (Item 1.6 - [ko]): External .desktop Drag & Drop Pinning Priority.
-   * Symptom: Dragging a .desktop launcher onto an existing app icon triggers
+ - BUG 1 (Item 1.6 - [ko->ok] Squashed in v0.6.2): External .desktop Drag & Drop
+   Pinning Priority.
+   * Symptom: Dragging a .desktop launcher onto an existing app icon triggered
      "Open with application" instead of pinning the launcher to the dock.
-   * Required Fix: Prioritize dock item pinning over application drop handlers
-     whenever the drag payload consists solely of .desktop files.
- - IMPROVEMENT 2 (Item 1.8 - [ok-imp]): Folder Launcher Floating Gap.
-   * Symptom: Floating gap between the dock icon and Cairo popup menu is too
-     wide, though the 450ms over-extension grace zone functions correctly.
-   * Required Fix: Tighten visual floating margin between dock item and menu.
- - BUG 3 (Item 1.10 - [ko]): External Folder Drawer Drop Zone Restriction.
-   * Symptom: Dragging a folder from file manager onto the dock only attaches as
+   * Fix: Enforced strict dock item pinning precedence over application drop
+     handlers whenever the drag payload consists solely of .desktop files, even
+     when dropped directly onto an existing icon. Furthermore, cleaned target
+     negotiation in DragManager to prioritize text/uri-list and eliminate silent
+     drop aborts.
+ - IMPROVEMENT 2 (Item 1.8 - [ko->ok] Squashed in v0.6.2): Folder Launcher Floating
+   Gap on Mutter.
+   * Symptom: Floating gap between the dock icon and Cairo popup menu appeared
+     too wide under Mutter due to dock window transparent bounce buffer.
+   * Fix: Added mutter_offset compensation (8px) and GNOME top bar workarea
+     offset in FolderMenuWindow.vala, bringing popup margin to exactly 4px above
+     the dock icon, identical to KWin and Labwc.
+ - BUG 3 (Item 1.10 - [ko->ok] Squashed in v0.6.2): External Folder Drawer Drop
+   Zone Restriction.
+   * Symptom: Dragging a folder from file manager onto the dock only attached as
      a drawer if dropped directly in the pinned icon space.
-   * Required Fix: Allow folder drawer creation across all valid dock drop
-     regions.
- - BUG 4 (Item 6.10 - [ko]): Mutter Multi-Monitor Screen Brightness Sync.
+   * Fix: Implemented Priority 4 fallthrough in DragManager.accept_external_drop,
+     allowing folder drawer creation across all dock drop regions regardless of
+     hovered item compatibility.
+ - BUG 4 (Item 6.10 - [ko->test]): Mutter Multi-Monitor Screen Brightness Sync.
    * Symptom: Under Mutter D-Bus / brightnessctl, only the built-in screen
      changes brightness; external monitors remain unaffected.
-   * Required Fix: Implement multi-monitor backlight discovery for Mutter.
+   * Implementation: Implemented multi-backlight sysfs discovery and asynchronous
+     parallel DDC/CI control via ddcutil (with --noverify --sleep-multiplier .1)
+     in BrightnessDockItem.vala. Added ddcutil and brightnessctl to package dependencies.
+   * Status: [ko->test] Pending validation on office 3-monitor station.
  - BUG 5 (Item 7.12 - Squashed in v0.6.2): Shortcuts Dialog Centering on Mutter.
    * Root Cause: set_titlebar() cleared window title to NULL, causing Mutter
      bridge to misclassify the dialog as a dock.
@@ -611,8 +636,12 @@ SESSION 2: KDE PLASMA (KWin Backend) - [FINISHED / 100% PASSED]
           payloads with %F/%U, bounce feedback and window activation.
         - Verified dropping an incompatible file onto an icon cleanly rejects
           the drop without falling back to pinning the file to the dock.
-          BUG:Dragging only .desktop should trigger pinning instead trigger open with app.
-          =>Solved implementing drag priority. If all .decktop pinn.
+        BUG: Dragging only .desktop should trigger pinning instead of open with app.
+        => Solved: Enforced strict dock item pinning precedence over application
+           drop handlers whenever the drag payload consists solely of .desktop files,
+           even when dropped directly onto an existing icon. Furthermore, cleaned
+           target negotiation in DragManager to prioritize text/uri-list and eliminate
+           silent drop aborts.
    [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - In Categorized mode, dragging Folders is strictly clamped within
           Folders section.
@@ -1098,7 +1127,10 @@ PLASMA BUGS / NOTES:
    * Symptom: Dragging a .desktop launcher onto an existing app icon triggered
      "Open with application" instead of pinning the launcher to the dock.
    * Fix: Enforced strict dock item pinning precedence over application drop
-     handlers whenever the drag payload consists solely of .desktop files.
+     handlers whenever the drag payload consists solely of .desktop files, even
+     when dropped directly onto an existing icon. Furthermore, cleaned target
+     negotiation in DragManager to prioritize text/uri-list and eliminate silent
+     drop aborts.
  - BUG 2 (Item 2.7 - [ko->ok] Squashed in v0.6.2): Attention / Urgent Window
    State Setup.
    * Symptom: Window attention test did not trigger when Konsole was not open
@@ -1146,11 +1178,17 @@ SESSION 3: LABWC (wlroots Backend) - [FINISHED]
         - Drag a running pinned app off dock (or onto Trash): poof
           animation plays, app unpins and moves to running transient
           section BEFORE Trash (never past Trash or into trash zone).
-   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+   [ko->ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
         - Verified 0-byte files (application/x-zerosize filename fallback),
           payloads with %F/%U, bounce feedback and window activation.
         - Verified dropping an incompatible file onto an icon cleanly rejects
           the drop without falling back to pinning the file to the dock.
+        BUG: Dragging only .desktop should trigger pinning instead of open with app.
+        => Solved: Enforced strict dock item pinning precedence over application
+           drop handlers whenever the drag payload consists solely of .desktop files,
+           even when dropped directly onto an existing icon. Furthermore, cleaned
+           target negotiation in DragManager to prioritize text/uri-list and eliminate
+           silent drop aborts.
    [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - In Categorized mode, dragging Folders is strictly clamped within
           Folders section.
@@ -1356,7 +1394,7 @@ SESSION 3: LABWC (wlroots Backend) - [FINISHED]
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
-   [ko] 6.10 Sccreen Brightness Multi-Monitor Synchronization & Atomic Graded
+   [ko->test] 6.10 Screen Brightness Multi-Monitor Synchronization & Atomic Graded
         Resolution:
         - Atomic Graded Resolution: Probes theme for 100% complete graded set
           (High, Med, Low); if incomplete or missing, falls back 100% to
@@ -1373,8 +1411,9 @@ SESSION 3: LABWC (wlroots Backend) - [FINISHED]
           dynamically
           discovers all connected displays and adjusts brightness simultaneously
           across DP/HDMI/internal panels with zero dropped DDC/CI outputs.
-          Under Mutter / Labwc, uses unprivileged D-Bus / brightnessctl.
-          BUG: only the built in screen change brightness
+          Under Labwc, uses unprivileged sysfs / brightnessctl multi-backlight iteration
+          and asynchronous parallel DDC/CI control via ddcutil for external displays.
+          (Remediation implemented, pending test on office 3-monitor station)
    [ok] 6.11 Weather Forecast Docklet (docklet://weather):
         - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
           Thunderstorm) with fallback.
@@ -1634,7 +1673,16 @@ SESSION 3: LABWC (wlroots Backend) - [FINISHED]
 
 
 LABWC BUGS / NOTES:
- - NOTE 1 (Item 2.7 - [NA]): Attention / Urgent State Protocol Limitation.
+ - BUG 1 (Item 1.6 - [ko->ok] Squashed in v0.6.2): External .desktop Drag & Drop
+   Pinning Priority.
+   * Symptom: Dragging a .desktop launcher onto an existing app icon triggered
+     "Open with application" instead of pinning the launcher to the dock.
+   * Fix: Enforced strict dock item pinning precedence over application drop
+     handlers whenever the drag payload consists solely of .desktop files, even
+     when dropped directly onto an existing icon. Furthermore, cleaned target
+     negotiation in DragManager to prioritize text/uri-list and eliminate silent
+     drop aborts.
+ - NOTE 2 (Item 2.7 - [NA]): Attention / Urgent State Protocol Limitation.
    * Detail: Under Labwc (and wlroots compositors using
      zwlr_foreign_toplevel_management_unstable_v1), the protocol exports
      maximized, minimized, activated, and fullscreen states, but lacks an
@@ -1642,28 +1690,30 @@ LABWC BUGS / NOTES:
      receive attention notifications by protocol design.
    * Status: Marked [NA] in FAT matrix. Test script FAT/test_urgency.py updated
      to detect Labwc and exit cleanly without hanging.
- - BUG 2 (Item 6.10 - [ko]): Multi-Monitor Screen Brightness Synchronization.
+ - BUG 3 (Item 6.10 - [ko->test]): Multi-Monitor Screen Brightness Synchronization.
    * Symptom: Under Labwc unprivileged D-Bus / brightnessctl, only the built-in
      display panel changes brightness; external monitors (HDMI/DP) remain
      unaffected.
-   * Required Fix: Implement multi-output backlight discovery / DDC/CI control
-     for wlroots / Labwc environments similar to KWin's multi-output handling.
- - NOTE 3 (Item 10.6 - [NA]): Dock Overflow Urgent Window Auto-Scrolling.
+   * Implementation: Implemented multi-backlight sysfs discovery and asynchronous
+     parallel DDC/CI control via ddcutil (with --noverify --sleep-multiplier .1)
+     in BrightnessDockItem.vala. Added ddcutil and brightnessctl to package dependencies.
+   * Status: [ko->test] Pending validation on office 3-monitor station.
+ - NOTE 4 (Item 10.6 - [NA]): Dock Overflow Urgent Window Auto-Scrolling.
    * Detail: Because zwlr_foreign_toplevel_management_unstable_v1 does not
      transmit window urgent state under Labwc, auto-scrolling to off-screen
      urgent windows is not applicable.
    * Status: Marked [NA] in FAT matrix.
- - BUG 4 (Item 10.9 - Squashed in v0.6.2): Overflow Chevron Line Artifact.
+ - BUG 5 (Item 10.9 - Squashed in v0.6.2): Overflow Chevron Line Artifact.
    * Root Cause: In DockRenderer.vala draw_scroll_edge_indicators, right
      chevron coordinate line_to was missing (+ rect.width -) offset, drawing
      across the screen to rect.x + 10.
    * Fix: Added (+ rect.width -) to line_to coordinates and added vertical
      dock top/bottom edge indicators. Verified clean on Labwc.
- - FEATURE 5 (Added in v0.6.2): Native openSUSE / Fedora RPM Packaging
+ - FEATURE 6 (Added in v0.6.2): Native openSUSE / Fedora RPM Packaging
    (BuildRpm.sh) with headless non-interactive CI support.
- - FEATURE 6 (Added in v0.6.2): Dock Overflow Smooth Scrolling with Volume and
+ - FEATURE 7 (Added in v0.6.2): Dock Overflow Smooth Scrolling with Volume and
    Brightness scroll isolation and Accordion drawer retention.
- - FEATURE 7 (Added in v0.6.2): "Scroll on Overflow" Preference & Dynamic
+ - FEATURE 8 (Added in v0.6.2): "Scroll on Overflow" Preference & Dynamic
    Capacity Indicator with Tachometer Redline in Appearance tab.
 
 
