@@ -416,7 +416,7 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   ```bash
   chmod +x BuildDeb.sh
   ./BuildDeb.sh
-  sudo apt install ./build/wayplank_0.6.2.1_amd64.deb
+  sudo apt install ./build/wayplank_0.6.2.2_amd64.deb
   ```
 
 - **openSUSE, Fedora & RHEL (`.rpm`)**:
@@ -424,9 +424,9 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   chmod +x BuildRpm.sh
   ./BuildRpm.sh
   # On openSUSE:
-  sudo zypper install ./build/wayplank-0.6.2.1-1.x86_64.rpm
+  sudo zypper install ./build/wayplank-0.6.2.2-1.x86_64.rpm
   # On Fedora / RHEL:
-  sudo dnf install ./build/wayplank-0.6.2.1-1.x86_64.rpm
+  sudo dnf install ./build/wayplank-0.6.2.2-1.x86_64.rpm
   ```
 
 > 💡 **Headless / CI Automation**: All build scripts support non-interactive execution via `WAYPLANK_NO_PROMPT=1` (e.g., `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh`).

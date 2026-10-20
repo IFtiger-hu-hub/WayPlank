@@ -187,9 +187,9 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
 # Install with automatic dependency resolution:
-sudo apt install ./build/wayplank_0.6.2.1_amd64.deb
+sudo apt install ./build/wayplank_0.6.2.2_amd64.deb
 # Or via dpkg:
-# sudo dpkg -i build/wayplank_0.6.2.1_amd64.deb && sudo apt install -f
+# sudo dpkg -i build/wayplank_0.6.2.2_amd64.deb && sudo apt install -f
 ```
 
 ---
@@ -203,13 +203,13 @@ chmod +x BuildRpm.sh
 ./BuildRpm.sh
 
 # Install on openSUSE with zypper:
-sudo zypper install ./build/wayplank-0.6.2.1-1.x86_64.rpm
+sudo zypper install ./build/wayplank-0.6.2.2-1.x86_64.rpm
 
 # Or install on Fedora/RHEL with dnf:
-sudo dnf install ./build/wayplank-0.6.2.1-1.x86_64.rpm
+sudo dnf install ./build/wayplank-0.6.2.2-1.x86_64.rpm
 
 # Or install via rpm directly:
-sudo rpm -Uvh ./build/wayplank-0.6.2.1-1.x86_64.rpm
+sudo rpm -Uvh ./build/wayplank-0.6.2.2-1.x86_64.rpm
 ```
 
 > 💡 **Headless / CI Environments:** You can bypass interactive prompts across all build scripts using `WAYPLANK_NO_PROMPT=1` (e.g. `WAYPLANK_NO_PROMPT=1 ./BuildRpm.sh`).

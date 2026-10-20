@@ -1,8 +1,8 @@
 # WayPlank V0.6.2 Series Detailed Technical Changelog
 
 Release Series: **V0.6.2 Series (The Community Unification & Distribution Release)**  
-Current Milestone: **V0.6.2.1 (Round 1: openSUSE/Fedora RPM, Launcher Deduplication, Overflow Smooth Scrolling, Multi-Monitor DDC/CI Sync & ISA-88 Qualification)**  
-Release Date: 2026-10-19  
+Current Milestone: **V0.6.2.2 (Round 2: Ergonomics, DND Remote URLs, Hover Window Raising & Portal Color-Scheme) - In Development**  
+Release Date: 2026-10-20  
 Authors & Contributors:
 - **Sergio Melas** (Maintainer — sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))
 - **史有虎 (IFtiger-hu)** (Collaborator, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub))
@@ -152,12 +152,26 @@ This milestone exemplifies collaborative open-source synergy:
 
 ---
 
-## 8. 🧪 Testing & Validation Matrix (FAT)
+## 8. 🧪 Testing & Validation Matrix (FAT v0.6.2.1 Final)
 
 - **Debian SID (amd64)**: `./BuildDeb.sh` builds cleanly -> `build/wayplank_0.6.2.1_amd64.deb`.
 - **openSUSE / Fedora / RHEL (x86_64)**: `./BuildRpm.sh` builds cleanly with custom local `_dbpath` -> `build/wayplank-0.6.2.1-1.x86_64.rpm`.
-- **KDE Plasma 6 (KWin Backend)**: FINISHED (100% Passed) | 88 [ok] | 5 [ko->ok] | 0 [NA] | 0 Open.
-- **GNOME Shell (Mutter Backend)**: FINISHED (100% Passed) | 84 [ok] | 9 [ko->ok] | 0 [NA] | 0 Open.
-- **Labwc (wlroots Backend)**: FINISHED (100% Passed) | 87 [ok] | 4 [ko->ok] | 2 [NA] | 0 Open.
-- **Total Qualification Scoreboard**: 279 Tests Executed | 259 [ok] | 18 Bugs Squashed [ko->ok] | 0 Open Defects (100% Compliant).
+- **KDE Plasma 6 (KWin Backend)**: FINISHED (100% Passed) | 89 [ok] | 5 [ko->ok] | 0 [NA] | 0 Open.
+- **GNOME Shell (Mutter Backend)**: FINISHED (100% Passed) | 86 [ok] | 8 [ko->ok] | 0 [NA] | 0 Open.
+- **Labwc (wlroots Backend)**: FINISHED (100% Passed) | 89 [ok] | 3 [ko->ok] | 2 [NA] | 0 Open.
+- **Total Qualification Scoreboard**: 282 Tests Executed | 264 [ok] | 16 Bugs Squashed [ko->ok] | 0 Open Defects (100% Compliant).
+
+---
+
+## 9. 🚧 WayPlank V0.6.2.2 (Round 2: Ergonomics, DND Remote URLs & Portal Sync) — In Development
+
+- **DND Remote Web URL Delivery (`http://`, `https://`)**:
+  - Extends drag-and-drop to handle web URLs dragged from browsers, bookmarks, or web applications.
+  - Automatically dispatches URLs to running or target browsers via `DesktopAppInfo.launch_uris()`.
+- **Hover Window Activation During Drag**:
+  - Pausing hover over a running application icon for >500ms during an active drag operation brings that application's window to the foreground.
+  - Enables direct drop into the target application workspace without manual task switching.
+- **FreeDesktop Settings Portal Color-Scheme Synchronization**:
+  - Listens to `org.freedesktop.portal.Settings` for `color-scheme` changes (Dark/Light).
+  - Dynamically triggers dock theme re-rendering when the system switches color modes without requiring dock restart.
 

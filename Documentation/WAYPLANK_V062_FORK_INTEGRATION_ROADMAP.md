@@ -129,7 +129,7 @@ To preserve linear versioning, eliminate ambiguity, and provide clean standalone
 
 ---
 
-### Phase 2 (Round 2): User Experience & Ergonomic Enhancements — 🎯 TARGET MILESTONE: v0.6.2.2
+### Phase 2 (Round 2): User Experience & Ergonomic Enhancements — 🚧 IN PROGRESS: v0.6.2.2
 *Goal: Expand dock navigation and Drag-and-Drop capabilities.*
 
 1. **Dock Overflow Smooth Scrolling (`lib/PositionManager.vala`, `lib/DockRenderer.vala`, `lib/Widgets/DockWindow.vala`)** — ✅ **COMPLETED (Early in v0.6.2.1)**:
