@@ -7,8 +7,21 @@ Milestone: V0.6.0 (Modern First-Run Autoconfiguration, 4 English Folders
            Anchor Navigation, Embedded GResource Release Banner,
            Multi-Monitor Retention Suite)
 Author & Tester: Sergio Melas
+Compositor Validation Status & Qualification Scoreboard:
+  - KDE PLASMA (KWin Backend):  FINISHED (100% Passed) | 77 [ok] | 0 [ko->ok] | 0 [NA] | 0 Open
+  - GNOME (Mutter Backend):     FINISHED (100% Passed) | 76 [ok] | 1 [ko->ok] | 0 [NA] | 0 Open
+  - LABWC (wlroots Backend):    FINISHED (100% Passed) | 77 [ok] | 0 [ko->ok] | 0 [NA] | 0 Open
+  - TOTAL SCOREBOARD:           231 Tests Executed | 230 [ok] | 1 Bug Squashed [ko->ok] | 0 Open Defects (100% Compliant)
 
-
+Test Status Legend (ISA-88 Qualification Standard):
+  - [ok]        : Compliant / Passed (Verified during v0.6.0 testing)
+  - [  ]        : Pending test execution / Open test point
+  - [ko]        : Non-conformance / Defect logged
+  - [ko->test]  : Remediation need still to be tested
+  - [ko->ok]    : Remediation verified / Passed on re-test
+  - [ko->imp]   : Remediation verified / Passed on re-test but need minor improvement
+  - [NA]        : Not Applicable / Deferred (De-scoped from current test cycle);
+                  formally transferred to and tracked under next Milestone FAT
 ================================================================================
 SESSION 1: GNOME (Mutter Backend)
 ================================================================================
@@ -324,9 +337,9 @@ SESSION 1: GNOME (Mutter Backend)
           ('wayplank --help') document Accordion controls, directional
           indicators, retention, right-click shortcuts, and icon chooser.
    [ko->ok] 7.12 Shortcuts & Gestures Centering:
-        - Bug: set_titlebar() cleared window title to NULL ('wayplank'),
+        - BUG: set_titlebar() cleared window title to NULL ('wayplank'),
           causing Mutter bridge to misclassify dialog as dock.
-        - Solved: Set title after set_titlebar(), properly classifying it
+        - SOLVED: Set title after set_titlebar(), properly classifying it
           as dialog and centering it on screen.
 
 8. MULTI MONITOR VALIDATION MATRIX
@@ -356,9 +369,12 @@ SESSION 1: GNOME (Mutter Backend)
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
-GNOME BUGS / NOTES:
-
-
+================================================================================
+SESSION 1 RESULT: 100% PASSED (GNOME / Mutter Backend)
+================================================================================
+  * Tests: 77 | Passed: 76 [ok] | Squashed: 1 [ko->ok] (7.12)
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+================================================================================
 
 ================================================================================
 SESSION 2: KDE PLASMA (KWin Backend)
@@ -696,9 +712,12 @@ SESSION 2: KDE PLASMA (KWin Backend)
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
-PLASMA BUGS / NOTES:
-
-
+================================================================================
+SESSION 2 RESULT: 100% PASSED (KDE Plasma / KWin Backend)
+================================================================================
+  * Tests: 77 | Passed: 77 [ok] | Squashed: 0 [ko->ok]
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+================================================================================
 
 ================================================================================
 SESSION 3: LABWC (wlroots Backend)
@@ -1039,8 +1058,9 @@ SESSION 3: LABWC (wlroots Backend)
         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
-LABWC BUGS / NOTES:
-
-
-
+================================================================================
+SESSION 3 RESULT: 100% PASSED (LABWC / wlroots Backend)
+================================================================================
+  * Tests: 77 | Passed: 77 [ok] | Squashed: 0 [ko->ok]
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
 ================================================================================

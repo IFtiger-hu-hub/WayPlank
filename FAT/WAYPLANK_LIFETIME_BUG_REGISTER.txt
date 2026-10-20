@@ -1,0 +1,149 @@
+================================================================================
+                    WAYPLANK LIFETIME MASTER BUG & DEFECT REGISTER
+================================================================================
+Project: WayPlank (Lightweight native Wayland dock based on Plank architecture)
+Author & Maintainer: Sergio Melas
+Scope: Complete Lifetime Audit - From Inception (v0.1.0) to Present (v0.6.2.1)
+Period: 2026-09-19 to 2026-10-17
+Standard: ISA-88 Qualification Standard & 80-Column Documentation Specification
+
+================================================================================
+                         LIFETIME EXECUTIVE SCOREBOARD
+================================================================================
+  - ERA 1 (Pre-FAT Foundation & X11 Purge: v0.1.0 - v0.4.2):
+    * Milestones: 6 (v0.1.0, v0.2.0, v0.3.0, v0.4.0, v0.4.1, v0.4.2)
+    * Architectural Bugs & Blockers Resolved: 34 [ko->ok]
+
+  - ERA 2 (Multi-Compositor Qualification: v0.4.3 - v0.6.2.1):
+    * Milestones: 7 (v0.4.3, v0.5.0, v0.5.1, v0.5.2, v0.6.0, v0.6.1, v0.6.2.1)
+    * Formal Tests Executed: 1,361 Total Test Executions across Compositors
+    * Tests Passed on First Run: 1,268 [ok]
+    * Unique Functional Bugs Squashed: 40 [ko->ok]
+    * Total Compositor Test Verifications: 52 [ko->ok]
+    * Open Defects Remaining: 0 [ko] (100% Compliant)
+
+  - GRAND TOTAL ACROSS LIFETIME:
+    * Total Milestones: 13 Releases
+    * Total Unique Functional & Architectural Bugs Squashed: 74 [ko->ok]
+    * Total Multi-Compositor Verification Instances: 86 [ko->ok]
+
+================================================================================
+                   HISTORICAL MILESTONE QUALIFICATION MATRIX
+================================================================================
+Milestone  | Release Date | Scope & Focus                     | Squashed | Open
+-----------+--------------+-----------------------------------+----------+------
+v0.1.0     | 2026-09-19   | Autotools Purge & Namespace Port  | 4        | 0
+v0.2.0     | 2026-09-22   | GTK Layer Shell & /proc Scanner   | 5        | 0
+v0.3.0     | 2026-09-23   | Early KWin D-Bus & Hover Zoom     | 5        | 0
+v0.4.0     | 2026-09-24   | Modular Backend & Intellihide     | 6        | 0
+v0.4.1     | 2026-09-25   | Multi-Monitor & Tooltip Placement | 4        | 0
+v0.4.2     | 2026-10-02   | Monolithic Docklets Suite         | 10       | 0
+-----------+--------------+-----------------------------------+----------+------
+ERA 1 SUB  | Foundation   | 6 Initial Architecture Releases   | 34       | 0
+-----------+--------------+-----------------------------------+----------+------
+v0.4.3     | 2026-10-06   | 3-Compositor Validation Baseline  | 9 (39x3) | 0
+v0.5.0     | 2026-10-07   | Cross-Compositor Baseline Check   | 0 (40x3) | 7 ko*
+v0.5.1     | 2026-10-08   | 100% Pass (all 7 ko squashed)     | 15 (54x3)| 0
+v0.5.2     | 2026-10-09   | Session Docklet & Brightness      | 4 (68x3) | 0
+v0.6.0     | 2026-10-11   | Shortcuts Centering & Debounce    | 1 (77x3) | 0
+v0.6.1     | 2026-10-13   | 0-byte MIME, Badges & Gtk+ Engine | 7 (82x3) | 0
+v0.6.2.1   | 2026-10-17   | Fork Integration & Gold Standard  | 16 (94x3)| 0
+-----------+--------------+-----------------------------------+----------+------
+ERA 2 SUB  | Formal FAT   | 7 Multi-Compositor Protocols      | 52 verif | 0
+-----------+--------------+-----------------------------------+----------+------
+TOTAL      | All Releases | 13 WayPlank Milestone Releases    | 74 Unique| 0
+================================================================================
+*Note on v0.5.0: The 7 [ko] defects discovered were formally remediated and
+verified in v0.5.1 under standard ISA-88 qualification protocol.
+
+================================================================================
+             COMPOSITOR RESOLUTION BREAKDOWN (ERA 2 QUALIFICATION)
+================================================================================
+  - GNOME SHELL (Mutter Backend):  24 Verifications Squashed [ko->ok] (46.2%)
+  - KDE PLASMA (KWin Backend):     20 Verifications Squashed [ko->ok] (38.5%)
+  - LABWC (wlroots Backend):       8 Verifications Squashed [ko->ok]  (15.3%)
+  - TOTAL COMPOSITOR PASSES:       52 / 52 (100% Passed)
+
+================================================================================
+                     DEFECT CLASSIFICATION BY SUBSYSTEM
+================================================================================
+1. WINDOW MANAGEMENT, FOCUS & VIRTUAL DESKTOPS (16 Bugs)
+   - KWin FIFO command queue for rapid multi-window close (v0.4.3 / 2.8)
+   - getAllWindows() & switchToDesktopIfNeeded() window list focus (v0.4.3/2.9)
+   - Sticky dock surface across virtual desktops on KWin (v0.4.3 & v0.5.1 / 4.1)
+   - GNOME Shell workspace changed signal tracking (v0.5.1 / 4.1)
+   - Attention bounce easing underflow & LastUrgent timestamp (v0.5.1/v0.6.2.1)
+   - Smooth mouse-wheel window focus cycling (v0.4.2 / 6.10)
+   - Anti-bounce on application window closure (v0.4.2 / 6.8)
+   - Show Desktop bi-directional stateful restore toggle (v0.4.2 / 6.2)
+   - Ghost window shielding for screen-sharing helpers (v0.6.2.1 / 10.11)
+   - Urgent window auto-scrolling on dock overflow (v0.6.2.1 / 10.6)
+
+2. MULTI-MONITOR, DISPLAY GEOMETRY & TOOLTIPS (12 Bugs)
+   - Layer-shell secondary monitor display persistence (v0.4.1 & v0.5.1 / 7.2)
+   - Tooltip coordinate translation on secondary screens (v0.4.1 / 5.2)
+   - Primary display toggle off restoration failure (v0.5.1 / 7.2)
+   - Fractional scaling & HiDPI label identity matching (v0.5.1 / 7.7)
+   - Folder menu centering bug on GNOME Mutter (v0.5.2 & v0.6.2.1 / 1.8)
+   - Shortcuts & Gestures dialog centering on Mutter (v0.6.0 / 7.12)
+   - Multi-monitor DDC/CI & back-end brightness decoupling (v0.6.2.1 / 6.10)
+   - Rapid display reconfiguration & DPI storm hardening (v0.5.1 / 9.6)
+
+3. DOCKLETS & SPECIAL ITEMS (15 Bugs)
+   - Trash docklet bi-directional D-Bus sync with Dolphin/KIO (v0.4.2 / 6.1)
+   - Screenshot docklet multi-compositor fallback (v0.5.1 & v0.5.2 / 6.5)
+   - Session & Power docklet lock-screen SDDM fallback (v0.5.2 / 6.5)
+   - Screen brightness 3s debounce & GPU override loop fix (v0.5.2 / 6.10)
+   - Weather forecast docklet vector SVG icon fallback (v0.6.2.1 / 6.11)
+   - Docklet badge unit strings (°C, °F, %) & proportional scaling (v0.6.1/6.17)
+   - Volume over-amplification guard and step scrolling (v0.4.2 & v0.6.2.1)
+   - Battery sysfs introspection on modern Wayland systems (v0.4.2 / 6.4)
+   - CPU/RAM differential calculation in circular gauges (v0.4.2 / 6.5)
+
+4. HIDE, DODGE, HOVER & PRESSURE REVEAL (10 Bugs)
+   - Mouse hover zoom stuck on layer-shell surfaces (v0.3.0 / 3.2)
+   - Intellihide geometric intersection calculation (v0.4.0 / 4.2)
+   - Fullscreen exclusive zone toggle to 0 (v0.4.0 / 4.3)
+   - Pressure reveal timer leak & mouse unhide race (v0.6.1 / 3.7)
+   - Inverted pressure reveal semantics: 10px default vs 1px pressure (v0.6.1)
+   - Layer-shell tooltip margin clamping against negative coordinates (v0.4.2)
+
+5. APPLICATION MATCHING, SANDBOXES & PINNING (11 Bugs)
+   - Asynchronous /proc process scanner for Wayland (v0.2.0 / 2.3)
+   - Multi-tier .desktop application discovery & app_id matching (v0.4.0 / 4.4)
+   - 0-byte file drop with application/x-zerosize MIME guessing (v0.6.1/1.6)
+   - Strict .desktop pinning precedence over app drop handlers (v0.6.2.1 / 1.6)
+   - Sandbox / wrapper unwrapping (Flatpak, Snap, Firejail) (v0.6.2.1 / 2.12)
+   - Universal Change Icon & theme change fallback (v0.6.1 & v0.6.2.1 / 1.10)
+   - Show Unpinned dynamic layout refresh without window focus (v0.6.1 / 7.14)
+
+6. PROCESS LIFECYCLE, IPC BRIDGES & ARCHITECTURAL PURGE (11 Bugs)
+   - Purge of 112,000+ lines of obsolete X11 Autotools & VAPIs (v0.1.0 - v0.3.0)
+   - Purge of dynamic shared-library docklet plugins (v0.4.0 / 4.5)
+   - CLI --replace / -r flag registration & clean killall (v0.4.2 & v0.5.1)
+   - KWin resume event storm prevention via 50ms QTimer debouncer (v0.5.1 / 9.6)
+   - KWin duplicate script prevention on system sleep/resume (v0.5.1 / 9.4)
+   - Labwc wlr-toplevel RFC 8259 JSON escaper for UTF-8 bytes (v0.5.1 / 2.13)
+   - Labwc toplevel callback 50ms single-shot debouncer (v0.5.1 / 9.7)
+   - Native RPM packaging for openSUSE and Fedora (v0.6.2.1 / Round 1)
+
+================================================================================
+                    DIRECTORY OF CORRESPONDING FAT DOCUMENTS
+================================================================================
+1. [FAT/2026-10-02 PRE-FAT  (v0.1.0 - v0.4.2).txt]
+   Covers: v0.1.0, v0.2.0, v0.3.0, v0.4.0, v0.4.1, v0.4.2 (34 bugs squashed)
+2. [FAT/2026-10-06 FAT 0.4.3.txt]
+   Covers: v0.4.3 (117 tests, 9 bugs squashed)
+3. [FAT/2026-10-07 FAT 0.5.0.txt]
+   Covers: v0.5.0 (120 tests, 7 open defects logged)
+4. [FAT/2026-10-08 FAT 0.5.1.txt]
+   Covers: v0.5.1 (162 tests, 15 bugs squashed, 100% compliant)
+5. [FAT/2026-10-09 FAT 0.5.2.txt]
+   Covers: v0.5.2 (203 tests, 4 bugs squashed, 100% compliant)
+6. [FAT/2026-10-11 FAT 0.6.0.txt]
+   Covers: v0.6.0 (231 tests, 1 bug squashed, 100% compliant)
+7. [FAT/2026-10-13 FAT 0.6.1.txt]
+   Covers: v0.6.1 (246 tests, 7 bugs squashed, 100% compliant on KWin)
+8. [FAT/2026-10-17 FAT 0.6.2.1.txt]
+   Covers: v0.6.2.1 (282 tests, 16 bugs squashed, 100% compliant Gold Standard)
+================================================================================

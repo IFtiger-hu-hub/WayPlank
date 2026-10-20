@@ -2,8 +2,24 @@
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
 Date: 2026-10-06
+Milestone: V0.4.3 (Initial Cross-Compositor Alpha Qualification: KWin, Mutter
+           & Labwc Verification)
+Author & Tester: Sergio Melas
+Compositor Validation Status & Qualification Scoreboard:
+  - KDE PLASMA (KWin Backend):  FINISHED (100% Passed) | 36 [ok] | 3 [ko->ok] | 0 [NA] | 0 Open
+  - GNOME (Mutter Backend):     FINISHED (100% Passed) | 33 [ok] | 6 [ko->ok] | 0 [NA] | 0 Open
+  - LABWC (wlroots Backend):    FINISHED (100% Passed) | 39 [ok] | 0 [ko->ok] | 0 [NA] | 0 Open
+  - TOTAL SCOREBOARD:           117 Tests Executed | 108 [ok] | 9 Bugs Squashed [ko->ok] | 0 Open Defects (100% Compliant)
 
-
+Test Status Legend (ISA-88 Qualification Standard):
+  - [ok]        : Compliant / Passed (Verified during v0.4.3 testing)
+  - [  ]        : Pending test execution / Open test point
+  - [ko]        : Non-conformance / Defect logged
+  - [ko->test]  : Remediation need still to be tested
+  - [ko->ok]    : Remediation verified / Passed on re-test
+  - [ko->imp]   : Remediation verified / Passed on re-test but need minor improvement
+  - [NA]        : Not Applicable / Deferred (De-scoped from current test cycle);
+                  formally transferred to and tracked under next Milestone FAT
 ================================================================================
 SESSION 1: GNOME (Mutter Backend)
 ================================================================================
@@ -91,10 +107,12 @@ SESSION 1: GNOME (Mutter Backend)
          In PositionManager, tracked global coordinate offsets across equal-resolution monitors to trigger full window updates on non-layer-shell backends.
          In PreferencesWindow, guarded display combo box changes against overwriting preferences when 'On Primary Display' is toggled.
 
-GNOME BUGS / NOTES:
-
-
-
+================================================================================
+SESSION 1 RESULT: 100% PASSED (GNOME / Mutter Backend)
+================================================================================
+  * Tests: 39 | Passed: 33 [ok] | Squashed: 6 [ko->ok] (0, 1.4, 2.4, 2.6, 5.4, 7.6)
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+================================================================================
 
 ================================================================================
 SESSION 2: KDE PLASMA (KWin Backend)
@@ -120,19 +138,23 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [ok] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
    [ok] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
    [ko->ok] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances:
-        With multiple windows close all do not work
+        - BUG: With multiple windows, "Close All" did not close instances due to
+          single static pending command variable dropping rapid commands in
+          KWinBridge.
+        - SOLVED: Replaced single pending command variables in KWinBridge with a
+          FIFO queue (Gee.ArrayList serialized as JSON array). Now all window
+          close actions dispatched in a rapid loop are received and executed. In
+          KWin script, invoked target.closeWindow() with
+          workspace.closeWindow(target) fallback.
    [ko->ok] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front:
-        Right click and the list click focus not all windows
-        With multiple windows close all do not work.
-        Fixed command dropping by replacing single pending command variables in KWinBridge with a FIFO queue
-        (Gee.ArrayList serialized as JSON array). Now all window close actions dispatched in a rapid loop
-        are received and executed. In KWin script, invoked target.closeWindow() with workspace.closeWindow(target) fallback.
-   [ko->ok] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front:
-        Right click and the list click focus not all windows.
-        In KWin script applyWindowCommand, switched client lookup from workspace.stackingOrder (which omits
-        minimized wind ows and windows on other workspaces) to getAllWindows().
-        Added automatic desktop switching via switchToDesktopIfNeeded prior to window activation so clicking
-        a window on another desktop automatically switches to its virtual desktop and focuses it.
+        - BUG: Right-click window list selection did not focus background or
+          minimized windows, or windows on other virtual desktops.
+        - SOLVED: In KWin script applyWindowCommand, switched client lookup from
+          workspace.stackingOrder (which omits minimized windows and windows on
+          other workspaces) to getAllWindows(). Added automatic desktop
+          switching via switchToDesktopIfNeeded prior to window activation so
+          clicking a window on another desktop automatically switches to its
+          virtual desktop and focuses it.
 
 3. HIDE & DODGE MODES
    [ok] 3.1 None: Dock permanently visible, never hides
@@ -145,12 +167,15 @@ SESSION 2: KDE PLASMA (KWin Backend)
 
 4. VIRTUAL DESKTOPS & WORKSPACES
    [ko->ok] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals:
-        Appear only on first desktop.
-        Added stick() calls to DockWindow and set onAllDesktops=true, skipTaskbar=true, skipPager=true on the dock client
-        in KWin script to ensure dock surface is sticky across all virtual desktops.
-        Connected workspace.currentDesktopChanged and window.desktopsChanged/desktopChanged signals in KWin script,
-        and updated currentDesktop check to support KWin 6 isOnDesktop(workspace.currentDesktop) and onAllDesktops
-        so window dodge evaluation immediately updates across workspace switches.
+        - BUG: Dock appeared only on first desktop; did not reveal on empty WS2.
+        - SOLVED: Added stick() calls to DockWindow and set onAllDesktops=true,
+          skipTaskbar=true, skipPager=true on the dock client in KWin script to
+          ensure dock surface is sticky across all virtual desktops. Connected
+          workspace.currentDesktopChanged and
+          window.desktopsChanged/desktopChanged signals in KWin script, and
+          updated currentDesktop check to support KWin 6
+          isOnDesktop(workspace.currentDesktop) and onAllDesktops so window
+          dodge evaluation immediately updates across workspace switches.
    [ok] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
    [ok] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
 
@@ -173,13 +198,12 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [ok] 7.5 Theme Switching: Instant visual theme change
    [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
 
-PLASMA BUGS / NOTES:
-- 2.8 (Close All): Replaced single static command variables with a Gee.ArrayList FIFO queue serialized as JSON array in KWinBridge.vala, ensuring multiple rapid close commands are not dropped. Added target.closeWindow() in KWin script.
-- 2.9 (Window List Selection): Replaced workspace.stackingOrder with getAllWindows() to find minimized and background windows. Added switchToDesktopIfNeeded() to switch to the target window's virtual desktop before activating.
-- 4.1 (Virtual Desktops): Enforced dock stickiness across all desktops via stick() and KWin onAllDesktops=true. Connected workspace.currentDesktopChanged and window.desktopsChanged signals, and implemented KWin 6 isOnDesktop() support for accurate window dodge calculations.
-
-
-
+================================================================================
+SESSION 2 RESULT: 100% PASSED (KDE Plasma / KWin Backend)
+================================================================================
+  * Tests: 39 | Passed: 36 [ok] | Squashed: 3 [ko->ok] (2.8, 2.9, 4.1)
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+================================================================================
 
 ================================================================================
 SESSION 3: LABWC (wlroots Backend)
@@ -240,8 +264,9 @@ SESSION 3: LABWC (wlroots Backend)
    [ok] 7.5 Theme Switching: Instant visual theme change
    [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
 
-LABWC BUGS / NOTES:
-
-
-
+================================================================================
+SESSION 3 RESULT: 100% PASSED (LABWC / wlroots Backend)
+================================================================================
+  * Tests: 39 | Passed: 39 [ok] | Squashed: 0 [ko->ok]
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
 ================================================================================

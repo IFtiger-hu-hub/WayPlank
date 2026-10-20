@@ -14,6 +14,7 @@ Compositor Validation Status & Qualification Scoreboard:
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified during v0.6.1 testing)
+  - [  ]        : Pending test execution / Open test point
   - [ko]        : Non-conformance / Defect logged
   - [ko->test]  : Remediation need still to be tested
   - [ko->ok]    : Remediation verified / Passed on re-test
