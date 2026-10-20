@@ -175,7 +175,6 @@ namespace Plank
 		 */
 		protected virtual void apply_dynamic_gtk_theme ()
 		{
-			unowned Gtk.Settings settings = Gtk.Settings.get_default ();
 			Gdk.RGBA bg_rgba = { 0.18, 0.18, 0.20, 1.0 };
 			Gdk.RGBA fg_rgba = { 0.95, 0.95, 0.95, 1.0 };
 			Gdk.RGBA border_rgba = { 0.30, 0.30, 0.30, 1.0 };
@@ -190,9 +189,8 @@ namespace Plank
 			if (!style_context.lookup_color ("borders", out border_rgba))
 				style_context.lookup_color ("theme_border_color", out border_rgba);
 
-			// Determine dark vs light mode via ITU-R luminance or explicit setting
-			double lum = 0.299 * bg_rgba.red + 0.587 * bg_rgba.green + 0.114 * bg_rgba.blue;
-			bool is_dark = lum < 0.50 || settings.gtk_application_prefer_dark_theme;
+			// Determine dark vs light mode via FreeDesktop Settings Portal, falling back to luminance
+			bool is_dark = SystemTheme.get_default ().is_dark;
 
 			LineWidth = 1;
 			TopRoundness = 6;

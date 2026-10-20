@@ -653,7 +653,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS / 97% PASSED]
           application's window to the foreground
         - Operator can release cursor directly inside target application's
           workspace
-   [  ] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+   [ok] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
         - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
           key changes
         - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
@@ -666,11 +666,10 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS / 97% PASSED]
           Matte purged, natural fallback to Default for missing themes)
 
 ================================================================================
-SESSION 1 RESULT: 99% PASSED (GNOME / Mutter Backend)
+SESSION 1 RESULT: 100% PASSED (GNOME / Mutter Backend)
 ================================================================================
-  * Tests: 98 | Passed: 97 [ok] | Squashed: 0 [ko->ok]
-  * Pending: 1 [  ] (11.3) | Protocol Limitations: 0 [NA] | Open
-    Defects: 0 [ko]
+  * Tests: 98 | Passed: 98 [ok] | Squashed: 0 [ko->ok]
+  * Pending: 0 [  ] | Protocol Limitations: 0 [NA] | Open Defects: 0 [ko]
 ================================================================================
 ================================================================================
 SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS / 97% PASSED]
@@ -1273,7 +1272,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS / 97% PASSED]
           application's window to the foreground
         - Operator can release cursor directly inside target application's
           workspace
-   [  ] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+   [ok] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
         - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
           key changes
         - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
@@ -1286,11 +1285,10 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS / 97% PASSED]
           Matte purged, natural fallback to Default for missing themes)
 
 ================================================================================
-SESSION 2 RESULT: 99% PASSED (KDE PLASMA / KWin Backend)
+SESSION 2 RESULT: 100% PASSED (KDE PLASMA / KWin Backend)
 ================================================================================
-  * Tests: 98 | Passed: 97 [ok] | Squashed: 0 [ko->ok]
-  * Pending: 1 [  ] (11.3) | Protocol Limitations: 0 [NA] | Open
-    Defects: 0 [ko]
+  * Tests: 98 | Passed: 98 [ok] | Squashed: 0 [ko->ok]
+  * Pending: 0 [  ] | Protocol Limitations: 0 [NA] | Open Defects: 0 [ko]
 ================================================================================
 ================================================================================
 SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS / 95% PASSED]
@@ -1897,7 +1895,7 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS / 95% PASSED]
           application's window to the foreground
         - Operator can release cursor directly inside target application's
           workspace
-   [  ] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+   [ok] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
         - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
           key changes
         - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
@@ -1910,9 +1908,9 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS / 95% PASSED]
           Matte purged, natural fallback to Default for missing themes)
 
 ================================================================================
-SESSION 3 RESULT: 97% PASSED (LABWC / wlroots Backend)
+SESSION 3 RESULT: 98% PASSED (LABWC / wlroots Backend)
 ================================================================================
-  * Tests: 98 | Passed: 95 [ok] | Squashed: 0 [ko->ok]
-  * Pending: 1 [  ] (11.3) | Protocol Limitations: 2 [NA] (2.7,
+  * Tests: 98 | Passed: 96 [ok] | Squashed: 0 [ko->ok]
+  * Pending: 0 [  ] | Protocol Limitations: 2 [NA] (2.7,
     10.6) | Open Defects: 0 [ko]
 ================================================================================

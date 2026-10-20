@@ -104,6 +104,7 @@ namespace Plank
 			benchmark = new Gee.ArrayList<string> ();
 #endif
 			controller.prefs.notify.connect (prefs_changed);
+			SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
 			
 			load_theme ();
 		}
@@ -123,6 +124,8 @@ namespace Plank
 		
 		~DockRenderer ()
 		{
+			SystemTheme.get_default ().theme_changed.disconnect (on_system_theme_changed);
+
 			if (controller != null) {
 				controller.prefs.notify.disconnect (prefs_changed);
 				if (controller.hide_manager != null) {
@@ -189,6 +192,13 @@ namespace Plank
 			});
 		}
 		
+		void on_system_theme_changed (bool is_dark)
+		{
+			if (controller.prefs.Theme == Theme.DEFAULT_NAME || controller.prefs.Theme == Theme.GTK_THEME_NAME) {
+				load_theme ();
+			}
+		}
+
 		void load_theme ()
 		{
 			var is_reload = (theme != null);
@@ -197,7 +207,7 @@ namespace Plank
 				theme.notify.disconnect (theme_changed);
 			
 			unowned string name = controller.prefs.Theme;
-			if (name == Theme.GTK_THEME_NAME) {
+			if (name == Theme.DEFAULT_NAME || name == Theme.GTK_THEME_NAME) {
 				if (gtk_theme_name_changed_handler_id == 0UL)
 					gtk_theme_name_changed_handler_id = Gtk.Settings.get_default ().notify["gtk-theme-name"].connect (load_theme);
 				if (gtk_dark_theme_changed_handler_id == 0UL)
