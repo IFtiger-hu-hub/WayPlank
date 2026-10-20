@@ -133,6 +133,16 @@ namespace Plank
 		}
 		
 		/**
+		 * Triggers a bounce animation on this dock element.
+		 */
+		public void trigger_bounce ()
+		{
+			ClickedAnimation = AnimationType.BOUNCE;
+			LastClicked = GLib.get_monotonic_time ();
+			needs_redraw ();
+		}
+		
+		/**
 		 * Called when an item is clicked on.
 		 *
 		 * @param button the button clicked

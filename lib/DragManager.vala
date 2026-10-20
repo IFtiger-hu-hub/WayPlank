@@ -73,6 +73,8 @@ namespace Plank
 		bool drag_data_requested = false;
 		uint marker = 0U;
 		uint drag_hover_timer_id = 0U;
+		uint spring_hover_timer_id = 0U;
+		weak DockItem? spring_hover_target = null;
 		
 		Gee.ArrayList<string>? drag_data = null;
 		
@@ -141,6 +143,7 @@ namespace Plank
 		
 		~DragManager ()
 		{
+			cancel_spring_loaded_timer ();
 			disconnect_hovered_item_handler ();
 			if (controller != null) {
 				controller.prefs.notify["LockItems"].disconnect (lock_items_changed);
@@ -188,10 +191,20 @@ namespace Plank
 		 */
 		public bool drop_is_accepted_by (DockItem item)
 		{
-			if (drag_data == null)
-				return false;
-			
-			return item.can_accept_drop (drag_data);
+			if (drag_data != null)
+				return item.can_accept_drop (drag_data);
+
+			// During drag motion (drag_data is null until drop),
+			// determine acceptance based on item capability so valid drop targets are not dimmed
+			if (item is TrashDockItem || item is FileDockItem)
+				return true;
+
+			if (item is ApplicationDockItem) {
+				var app_item = (ApplicationDockItem) item;
+				return app_item.can_accept_any_drop ();
+			}
+
+			return false;
 		}
 		
 		void set_drag_icon (Gdk.DragContext context, DockItem? item, double opacity = 1.0)
@@ -294,7 +307,7 @@ namespace Plank
 				return cleaned;
 			}
 
-			if (cleaned.has_prefix ("file://"))
+			if (cleaned.has_prefix ("file://") || cleaned.has_prefix ("http://") || cleaned.has_prefix ("https://"))
 				return cleaned;
 
 			if (cleaned.has_prefix ("/"))
@@ -421,9 +434,11 @@ namespace Plank
 				if (!is_desktop_launcher_uri (u))
 					all_desktop = false;
 
-				var dir_f = File.new_for_uri (u.has_prefix ("/") ? File.new_for_path (u).get_uri () : u);
-				if (dir_f.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
-					contains_directory = true;
+				if (!u.has_prefix ("http://") && !u.has_prefix ("https://")) {
+					var dir_f = File.new_for_uri (u.has_prefix ("/") ? File.new_for_path (u).get_uri () : u);
+					if (dir_f.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+						contains_directory = true;
+				}
 			}
 			
 			bool handled = false;
@@ -555,6 +570,7 @@ namespace Plank
 			controller.hide_manager.update_hovered_with_coords (x, y);
 			controller.window.update_hovered (x, y);
 			drop_target_item = controller.window.HoveredItem;
+			cancel_spring_loaded_timer ();
 			
 			if (drop_target_item == null) {
 				unowned PositionManager pos_mgr = controller.position_manager;
@@ -639,6 +655,7 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void drag_end (Gtk.Widget w, Gdk.DragContext context)
 		{
+			cancel_spring_loaded_timer ();
 			unowned HideManager hide_manager = controller.hide_manager;
 			
 			if (drag_item_redraw_handler_id > 0UL) {
@@ -794,6 +811,7 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void drag_leave (Gtk.Widget w, Gdk.DragContext context, uint time_)
 		{
+			cancel_spring_loaded_timer ();
 			if (dropped_on_target)
 				return;
 
@@ -884,6 +902,10 @@ namespace Plank
 			controller.renderer.update_local_cursor (x, y);
 			hide_manager.update_hovered_with_coords (x, y);
 			window.update_hovered (x, y);
+			
+			if (ExternalDragActive && window.HoveredItem != null && spring_hover_timer_id == 0U && spring_hover_target != window.HoveredItem) {
+				start_spring_loaded_timer (window.HoveredItem);
+			}
 			
 			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
 				if (controller.app_provider.docklets_expanded) {
@@ -1128,6 +1150,53 @@ namespace Plank
 						drag_hover_timer_id = 0U;
 					return item != null;
 				});
+
+			if (ExternalDragActive) {
+				unowned DockItem? target = controller.window.HoveredItem;
+				if (target != null) {
+					if (target != spring_hover_target)
+						start_spring_loaded_timer (target);
+				} else {
+					cancel_spring_loaded_timer ();
+				}
+			}
+		}
+
+		void start_spring_loaded_timer (DockItem target)
+		{
+			cancel_spring_loaded_timer ();
+			
+			spring_hover_target = target;
+			spring_hover_timer_id = GLib.Timeout.add (500, () => {
+				spring_hover_timer_id = 0U;
+				if (ExternalDragActive && spring_hover_target != null && controller.window.HoveredItem == spring_hover_target) {
+					handle_spring_loaded_hover (spring_hover_target);
+				}
+				return GLib.Source.REMOVE;
+			});
+		}
+
+		void cancel_spring_loaded_timer ()
+		{
+			if (spring_hover_timer_id > 0U) {
+				GLib.Source.remove (spring_hover_timer_id);
+				spring_hover_timer_id = 0U;
+			}
+			spring_hover_target = null;
+		}
+
+		void handle_spring_loaded_hover (DockItem item)
+		{
+			item.trigger_bounce ();
+
+			var launcher = item.Launcher;
+			if (launcher != null && launcher != "") {
+				var windows = WindowManager.get_default ().matching_windows (launcher);
+				if (windows.size > 0) {
+					message ("Wayplank: spring-loaded hover on '%s' -> activate window %s", item.Text, windows[0].Id);
+					WindowControl.queue_command (windows[0].Id, "activate");
+				}
+			}
 		}
 
 		void enable_drag_to (DockWindow window)

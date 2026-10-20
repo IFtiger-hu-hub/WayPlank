@@ -57,6 +57,11 @@ namespace Plank
 		Gee.HashMap<string, string> desktop_action_ids;
 		public bool accepts_payload { get; private set; default = false; }
 		
+		public bool can_accept_any_drop ()
+		{
+			return (accepts_payload || (supported_mime_types != null && supported_mime_types.size > 0));
+		}
+		
 		string? unity_dbusname = null;
 		int prev_window_count = 0;
 		
@@ -440,13 +445,7 @@ namespace Plank
 			if (uris == null || uris.size == 0)
 				return false;
 			
-			var files = new Gee.ArrayList<File> ();
-			foreach (var uri in uris)
-				files.add (File.new_for_uri (uri));
-			
-			ClickedAnimation = AnimationType.BOUNCE;
-			LastClicked = GLib.get_monotonic_time ();
-			needs_redraw ();
+			trigger_bounce ();
 			
 			File? app_file = null;
 			if (Prefs.Launcher.has_prefix ("file://"))
@@ -454,7 +453,7 @@ namespace Plank
 			else
 				app_file = File.new_for_path (Prefs.Launcher);
 			
-			System.get_default ().launch_with_files (app_file, files.to_array ());
+			System.get_default ().launch_with_uris (app_file, uris.to_array ());
 			
 			var windows = WindowManager.get_default ().matching_windows (Launcher);
 			if (windows.size > 0) {

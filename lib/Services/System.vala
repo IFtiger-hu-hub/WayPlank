@@ -139,6 +139,84 @@ namespace Plank
 		}
 		
 		/**
+		 * Launches an application and opens URIs (files or web/remote URLs).
+		 *
+		 * @param app the application launcher file (.desktop)
+		 * @param uris the URIs to open with the application
+		 */
+		public void launch_with_uris (File? app, string[] uris)
+		{
+			if (app != null && !app.query_exists ()) {
+				warning ("Application '%s' doesn't exist", app.get_path () ?? "");
+				return;
+			}
+			
+			if (app == null) {
+				foreach (var uri in uris) {
+					try {
+						AppInfo.launch_default_for_uri (uri, context);
+					} catch (Error e) {
+						warning ("%s", e.message);
+					}
+				}
+				return;
+			}
+
+			var launcher_path = app.get_path ();
+			if (launcher_path == null)
+				return;
+
+			try {
+				var info = new DesktopAppInfo.from_filename (launcher_path);
+				if (info == null) {
+					critical ("Unable to use application '%s' for execution.", launcher_path);
+					return;
+				}
+
+				if (uris.length == 0) {
+					info.launch (null, context);
+					return;
+				}
+
+				var uri_list = new GLib.List<string> ();
+				var file_list = new GLib.List<File> ();
+				bool has_remote_uri = false;
+
+				foreach (var u in uris) {
+					uri_list.append (u);
+					file_list.append (File.new_for_uri (u));
+					if (!u.has_prefix ("file://")) {
+						has_remote_uri = true;
+					}
+				}
+
+				Logger.verbose ("Launch '%s' with %d URIs", info.get_name (), (int) uris.length);
+
+				// If there are remote URIs (e.g. http://, https://) and app supports URIs:
+				if (has_remote_uri && info.supports_uris ()) {
+					info.launch_uris (uri_list, context);
+					return;
+				}
+
+				// If app supports files:
+				if (info.supports_files ()) {
+					info.launch (file_list, context);
+					return;
+				}
+
+				// If app supports URIs:
+				if (info.supports_uris ()) {
+					info.launch_uris (uri_list, context);
+					return;
+				}
+
+				warning ("The application '%s' doesn't support files/URIs.", info.get_name ());
+			} catch (Error e) {
+				critical ("%s: %s", launcher_path, e.message);
+			}
+		}
+
+		/**
 		 * Launches an application and opens files.
 		 *
 		 * @param app the application to launch

@@ -148,5 +148,5 @@ verified in v0.5.1 under standard ISA-88 qualification protocol.
 8. [FAT/2026-10-17 FAT 0.6.2.1.txt]
    Covers: v0.6.2.1 (282 tests, 16 bugs squashed, 100% compliant Gold Standard)
 9. [FAT/2026-10-20 FAT 0.6.2.2.txt]
-   Covers: v0.6.2.2 (292 tests, Round 2 in progress, 9 pending execution)
+   Covers: v0.6.2.2 (292 tests, Round 2 in progress, 3 pending execution)
 ================================================================================
