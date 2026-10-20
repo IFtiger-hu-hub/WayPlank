@@ -659,11 +659,16 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS / 97% PASSED]
         - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
           when OS switches between Light and Dark mode without requiring dock
           restart
+   [ok] 11.4 ReverseRoundness & Theme Subsystem Restructuring:
+        - Concave skirt Cairo arc rendering with 0.75 proportional clearance
+        - Theme catalog cleanup (Default promoted to top adaptive GTK engine,
+          Arian Theme Dark/Light pairs, IFtiger Theme Dark/Light imported,
+          Matte purged, natural fallback to Default for missing themes)
 
 ================================================================================
 SESSION 1 RESULT: 97% PASSED (GNOME / Mutter Backend)
 ================================================================================
-  * Tests: 97 | Passed: 94 [ok] | Squashed: 0 [ko->ok]
+  * Tests: 98 | Passed: 95 [ok] | Squashed: 0 [ko->ok]
   * Pending: 3 [  ] (11.1, 11.2, 11.3) | Protocol Limitations: 0 [NA] | Open
     Defects: 0 [ko]
 ================================================================================
@@ -1274,11 +1279,16 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS / 97% PASSED]
         - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
           when OS switches between Light and Dark mode without requiring dock
           restart
+   [ok] 11.4 ReverseRoundness & Theme Subsystem Restructuring:
+        - Concave skirt Cairo arc rendering with 0.75 proportional clearance
+        - Theme catalog cleanup (Default promoted to top adaptive GTK engine,
+          Arian Theme Dark/Light pairs, IFtiger Theme Dark/Light imported,
+          Matte purged, natural fallback to Default for missing themes)
 
 ================================================================================
 SESSION 2 RESULT: 97% PASSED (KDE PLASMA / KWin Backend)
 ================================================================================
-  * Tests: 97 | Passed: 94 [ok] | Squashed: 0 [ko->ok]
+  * Tests: 98 | Passed: 95 [ok] | Squashed: 0 [ko->ok]
   * Pending: 3 [  ] (11.1, 11.2, 11.3) | Protocol Limitations: 0 [NA] | Open
     Defects: 0 [ko]
 ================================================================================
@@ -1893,11 +1903,16 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS / 95% PASSED]
         - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
           when OS switches between Light and Dark mode without requiring dock
           restart
+   [ok] 11.4 ReverseRoundness & Theme Subsystem Restructuring:
+        - Concave skirt Cairo arc rendering with 0.75 proportional clearance
+        - Theme catalog cleanup (Default promoted to top adaptive GTK engine,
+          Arian Theme Dark/Light pairs, IFtiger Theme Dark/Light imported,
+          Matte purged, natural fallback to Default for missing themes)
 
 ================================================================================
 SESSION 3 RESULT: 95% PASSED (LABWC / wlroots Backend)
 ================================================================================
-  * Tests: 97 | Passed: 92 [ok] | Squashed: 0 [ko->ok]
+  * Tests: 98 | Passed: 93 [ok] | Squashed: 0 [ko->ok]
   * Pending: 3 [  ] (11.1, 11.2, 11.3) | Protocol Limitations: 2 [NA] (2.7,
     10.6) | Open Defects: 0 [ko]
 ================================================================================

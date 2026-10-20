@@ -110,6 +110,7 @@ namespace Plank
 		{
 			base.reset_properties ();
 			TopRoundness = 4;
+			ReverseRoundness = 0;
 			BottomRoundness = 0;
 			HorizPadding = 0.0;
 			TopPadding = -11.0;

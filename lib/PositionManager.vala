@@ -351,6 +351,9 @@ namespace Plank
 		public int ItemPadding   { get; private set; }
 		public int UrgentBounceHeight { get; private set; }
 		public int LaunchBounceHeight { get; private set; }
+		public int ReverseRoundness { get; private set; }
+		public int TopRoundness { get; private set; }
+		public int BottomRoundness { get; private set; }
 		
 		int items_width;
 		int items_offset;
@@ -440,6 +443,13 @@ namespace Plank
 			thaw_notify ();
 		}
 		
+		inline int get_reverse_roundness_padding (int rev_round, int bot_round)
+		{
+			if (rev_round > 0 && bot_round == 0)
+				return int.max (8, (int) Math.round (rev_round * 0.75));
+			return 0;
+		}
+		
 		void update_caches (DockTheme theme)
 		{
 			unowned DockPreferences prefs = controller.prefs;
@@ -486,6 +496,9 @@ namespace Plank
 			UrgentBounceHeight = (int) (theme.UrgentBounceHeight * IconSize);
 			LaunchBounceHeight = (int) (theme.LaunchBounceHeight * IconSize);
 			LineWidth     = theme.LineWidth;
+			ReverseRoundness = theme.ReverseRoundness;
+			TopRoundness  = theme.TopRoundness;
+			BottomRoundness = theme.BottomRoundness;
 			
 			if (!screen_is_composited) {
 				if (HorizPadding < 0)
@@ -494,7 +507,8 @@ namespace Plank
 					TopPadding = (int) scaled_icon_size;
 			}
 			
-			items_offset  = (int) (2 * LineWidth + (HorizPadding > 0 ? HorizPadding : 0));
+			var rev_padding = get_reverse_roundness_padding (ReverseRoundness, BottomRoundness);
+			items_offset  = (int) (2 * LineWidth + (HorizPadding > 0 ? HorizPadding : 0) + rev_padding);
 			
 			top_offset = theme.get_top_offset () + TopPadding;
 			bottom_offset = theme.get_bottom_offset () + BottomPadding;
@@ -537,7 +551,8 @@ namespace Plank
 			// Must use get_items_total_span () instead of (item_count * slot_size) so that
 			// variable-sized items (such as SeparatorDockItem) reflect true rendered span
 			// matching update_dimensions (), avoiding premature icon shrinking.
-			var width = get_items_total_span () + 2 * HorizPadding + 4 * LineWidth;
+			var rev_extra = 2 * get_reverse_roundness_padding (theme.ReverseRoundness, theme.BottomRoundness);
+			var width = get_items_total_span () + 2 * HorizPadding + 4 * LineWidth + rev_extra;
 			var step_size = int.max (1, (int) (Math.fabs (width - max_width) / item_count));
 			
 			if (width > max_width && MaxIconSize > DockPreferences.MIN_ICON_SIZE) {
@@ -632,7 +647,8 @@ namespace Plank
 			case Gtk.Align.START:
 			case Gtk.Align.END:
 			case Gtk.Align.CENTER:
-				width = get_items_total_span () + 2 * HorizPadding + 4 * LineWidth;
+				var rev_extra = 2 * get_reverse_roundness_padding (ReverseRoundness, BottomRoundness);
+				width = get_items_total_span () + 2 * HorizPadding + 4 * LineWidth + rev_extra;
 				break;
 			case Gtk.Align.FILL:
 				if (is_horizontal_dock ())
@@ -1578,31 +1594,33 @@ namespace Plank
 				}
 			}
 
+			var rev_round = get_reverse_roundness_padding (ReverseRoundness, BottomRoundness);
+
 			switch (Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
-				x = (int) Math.round (center_first.x - padding_first);
+				x = (int) Math.round (center_first.x - padding_first - rev_round);
 				y += height - DockBackgroundHeight;
-				width = (int) Math.round (center_last.x - center_first.x + padding_first + padding_last);
+				width = (int) Math.round (center_last.x - center_first.x + padding_first + padding_last + 2 * rev_round);
 				height = DockBackgroundHeight;
 				break;
 			case Gtk.PositionType.TOP:
-				x = (int) Math.round (center_first.x - padding_first);
+				x = (int) Math.round (center_first.x - padding_first - rev_round);
 				y = 0;
-				width = (int) Math.round (center_last.x - center_first.x + padding_first + padding_last);
+				width = (int) Math.round (center_last.x - center_first.x + padding_first + padding_last + 2 * rev_round);
 				height = DockBackgroundHeight;
 				break;
 			case Gtk.PositionType.LEFT:
 				x = 0;
-				y = (int) Math.round (center_first.y - padding_first);
+				y = (int) Math.round (center_first.y - padding_first - rev_round);
 				width = DockBackgroundWidth;
-				height = (int) Math.round (center_last.y - center_first.y + padding_first + padding_last);
+				height = (int) Math.round (center_last.y - center_first.y + padding_first + padding_last + 2 * rev_round);
 				break;
 			case Gtk.PositionType.RIGHT:
 				x += width - DockBackgroundWidth;
-				y = (int) Math.round (center_first.y - padding_first);
+				y = (int) Math.round (center_first.y - padding_first - rev_round);
 				width = DockBackgroundWidth;
-				height = (int) Math.round (center_last.y - center_first.y + padding_first + padding_last);
+				height = (int) Math.round (center_last.y - center_first.y + padding_first + padding_last + 2 * rev_round);
 				break;
 			}
 			

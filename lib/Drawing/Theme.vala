@@ -65,6 +65,9 @@ namespace Plank
 		[Description(nick = "bottom-roundness", blurb = "The roundness of the bottom corners.")]
 		public int BottomRoundness { get; set; }
 		
+		[Description(nick = "reverse-roundness", blurb = "The concave flare roundness touching the screen bottom edge.")]
+		public int ReverseRoundness { get; set; }
+		
 		[Description(nick = "line-width", blurb = "The thickness (in pixels) of lines drawn.")]
 		public int LineWidth { get; set; }
 		
@@ -155,8 +158,9 @@ namespace Plank
 		 */
 		protected override void reset_properties ()
 		{
-			TopRoundness    = 6;
-			BottomRoundness = 6;
+			TopRoundness     = 6;
+			BottomRoundness  = 6;
+			ReverseRoundness = 0;
 			
 			LineWidth = 1;
 			
@@ -249,11 +253,10 @@ namespace Plank
 		 */
 		public void load (string type)
 		{
-			// if there is no folder available, fallback to internal defaults or dynamic GTK theme
-			if (theme_folder == null) {
+			// if there is no folder available or theme is Default, fallback to internal dynamic adaptive GTK theme
+			if (theme_folder == null || theme_name == DEFAULT_NAME || theme_name == GTK_THEME_NAME) {
 				reset_properties ();
-				if (theme_name == GTK_THEME_NAME)
-					apply_dynamic_gtk_theme ();
+				apply_dynamic_gtk_theme ();
 				return;
 			}
 			
@@ -291,7 +294,6 @@ namespace Plank
 			Cairo.Pattern gradient;
 			var width = surface.Width;
 			var height = surface.Height;
-			var bottom_offset = BottomRoundness > 0 ? LineWidth : -LineWidth;
 			
 			cr.save ();
 			
@@ -300,31 +302,148 @@ namespace Plank
 			gradient.add_color_stop_rgba (1, FillEndColor.red, FillEndColor.green, FillEndColor.blue, FillEndColor.alpha);
 			
 			cr.set_source (gradient);
-			draw_rounded_rect (cr,
-				LineWidth / 2.0,
-				LineWidth / 2.0,
-				width - LineWidth,
-				height - LineWidth / 2.0 - bottom_offset / 2.0,
-				TopRoundness,
-				BottomRoundness,
-				LineWidth);
-			cr.fill_preserve ();
-			
-			cr.set_source_rgba (OuterStrokeColor.red, OuterStrokeColor.green, OuterStrokeColor.blue, OuterStrokeColor.alpha);
-			cr.set_line_width (LineWidth);
-			cr.stroke ();
-			
-			gradient = new Cairo.Pattern.linear (0, 2 * LineWidth, 0, height - 2 * LineWidth - bottom_offset);
-			gradient.add_color_stop_rgba (0, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.5);
-			gradient.add_color_stop_rgba ((TopRoundness > 0 ? TopRoundness : LineWidth) / (double) height, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.12);
-			gradient.add_color_stop_rgba (1 - (BottomRoundness > 0 ? BottomRoundness : LineWidth) / (double) height, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.08);
-			gradient.add_color_stop_rgba (1, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.19);
-			
-			cr.set_source (gradient);
-			draw_inner_rect (cr, width, height);
-			cr.stroke ();
+
+			if (ReverseRoundness > 0 && BottomRoundness == 0) {
+				draw_reverse_fillet_dock (cr,
+					LineWidth / 2.0,
+					LineWidth / 2.0,
+					width - LineWidth,
+					height - LineWidth / 2.0,
+					TopRoundness,
+					ReverseRoundness,
+					LineWidth);
+				cr.fill_preserve ();
+				
+				cr.set_source_rgba (OuterStrokeColor.red, OuterStrokeColor.green, OuterStrokeColor.blue, OuterStrokeColor.alpha);
+				cr.set_line_width (LineWidth);
+				cr.stroke ();
+				
+				var bevel_gradient = new Cairo.Pattern.linear (0, 0, 0, height);
+				bevel_gradient.add_color_stop_rgba (0.0, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.35);
+				bevel_gradient.add_color_stop_rgba (0.4, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.10);
+				bevel_gradient.add_color_stop_rgba (1.0, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.0);
+				cr.set_source (bevel_gradient);
+				draw_reverse_fillet_bevel (cr,
+					LineWidth * 1.5,
+					LineWidth * 1.5,
+					width - LineWidth * 3.0,
+					height - LineWidth * 1.5,
+					TopRoundness - LineWidth,
+					ReverseRoundness,
+					LineWidth);
+			} else {
+				var bottom_offset = BottomRoundness > 0 ? LineWidth : -LineWidth;
+				draw_rounded_rect (cr,
+					LineWidth / 2.0,
+					LineWidth / 2.0,
+					width - LineWidth,
+					height - LineWidth / 2.0 - bottom_offset / 2.0,
+					TopRoundness,
+					BottomRoundness,
+					LineWidth);
+				cr.fill_preserve ();
+				
+				cr.set_source_rgba (OuterStrokeColor.red, OuterStrokeColor.green, OuterStrokeColor.blue, OuterStrokeColor.alpha);
+				cr.set_line_width (LineWidth);
+				cr.stroke ();
+				
+				gradient = new Cairo.Pattern.linear (0, 2 * LineWidth, 0, height - 2 * LineWidth - bottom_offset);
+				gradient.add_color_stop_rgba (0, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.5);
+				gradient.add_color_stop_rgba ((TopRoundness > 0 ? TopRoundness : LineWidth) / (double) height, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.12);
+				gradient.add_color_stop_rgba (1 - (BottomRoundness > 0 ? BottomRoundness : LineWidth) / (double) height, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.08);
+				gradient.add_color_stop_rgba (1, InnerStrokeColor.red, InnerStrokeColor.green, InnerStrokeColor.blue, 0.19);
+				
+				cr.set_source (gradient);
+				draw_inner_rect (cr, width, height);
+				cr.stroke ();
+			}
 			
 			cr.restore ();
+		}
+
+		public static void draw_reverse_fillet_dock (Cairo.Context cr, double x, double y, double width, double height, double top_radius = 19.0, double rev_radius = 26.0, double line_width = 1.0)
+		{
+			var min_size = double.min (width, height);
+			top_radius = top_radius.clamp (0.0, min_size / 2.0);
+			rev_radius = rev_radius.clamp (0.0, double.min (width / 3.0, double.max (0.0, height - top_radius)));
+
+			if (!Gdk.Screen.get_default ().is_composited ()) {
+				draw_rounded_rect (cr, x, y, width, height, 0.0, 0.0, line_width);
+				return;
+			}
+
+			// 1. Bottom-left flared tip touching the screen bottom
+			cr.move_to (x, y + height);
+
+			// 2. Concave arc: from (x, y+height) flaring up-right to meet vertical wall at (x+rev_radius, y+height-rev_radius)
+			if (rev_radius > 0.0) {
+				cr.arc_negative (x, y + height - rev_radius, rev_radius, Math.PI_2, 0.0);
+			} else {
+				cr.line_to (x, y + height);
+			}
+
+			// 3. Vertical left wall up to top-left corner
+			cr.line_to (x + rev_radius, y + top_radius);
+
+			// 4. Convex top-left corner
+			if (top_radius > 0.0) {
+				cr.arc (x + rev_radius + top_radius, y + top_radius, top_radius, Math.PI, Math.PI + Math.PI_2);
+			}
+
+			// 5. Horizontal top wall across to top-right corner
+			cr.line_to (x + width - rev_radius - top_radius, y);
+
+			// 6. Convex top-right corner
+			if (top_radius > 0.0) {
+				cr.arc (x + width - rev_radius - top_radius, y + top_radius, top_radius, -Math.PI_2, 0.0);
+			}
+
+			// 7. Vertical right wall down to bottom-right flare
+			cr.line_to (x + width - rev_radius, y + height - rev_radius);
+
+			// 8. Concave arc: from (x+width-rev_radius, y+height-rev_radius) flaring down-right to (x+width, y+height)
+			if (rev_radius > 0.0) {
+				cr.arc_negative (x + width, y + height - rev_radius, rev_radius, Math.PI, Math.PI_2);
+			} else {
+				cr.line_to (x + width, y + height);
+			}
+
+			// 9. Close along bottom edge touching the screen
+			cr.line_to (x, y + height);
+			cr.close_path ();
+		}
+
+		public static void draw_reverse_fillet_bevel (Cairo.Context cr, double x, double y, double width, double height, double top_radius = 18.0, double rev_radius = 26.0, double line_width = 1.0)
+		{
+			var min_size = double.min (width, height);
+			top_radius = top_radius.clamp (0.0, min_size / 2.0);
+			rev_radius = rev_radius.clamp (0.0, double.min (width / 3.0, double.max (0.0, height - top_radius)));
+
+			if (!Gdk.Screen.get_default ().is_composited ())
+				return;
+
+			cr.move_to (x, y + height);
+
+			if (rev_radius > 0.0)
+				cr.arc_negative (x, y + height - rev_radius, rev_radius, Math.PI_2, 0.0);
+
+			cr.line_to (x + rev_radius, y + top_radius);
+
+			if (top_radius > 0.0)
+				cr.arc (x + rev_radius + top_radius, y + top_radius, top_radius, Math.PI, Math.PI + Math.PI_2);
+
+			cr.line_to (x + width - rev_radius - top_radius, y);
+
+			if (top_radius > 0.0)
+				cr.arc (x + width - rev_radius - top_radius, y + top_radius, top_radius, -Math.PI_2, 0.0);
+
+			cr.line_to (x + width - rev_radius, y + height - rev_radius);
+
+			if (rev_radius > 0.0)
+				cr.arc_negative (x + width, y + height - rev_radius, rev_radius, Math.PI, Math.PI_2);
+
+			cr.set_line_width (line_width);
+			cr.stroke ();
 		}
 		
 		/**
@@ -448,6 +567,11 @@ namespace Plank
 					BottomRoundness = 0;
 				break;
 			
+			case "ReverseRoundness":
+				if (ReverseRoundness < 0)
+					ReverseRoundness = 0;
+				break;
+			
 			case "LineWidth":
 				if (LineWidth < 0)
 					LineWidth = 0;
@@ -507,7 +631,6 @@ namespace Plank
 			var list = new Gee.HashSet<string> ();
 			
 			list.add (DEFAULT_NAME);
-			list.add (GTK_THEME_NAME);
 			
 			// 1. User's wayplank themes folder (~/.local/share/wayplank/themes)
 			enumerate_theme_folder (Paths.AppThemeFolder, list);
@@ -526,9 +649,16 @@ namespace Plank
 				enumerate_theme_folder (datafolder.get_child ("plank/themes"), list);
 			}
 			
+			var others = new Gee.ArrayList<string> ();
+			foreach (var theme_item in list) {
+				if (theme_item != DEFAULT_NAME)
+					others.add (theme_item);
+			}
+			others.sort ();
+			
 			var result = new Gee.ArrayList<string> ();
-			result.add_all (list);
-			result.sort ();
+			result.add (DEFAULT_NAME);
+			result.add_all (others);
 			
 			return result.to_array ();
 		}
@@ -543,11 +673,8 @@ namespace Plank
 		 */
 		public static File? get_theme_folder (string name)
 		{
-			if (name == DEFAULT_NAME)
-				return get_default_theme_folder ();
-			
-			if (name == GTK_THEME_NAME)
-				return get_gtk_theme_folder ();
+			if (name == DEFAULT_NAME || name == GTK_THEME_NAME)
+				return null;
 			
 			File folder;
 			
@@ -578,69 +705,8 @@ namespace Plank
 					return folder;
 			}
 			
-			warning ("%s not found, falling back to %s.", name, DEFAULT_NAME);
+			warning ("Theme '%s' not found, falling back to %s.", name, DEFAULT_NAME);
 			
-			return get_default_theme_folder ();
-		}
-		
-		static File? get_default_theme_folder ()
-		{
-			File folder;
-			
-			// "Default" folder located in system's themes-folder
-			folder = Paths.ThemeFolder.get_child (DEFAULT_NAME);
-			if (is_valid_theme_dir (folder))
-				return folder;
-			
-			// Fallback to legacy plank default folder if present
-			foreach (var datafolder in Paths.DataDirFolders) {
-				folder = datafolder.get_child ("plank/themes/%s".printf (DEFAULT_NAME));
-				if (is_valid_theme_dir (folder))
-					return folder;
-			}
-			
-			return null;
-		}
-		
-		static File? get_gtk_theme_folder ()
-		{
-			File folder;
-			unowned string exec_name = Paths.AppName;
-			var name = Gtk.Settings.get_default ().gtk_theme_name;
-					
-			// Look in user's xdg-themes-folder
-			folder = Paths.DataHomeFolder.get_child ("themes/%s".printf (name));
-			if (folder.query_exists ()) {
-				var dock_folder = folder.get_child (exec_name);
-				if (is_valid_theme_dir (dock_folder))
-					return dock_folder;
-				dock_folder = folder.get_child ("plank");
-				if (is_valid_theme_dir (dock_folder))
-					return dock_folder;
-			}
-			
-			// Look in user's legacy xdg-themes-folder
-			folder = Paths.HomeFolder.get_child (".themes/%s".printf (name));
-			if (folder.query_exists ()) {
-				var dock_folder = folder.get_child (exec_name);
-				if (is_valid_theme_dir (dock_folder))
-					return dock_folder;
-				dock_folder = folder.get_child ("plank");
-				if (is_valid_theme_dir (dock_folder))
-					return dock_folder;
-			}
-			
-			// Look in system's xdg-themes-folders
-			foreach (var datafolder in Paths.DataDirFolders) {
-				folder = datafolder.get_child ("themes/%s/%s".printf (name, exec_name));
-				if (is_valid_theme_dir (folder))
-					return folder;
-				folder = datafolder.get_child ("themes/%s/plank".printf (name));
-				if (is_valid_theme_dir (folder))
-					return folder;
-			}
-			
-			// If not provided on disk, return null so dynamic GTK theme synthesis takes over
 			return null;
 		}
 	}
