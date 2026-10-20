@@ -444,6 +444,13 @@ namespace Plank
 				case "media-eject-symbolic":
 				case "drive-removable-media":
 					return Plank.G_RESOURCE_PATH + "/docklets/ejector.svg";
+				case "notification-display-brightness-full":
+				case "display-brightness-full":
+				case "brightness-full":
+				case "display-brightness":
+				case "display-brightness-symbolic":
+				case "brightness":
+					return Plank.G_RESOURCE_PATH + "/docklets/brightness.svg";
 				case "notification-display-brightness-high":
 				case "display-brightness-high":
 				case "brightness-high":
@@ -457,9 +464,6 @@ namespace Plank
 				case "display-brightness-low":
 				case "brightness-low":
 					return Plank.G_RESOURCE_PATH + "/docklets/brightness-low.svg";
-				case "display-brightness":
-				case "display-brightness-symbolic":
-					return Plank.G_RESOURCE_PATH + "/docklets/brightness.svg";
 				case "weather-clear":
 				case "weather-clear-symbolic":
 					return Plank.G_RESOURCE_PATH + "/docklets/weather-clear.svg";

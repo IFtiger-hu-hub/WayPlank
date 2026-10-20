@@ -23,8 +23,20 @@ namespace Plank
 	{
 		public static string get_brightness_icon_name (int percent)
 		{
-			string tier = (percent >= 66) ? "high" : (percent >= 33) ? "medium" : "low";
 			var default_theme = Gtk.IconTheme.get_default ();
+
+			// 100% Maximum Brightness: Full solid sun icon
+			if (percent >= 100) {
+				if (default_theme.has_icon ("notification-display-brightness-full"))
+					return "notification-display-brightness-full";
+				if (default_theme.has_icon ("display-brightness-full"))
+					return "display-brightness-full";
+				if (default_theme.has_icon ("brightness-full"))
+					return "brightness-full";
+				return "brightness";
+			}
+
+			string tier = (percent >= 66) ? "high" : (percent >= 33) ? "medium" : "low";
 
 			// Set 1: notification-display-brightness-* (Haptic-SML, GNOME notification spec)
 			if (default_theme.has_icon ("notification-display-brightness-high") &&
@@ -76,6 +88,63 @@ namespace Plank
 		private ulong mon_add_id = 0;
 		private ulong mon_rem_id = 0;
 
+		private bool has_active_internal_display ()
+		{
+			// 1. Direct hardware backlight device (e.g. amdgpu_bl0, intel_backlight)
+			if (backlight_device != null && !backlight_device.has_prefix ("acpi_video")) {
+				string dev_enabled_path = "/sys/class/backlight/%s/device/enabled".printf (backlight_device);
+				if (GLib.FileUtils.test (dev_enabled_path, GLib.FileTest.EXISTS)) {
+					string content;
+					try {
+						GLib.FileUtils.get_contents (dev_enabled_path, out content);
+						if (content.strip () == "disabled") {
+							return false; // Clamshell mode with external monitor
+						}
+					} catch (GLib.Error e) { }
+				}
+				return true;
+			}
+
+			// 2. Check /sys/class/drm for connected and enabled internal panel (eDP, LVDS, DSI)
+			var drm_dir = GLib.File.new_for_path ("/sys/class/drm");
+			try {
+				var enumerator = drm_dir.enumerate_children ("standard::name", GLib.FileQueryInfoFlags.NONE);
+				GLib.FileInfo? info = null;
+				while ((info = enumerator.next_file ()) != null) {
+					string name = info.get_name ();
+					if (name.contains ("-eDP-") || name.contains ("-LVDS-") || name.contains ("-DSI-")) {
+						string status_path = "/sys/class/drm/%s/status".printf (name);
+						string enabled_path = "/sys/class/drm/%s/enabled".printf (name);
+						try {
+							string status;
+							GLib.FileUtils.get_contents (status_path, out status);
+							if (status.strip () == "connected") {
+								if (GLib.FileUtils.test (enabled_path, GLib.FileTest.EXISTS)) {
+									string en;
+									GLib.FileUtils.get_contents (enabled_path, out en);
+									if (en.strip () == "disabled") {
+										continue;
+									}
+								}
+								return true;
+							}
+						} catch (GLib.Error e) { }
+					}
+				}
+			} catch (GLib.Error e) { }
+
+			return false;
+		}
+
+		private bool is_standalone_internal_display ()
+		{
+			var display = Gdk.Display.get_default ();
+			if (display != null && display.get_n_monitors () > 1) {
+				return false;
+			}
+			return has_active_internal_display ();
+		}
+
 		public BrightnessDockItem ()
 		{
 			GLib.Object (Prefs: new DockItemPreferences ());
@@ -102,10 +171,12 @@ namespace Plank
 			var display = Gdk.Display.get_default ();
 			if (display != null) {
 				mon_add_id = display.monitor_added.connect ((m) => {
+					detect_backlight_device ();
 					refresh_kscreen_outputs ();
 					refresh_ddcutil_displays ();
 				});
 				mon_rem_id = display.monitor_removed.connect ((m) => {
+					detect_backlight_device ();
 					refresh_kscreen_outputs ();
 					refresh_ddcutil_displays ();
 				});
@@ -227,8 +298,8 @@ namespace Plank
 
 		private void on_kde_brightness_changed (GLib.DBusConnection conn, string? sender, string path, string iface, string sig_name, GLib.Variant sig_params)
 		{
-			// Ignore self-echo during and right after user action (8s settling window)
-			if (last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) < 8000000)
+			// Ignore self-echo during and right after user action (250ms settling window)
+			if (last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) < 250000)
 				return;
 
 			if (sig_params.n_children () < 1)
@@ -252,8 +323,8 @@ namespace Plank
 
 		private void on_gnome_properties_changed (GLib.DBusConnection conn, string? sender, string path, string iface, string sig_name, GLib.Variant sig_params)
 		{
-			// Ignore self-echo during and right after user action (8s settling window)
-			if (last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) < 8000000)
+			// Ignore self-echo during and right after user action (250ms settling window)
+			if (last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) < 250000)
 				return;
 
 			if (sig_params.n_children () < 2)
@@ -332,6 +403,9 @@ namespace Plank
 		private void refresh_kscreen_outputs ()
 		{
 			kscreen_outputs.clear ();
+			if (is_standalone_internal_display ())
+				return;
+
 			if (!kde_available && !(GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ().contains ("kde"))
 				return;
 
@@ -370,8 +444,12 @@ namespace Plank
 
 		private void refresh_ddcutil_displays ()
 		{
-			if (GLib.Environment.find_program_in_path ("ddcutil") == null)
+			if (is_standalone_internal_display () || GLib.Environment.find_program_in_path ("ddcutil") == null) {
+				ddc_mutex.lock ();
+				ddcutil_displays.clear ();
+				ddc_mutex.unlock ();
 				return;
+			}
 
 			var desktop = (GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ();
 			if (desktop.contains ("kde") || desktop.contains ("plasma")) {
@@ -539,6 +617,10 @@ namespace Plank
 
 		private bool on_timer_tick ()
 		{
+			// Reset user_has_set_sp after 2.5 seconds of user inactivity so external adjustments (Fn keys, OS power dimming) resume syncing
+			if (user_has_set_sp && last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) > 2500000) {
+				user_has_set_sp = false;
+			}
 			refresh_brightness ();
 			return true;
 		}
@@ -571,9 +653,20 @@ namespace Plank
 				int t = pending_hardware_target;
 				pending_hardware_target = -1;
 				apply_hardware_brightness (t);
+			} else if (is_standalone_internal_display ()) {
+				// Standalone internal screen fast-path: 20ms micro-coalesce for buttery 60fps wheel scrolling with zero lag
+				apply_timer_id = GLib.Timeout.add (20, () => {
+					apply_timer_id = 0;
+					if (pending_hardware_target >= 0) {
+						int t = pending_hardware_target;
+						pending_hardware_target = -1;
+						apply_hardware_brightness (t);
+					}
+					return GLib.Source.REMOVE;
+				});
 			} else {
-				// Settle debounce window (350ms): allows smooth mouse wheel scrolling and eliminates I2C DDC/CI packet collisions
-				apply_timer_id = GLib.Timeout.add (350, () => {
+				// External display or multi-monitor settle debounce window (250ms): allows smooth mouse wheel scrolling and eliminates I2C DDC/CI packet collisions
+				apply_timer_id = GLib.Timeout.add (250, () => {
 					apply_timer_id = 0;
 					if (pending_hardware_target >= 0) {
 						int t = pending_hardware_target;
@@ -589,9 +682,10 @@ namespace Plank
 		{
 			var desktop = (GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ();
 			bool is_kde = kde_available || desktop.contains ("kde") || desktop.contains ("plasma");
+			bool standalone_internal = is_standalone_internal_display ();
 
-			// 1. Try kscreen-doctor on KDE to atomically adjust all connected displays
-			if (GLib.Environment.find_program_in_path ("kscreen-doctor") != null && is_kde) {
+			// 1. External / Multi-monitor KDE: invoke kscreen-doctor to atomically adjust all connected displays
+			if (!standalone_internal && is_kde && GLib.Environment.find_program_in_path ("kscreen-doctor") != null) {
 				if (kscreen_outputs.is_empty) {
 					refresh_kscreen_outputs ();
 				}
@@ -608,7 +702,7 @@ namespace Plank
 				}
 			}
 
-			// 2. Try KDE Solid PowerManagement D-Bus
+			// 2. KDE Solid PowerManagement D-Bus: direct, instantaneous (<1ms) internal backlight control
 			if (session_bus != null && is_kde) {
 				if (kde_max_brightness > 0) {
 					int kde_val = (int) Math.round (((double) target / 100.0) * (double) kde_max_brightness);
@@ -664,7 +758,9 @@ namespace Plank
 				}
 
 				// 4. Non-KDE External Display Synchronization via Dedicated Serialized Coalescing Worker
-				queue_ddc_target (target);
+				if (!standalone_internal) {
+					queue_ddc_target (target);
+				}
 			}
 		}
 
@@ -672,10 +768,14 @@ namespace Plank
 		{
 			var desktop = (GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "").down ();
 			bool is_kde = kde_available || desktop.contains ("kde") || desktop.contains ("plasma");
-			if (is_kde || GLib.Environment.find_program_in_path ("ddcutil") == null)
+			if (is_kde || is_standalone_internal_display () || GLib.Environment.find_program_in_path ("ddcutil") == null)
 				return;
 
 			ddc_mutex.lock ();
+			if (ddcutil_displays.is_empty) {
+				ddc_mutex.unlock ();
+				return;
+			}
 			pending_ddc_target = target;
 			if (!ddc_worker_active) {
 				ddc_worker_active = true;
@@ -711,26 +811,7 @@ namespace Plank
 				}
 				ddc_mutex.unlock ();
 				if (displays.is_empty) {
-					// Dynamic fallback if monitor was plugged in after startup
-					try {
-						string out_str;
-						int exit_code;
-						if (GLib.Process.spawn_command_line_sync ("ddcutil detect --terse", out out_str, null, out exit_code) && exit_code == 0) {
-							var lines = out_str.split ("\n");
-							foreach (var line in lines) {
-								var trimmed = line.strip ();
-								if (trimmed.has_prefix ("Display ")) {
-									var parts = trimmed.split (" ");
-									if (parts.length >= 2) {
-										int d_num = int.parse (parts[1]);
-										if (d_num > 0 && !displays.contains (d_num)) {
-											displays.add (d_num);
-										}
-									}
-								}
-							}
-						}
-					} catch (GLib.Error e) { }
+					break;
 				}
 
 				foreach (int d_num in displays) {
@@ -791,7 +872,7 @@ namespace Plank
 			items.add (new Gtk.SeparatorMenuItem ());
 
 			int[] presets = { 100, 75, 50, 25, 10 };
-			string[] preset_icons = { "display-brightness-high", "display-brightness-high", "display-brightness-medium", "display-brightness-low", "display-brightness-low" };
+			string[] preset_icons = { get_brightness_icon_name (100), "display-brightness-high", "display-brightness-medium", "display-brightness-low", "display-brightness-low" };
 
 			for (int i = 0; i < presets.length; i++) {
 				int p = presets[i];
