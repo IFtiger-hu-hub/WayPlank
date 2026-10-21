@@ -218,8 +218,8 @@ When pinning a high number of applications or operating on smaller displays (suc
 
 ### Launcher Deduplication & Item Reuse
 To maintain a clean and reliable configuration:
-- **Automatic Deduplication on Load**: When initializing or reloading launchers from disk, WayPlank queries active URIs. If duplicate `.dockitem` files exist for the same application, redundant files are safely removed from disk and ignored.
-- **Deterministic Item Reuse**: Dragging or pinning an application that already exists in the dock reuses its existing `.dockitem` configuration rather than spawning redundant incremented filenames (such as `app-1.dockitem` or `app-2.dockitem`).
+- **Canonical Deduplication on Load & Drop**: When initializing launchers or receiving drag-and-drop items, WayPlank resolves canonical file paths (`Posix.realpath`), percent-encoded URIs (`GLib.File.equal`), and desktop IDs. If an item already exists in the dock, WayPlank reuses and repositions its existing `.dockitem` file instead of spawning redundant incremented filenames (such as `app-1.dockitem` or `app-2.dockitem`).
+- **KISS Drag-Off Removal & Poof Animation**: Dragging an unpinned application off the dock inspects actual running windows (`window_count_for_app > 0`). If the app has zero open windows, it is instantly deleted from disk with a clean Cairo `PoofWindow` cloud particle animation, eliminating transient icon ghosting or hopping into the unpinned section. If active windows remain, it cleanly transitions to an unpinned running item until its windows are closed.
 - **Auxiliary Bridge Window Shielding**: Internal background windows—such as `xwaylandvideobridge` surfaces used by Discord, Slack, and OBS for Wayland screen-sharing—are automatically detected and filtered out, preventing phantom 1×1 ghost launcher icons from cluttering your running apps list.
 
 ---
@@ -243,9 +243,14 @@ WayPlank offers an extensive set of mouse gestures and keyboard shortcuts design
 - **Ctrl + Mouse Scroll Down**: Dynamically decrease dock icon size in real time.
 
 ### Drag & Drop Interactions
-- **Drag icon off the dock**: Unpin and remove a launcher with a classic cartoon smoke ("poof") animation.
+- **Drag icon off the dock**: Unpin and remove a launcher with a classic cartoon smoke ("poof") animation (zero-ghosting KISS cleanup).
 - **Drag icon along the dock**: Reorder launchers within their category.
-- **Drop file onto an application icon**: Directly opens the dropped file in the target application (supports 0-byte files, multi-file payloads, full FreeDesktop `%U`/`%F` parameters, icon bounce feedback, and automatic window activation). If an application does not support the dropped file type, the drop is cleanly rejected without polluting the dock.
+- **Drop file onto an application icon**: Directly opens the dropped file in the target application (supports 0-byte files, multi-file payloads, full FreeDesktop `%U`/`%F` parameters, icon bounce feedback, and automatic window activation).
+- **Strict FreeDesktop MIME Type Validation**: Dropped files are strictly validated against target applications' declared `.desktop` `MimeType=` entries. Incompatible files (e.g. dropping a PDF file onto Kate, Gedit, or Dolphin) are cleanly bounced and rejected, preventing unexpected app crashes or accidental pinning.
+- **Hover-To-Raise Target Window**: Pausing hover over a running application dock item for >500ms during an active drag operation triggers an automated focus request (`WindowManager.activate()`), bringing that application's window to the foreground so you can drop files or text directly into the application's workspace without manual task switching.
+- **Drop web URL onto dock background**: Dropping links or URLs dragged from web browsers (Firefox, Chrome, Edge, Brave) directly onto empty dock space opens the target URL in the system default web browser.
+- **Drop web URL onto web browser dock icon**: Dropping a URL onto a specific web browser launcher opens the link in a new tab within that browser.
+- **Internet Desktop Link Shortcuts**: Dragging and dropping `.desktop` files of `Type=Link` (supporting standard `URL=` and KDE expanded `URL[$e]=` keys) or `.url` files will either pin the shortcut or open the destination URL directly. Pinning always takes strict precedence when dropping `.desktop` files onto the dock.
 - **Drop folder onto a folder or directory-aware application**: Drops into a folder drawer to copy files, or onto a code editor/file manager (like Kate, Dolphin, VSCode) to open the project folder.
 - **Drop onto empty dock space**: Pins files or folders as new dock items, or adds new application launchers from `.desktop` files.
 
@@ -367,16 +372,22 @@ WayPlank requires zero user configuration or environment toggles to select the c
 ## 9. Themes & Visual Customization
 
 ### Built-in Themes
-WayPlank ships with five built-in static themes and an adaptive dynamic GTK theme engine:
-1. **Arian Theme**: Modern dark translucent glass with subtle border illumination.
-2. **Arian Theme Light**: Clean frosted glass designed for light desktop environments.
-3. **Transparent**: Ultra-minimalist borderless design showing only floating icons.
-4. **Matte**: Flat, modern solid finish.
-5. **Default**: Classic Plank appearance.
-6. **Gtk+**: Adaptive dynamic theme engine that samples the active system GTK palette (background, accent, borders) and automatically synchronizes with Dark and Light desktop modes in real time.
+WayPlank ships with a curated selection of built-in themes and an adaptive dynamic GTK theme engine:
+1. **Default**: Modern adaptive GTK engine with translucent glass styling and desktop accent color wiring.
+2. **Arian Theme Dark**: Modern dark translucent glass with subtle border illumination.
+3. **Arian Theme Light**: Clean frosted glass designed for light desktop environments.
+4. **IFtiger Theme Dark**: Sleek high-contrast dark theme contributed by downstream collaborator 史有虎 (IFtiger-hu).
+5. **IFtiger Theme Light**: Crisp, clean light theme with subtle frosted edges.
+6. **Transparent**: Ultra-minimalist borderless design showing only floating icons.
 
-### Installing Custom Themes (100% Plank Compatibility)
-WayPlank maintains 100% backward compatibility with Plank themes (`dock.theme` and `hover.theme`). You can install third-party Plank themes in any of the following standard directories:
+### FreeDesktop Settings Portal Synchronization
+WayPlank connects directly over D-Bus to the `org.freedesktop.portal.Settings` interface (`color-scheme` key). Whenever your desktop environment toggles between Light Mode and Dark Mode, WayPlank dynamically updates its adaptive themes in real time with zero dock restarts required.
+
+### Interactive Theme Manager (One-Click Archive Install & Removal)
+Starting in **v0.6.2.2**, WayPlank includes an integrated Theme Manager directly within the Preferences dialog (**Preferences $\rightarrow$ Appearance**):
+- **Install Theme (`+` Button)**: Opens a native file chooser dialog (`Gtk.FileChooserNative`). Select any theme archive (`.zip`, `.tar.gz`, `.tar.xz`, `.tar.bz2`) or standalone `.theme` file. WayPlank automatically unpacks, verifies the `dock.theme` structure, presents an interactive multi-theme selection checklist if multiple themes are packaged together, installs it into `~/.local/share/wayplank/themes/`, and applies it instantaneously!
+- **Delete Theme (Trash Button)**: Select any user-installed theme from the dropdown menu and click the trash button to permanently delete it. Built-in system themes are protected against accidental deletion.
+- **Manual Installation (100% Plank Compatibility)**: You can also manually drop folders containing `dock.theme` into:
 ```bash
 ~/.local/share/wayplank/themes/<ThemeName>/dock.theme
 ~/.local/share/plank/themes/<ThemeName>/dock.theme

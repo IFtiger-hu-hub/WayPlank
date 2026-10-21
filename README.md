@@ -5,7 +5,7 @@
 > Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Release: v0.6.2.1 (Round 1)](https://img.shields.io/badge/Release-v0.6.2.1_(Round_1)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
+> [![Release: v0.6.2.2 (Round 2)](https://img.shields.io/badge/Release-v0.6.2.2_(Round_2)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
 
 ![Wayplank Release Banner](Release%20Pic.png)
 
@@ -298,9 +298,11 @@ Here is a recap of the journey so far! For complete technical breakdown and FAT 
 * 🎨 **v0.6.2.3 (Round 3,Pre Beta) — [PLANNED]**:  
   Packaged classic stock theme suite (Dark and Light), Recent Files jump list in context menus (`RecentFilesService`),  
   and universal multi-window Cairo preview cards across all Wayland compositors.
-* 🚀 **v0.6.2.2 (Round 2,Pre Beta) — [IN PROGRESS]**:  
-  Remote web URL drag-and-drop delivery (`DesktopAppInfo.launch_uris`), automatic window raising on drag hover,  
-  and real-time dark/light mode synchronization via FreeDesktop Settings Portal (`org.freedesktop.portal.Settings`).
+* 🚀 **v0.6.2.2 (Round 2,Pre Beta) — 2026-10-21 [COMPLETED / 100% FAT PASSED]**:  
+  Remote web URL & browser shortcut DND delivery (`DesktopAppInfo.launch_uris`), hover-to-raise target window activation,  
+  real-time dark/light portal color-scheme synchronization (`org.freedesktop.portal.Settings`), interactive Theme Manager  
+  with native portal file chooser and archive installer (.zip/.tar.gz), strict FreeDesktop MIME type drop validation,  
+  canonical launcher deduplication (`Posix.realpath` & `File.equal`), and clean KISS drag-off removal with instant poof animation.
 * 🌟 **v0.6.2.1 (Round 1,Pre Beta) — 2026-10-19 [COMPLETED / 100% FAT PASSED]**:  
   Native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), launcher deduplication & item reuse, ghost bridge window shield,  
   dock overflow smooth scrolling with tachometer redline capacity indicator, and multi-monitor DDC/CI sync with SP/PV decoupling.

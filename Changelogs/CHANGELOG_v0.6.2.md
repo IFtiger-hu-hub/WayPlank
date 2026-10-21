@@ -1,8 +1,8 @@
 # WayPlank V0.6.2 Series Detailed Technical Changelog
 
 Release Series: **V0.6.2 Series (The Community Unification & Distribution Release)**  
-Current Milestone: **V0.6.2.2 (Round 2: Ergonomics, DND Remote URLs, Hover Window Raising & Portal Color-Scheme) - In Development**  
-Release Date: 2026-10-20  
+Current Milestone: **V0.6.2.2 (Round 2: Ergonomics, DND Remote URLs, Theme Manager, MIME Drop & Portal Sync) - Completed / 100% FAT Passed**  
+Release Date: 2026-10-21  
 Authors & Contributors:
 - **Sergio Melas** (Maintainer — sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))
 - **史有虎 (IFtiger-hu)** (Collaborator, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub))
@@ -163,15 +163,48 @@ This milestone exemplifies collaborative open-source synergy:
 
 ---
 
-## 9. 🚧 WayPlank V0.6.2.2 (Round 2: Ergonomics, DND Remote URLs & Portal Sync) — In Development
+## 9. 🌟 WayPlank V0.6.2.2 (Round 2: Ergonomics, DND Remote URLs, Theme Manager & Portal Sync) — Completed / 100% FAT Passed (2026-10-21)
 
-- **DND Remote Web URL Delivery (`http://`, `https://`)**:
-  - Extends drag-and-drop to handle web URLs dragged from browsers, bookmarks, or web applications.
-  - Automatically dispatches URLs to running or target browsers via `DesktopAppInfo.launch_uris()`.
-- **Hover Window Activation During Drag**:
-  - Pausing hover over a running application icon for >500ms during an active drag operation brings that application's window to the foreground.
-  - Enables direct drop into the target application workspace without manual task switching.
-- **FreeDesktop Settings Portal Color-Scheme Synchronization**:
-  - Listens to `org.freedesktop.portal.Settings` for `color-scheme` changes (Dark/Light).
-  - Dynamically triggers dock theme re-rendering when the system switches color modes without requiring dock restart.
+### Core Highlights of v0.6.2.2 (Round 2):
+1. **DND Remote Web URL Delivery & Cross-Browser Target Compatibility (`DragManager.vala`, `System.vala`)**:
+   - Comprehensive drop targets: `text/uri-list`, `text/x-moz-url`, `UTF8_STRING`, `text/plain`, `text/html`, and Windows/Qt UTF-16LE clipboard decoding.
+   - Dropping web URLs on dock background launches the system default web browser.
+   - Dropping web URLs on browser dock items opens them in a new tab.
+   - Internet desktop link shortcuts (`.desktop` with `Type=Link` and `URL[$e]=` / `URL=`, plus `.url`) are fully parsed and launched.
+   - Pinning precedence strictly protects `.desktop` files (including Chrome Web Apps like WhatsApp/YouTube) from browser drop hijacking.
+2. **Hover Window Activation During External Drag (`DragManager.vala`)**:
+   - Pausing cursor hover over a running application dock item for >500ms during an active drag operation triggers an automated `WindowManager.activate()` call.
+   - Automatically raises the target application window to the foreground, allowing the user to drop files directly into the application's workspace without manual task switching.
+3. **FreeDesktop Settings Portal Color-Scheme Synchronization (`DrawingService.vala`, `Theme.vala`)**:
+   - Direct D-Bus listener connected to `org.freedesktop.portal.Settings` for the `color-scheme` key.
+   - Dynamically re-renders adaptive GTK+ dock themes in real-time when the desktop switches between Dark and Light mode without requiring a dock restart.
+4. **Interactive Theme Manager with Native Portal File Chooser (`ThemeManager.vala`, `PreferencesWindow.vala`, `preferences.ui`)**:
+   - Adds interactive `+` (Install) and trash (Delete) buttons to the Preferences -> Appearance -> Theme selector.
+   - Integrates `Gtk.FileChooserNative` portal dialog for seamless KDE Plasma Wayland integration.
+   - Built-in archive scanner for `.zip`, `.tar.gz`, `.tar.xz`, `.tar.bz2`, and standalone `.theme` files with automatic multi-theme selection dialogs.
+   - Safe installation to `~/.local/share/wayplank/themes/` and safe deletion with immediate fallback to Default.
+   - Hardened with POSIX `GLib.Shell.quote()` escaping and guaranteed temporary directory cleanup.
+   - Ellipsized ComboBox (`Pango.EllipsizeMode.END`) and tooltips preventing theme names from stretching the preferences window.
+5. **Strict FreeDesktop MIME Type Drop Validation (`ApplicationDockItem.vala`, `DragManager.vala`)**:
+   - Strictly enforces FreeDesktop `Gio.ContentType` matching against target applications' `.desktop` `MimeType=` declarations.
+   - Incompatible drops (e.g. dropping PDF files onto Kate, Gedit, or Dolphin) bounce and reject cleanly, preventing unwanted launches and accidental pinning to the dock.
+6. **Canonical Launcher Deduplication & Item Reuse (`DockItemProvider.vala`, `ItemFactory.vala`)**:
+   - Replaces naive string comparison with canonical URI matching (`DockItemProvider.uri_matches()`): resolves symlinks (`Posix.realpath`), percent-encoding (`GLib.File.equal`), and desktop IDs.
+   - Reuses and updates existing `.dockitem` files instead of spamming `-1.dockitem`, `-2.dockitem` files on disk.
+7. **Clean KISS Drag-Off Removal & Poof Animation (`DefaultApplicationDockItemProvider.vala`, `DragManager.vala`)**:
+   - Evaluates active running windows directly (`window_count_for_app > 0`).
+   - Applications with 0 open windows delete immediately from disk and trigger the Cairo `PoofWindow` cloud particle animation at cursor release, completely eliminating transient icon ghosting or hopping into the unpinned section.
+8. **100% Multi-Compositor Qualification (FAT 0.6.2.2)**:
+   - 306 total tests executed across KDE Plasma 6 (KWin), GNOME Shell (Mutter), and Labwc (wlroots) with 304 passed, 2 NA (known Labwc protocol limitations), 0 pending, and 0 open defects.
+
+---
+
+## 10. 🎯 WayPlank V0.6.2.3 (Round 3: Multi-Window Preview Cards & Recent Files) — Upcoming
+
+- **Universal Multi-Window Preview Cards**:
+  - Cairo-rendered visual window preview cards for application instances across all Wayland compositors.
+- **Recent Files Jump List**:
+  - Direct access to recently opened documents from application right-click context menus (`RecentFilesService`).
+- **Extended Theme Pack**:
+  - Pre-packaged classic stock theme suite (Dark and Light variants).
 

@@ -73,7 +73,7 @@ flowchart TD
         F2["✅ [INTEGRATED - Round 1]<br/>Dock Overflow Smooth Scrolling (PositionManager + Wheel)"]:::integrated
         F3["✅ [INTEGRATED - Round 1]<br/>Launcher Deduplication & File Reuse (ItemFactory)"]:::integrated
         F4["✅ [INTEGRATED - Round 1]<br/>Ghost Window Filtering (xwaylandvideobridge)"]:::integrated
-        F5["DND Remote URL Delivery & Hover Window Activation"]:::pending
+        F5["✅ [INTEGRATED - Round 2]<br/>DND Remote URL Delivery & Hover Window Activation"]:::integrated
         F6["Recent Files Jump List Service (RecentFilesService)"]:::pending
         F7["🔄 [TO MODIFY / GENERALIZE]<br/>Universal Multi-Window Cards (HAL Positioning)"]:::modify
     end
@@ -82,8 +82,8 @@ flowchart TD
         M1["✅ [INTEGRATED - Round 1]<br/>Unified Package Ecosystem: DEB + RPM + Headless CI"]:::integrated
         M2["✅ [INTEGRATED - Round 1]<br/>Rock-Solid Multi-Compositor HAL + Ghost Window Shield"]:::integrated
         M3["✅ [INTEGRATED - Round 1]<br/>Infinite Capacity: Smooth Overflow Scrolling + Redline Slider"]:::integrated
-        M4["Rich DND Ecosystem: Files, Folders, URLs & Hover Raise"]:::pending
-        M5["Complete Multi-Theme Suite: Gtk+ Adaptive + Dark + Light"]:::pending
+        M4["✅ [INTEGRATED - Round 2]<br/>Rich DND Ecosystem: Files, Folders, URLs & Hover Raise"]:::integrated
+        M5["✅ [INTEGRATED - Round 2]<br/>Adaptive Theming: Portal Color-Scheme Sync + Theme Manager"]:::integrated
     end
 
     Upstream_v061 --> Unified_v062
@@ -129,10 +129,10 @@ To preserve linear versioning, eliminate ambiguity, and provide clean standalone
 
 ---
 
-### Phase 2 (Round 2): User Experience & Ergonomic Enhancements — 🚧 IN PROGRESS: v0.6.2.2
-*Goal: Expand dock navigation and Drag-and-Drop capabilities.*
+### Phase 2 (Round 2): User Experience & Ergonomic Enhancements — 🏁 RELEASE MILESTONE: v0.6.2.2 (100% FAT PASSED)
+*Goal: Expand dock navigation, Theme Management, Drag-and-Drop capabilities and portal color sync.*
 
-1. **Dock Overflow Smooth Scrolling (`lib/PositionManager.vala`, `lib/DockRenderer.vala`, `lib/Widgets/DockWindow.vala`)** — ✅ **COMPLETED (Early in v0.6.2.1)**:
+1. **Dock Overflow Smooth Scrolling (`lib/PositionManager.vala`, `lib/DockRenderer.vala`, `lib/Widgets/DockWindow.vala`)** — ✅ **COMPLETED (v0.6.2.1 / v0.6.2.2)**:
    - Port overflow bounding logic from `e1d6a03`:
      - Calculate `available_content_span` and `max_scroll_offset`.
      - When total icons exceed screen span, clamp background and enable horizontal/vertical scroll offset.
@@ -141,12 +141,25 @@ To preserve linear versioning, eliminate ambiguity, and provide clean standalone
    - Added user setting **`Scroll on Overflow`** toggle switch in **Preferences $\rightarrow$ Behaviour** under Item Management (`scroll-overflow` GSettings key).
    - Added dynamic **Screen Space Capacity Indicator & Auto-Shrink Warning** to Appearance Icon Size slider (Tachometer Redline styling with exact pixel tick marks and explicative tooltips).
    - Preserved Accordion Docklets drawer architecture and prevented docklet scroll event hijacking.
-2. **DND Remote URL Delivery & Hover Window Raising (`lib/Services/System.vala`, `lib/Items/ApplicationDockItem.vala`)**:
-   - Port `launch_with_uris()` to handle `http://`, `https://` web URLs and dispatch to browser/app via `DesktopAppInfo.launch_uris()`.
-   - Port hover window activation: when dragging a file/URL and hovering over a running app icon for >500ms, bring that app's window forward so the user can drop directly into the application workspace.
-3. **FreeDesktop Color-Scheme Portal Synchronization (`lib/Services/SystemTheme.vala`)**:
-   - Integrate D-Bus listener on `org.freedesktop.portal.Settings` (`color-scheme`).
-   - Link portal events directly to our `Theme.vala` adaptive Gtk+ engine to trigger instantaneous re-rendering on dark/light switch without needing manual dock restart.
+2. **DND Remote URL Delivery & Hover Window Raising (`lib/Services/System.vala`, `lib/DragManager.vala`, `lib/Items/ApplicationDockItem.vala`)** — ✅ **COMPLETED (v0.6.2.2)**:
+   - Extended `DragManager.vala` and `System.vala` to handle `http://`, `https://`, `ftp://` web URLs, `.desktop` Type=Link shortcuts (with `URL=` and `URL[$e]=`), and `.url` files.
+   - Dropping web URLs on dock background launches system default browser via `AppInfo.launch_default_for_uri()`. Dropping onto browser dock item opens a new tab.
+   - Hover window activation: hovering over a running app icon for >500ms during an active drag operation brings that app's window forward via `WindowManager.activate()`, allowing the user to drop directly into the application workspace.
+   - Strict pinning precedence: dragging `.desktop` files (including Chrome Web Apps like YouTube/WhatsApp) always pins the item rather than being hijacked by web browser drop handlers.
+3. **FreeDesktop Color-Scheme Portal Synchronization (`lib/Services/SystemTheme.vala`, `lib/DrawingService.vala`)** — ✅ **COMPLETED (v0.6.2.2)**:
+   - Integrated real-time D-Bus listener on `org.freedesktop.portal.Settings` for `color-scheme` key changes.
+   - Linked portal events directly to `Theme.vala` adaptive Gtk+ engine to trigger instantaneous re-rendering on dark/light switch without requiring a dock restart.
+4. **Interactive Theme Manager with Native Portal File Chooser (`lib/Services/ThemeManager.vala`, `lib/Widgets/PreferencesWindow.vala`)** — ✅ **COMPLETED (v0.6.2.2)**:
+   - Preferences Appearance tab includes interactive `+` (Install) and trash (Delete) buttons.
+   - Integrated `Gtk.FileChooserNative` portal dialog for seamless native KDE/GNOME portal integration.
+   - Archive scanner extracts `.zip`, `.tar.gz`, `.tar.xz`, `.tar.bz2`, and standalone `.theme` files into `~/.local/share/wayplank/themes/` with multi-theme selection dialogs.
+   - Hardened with POSIX `GLib.Shell.quote()` escaping, guaranteed temp directory cleanup, and ellipsized combobox renderer (`Pango.EllipsizeMode.END`).
+5. **Strict FreeDesktop MIME Drop Validation (`lib/Items/ApplicationDockItem.vala`)** — ✅ **COMPLETED (v0.6.2.2)**:
+   - Enforces `Gio.ContentType` matching against application `.desktop` `MimeType=` entries; incompatible drops are bounced and rejected without falling back to pinning.
+6. **Canonical Launcher Deduplication (`lib/Items/DockItemProvider.vala`, `lib/Factories/ItemFactory.vala`)** — ✅ **COMPLETED (v0.6.2.2)**:
+   - Canonical matching via `Posix.realpath`, `GLib.File.equal`, and basename comparisons reuses/updates existing items instead of generating `-1.dockitem`, `-2.dockitem`.
+7. **KISS Clean Drag-Off Removal & Poof Animation (`lib/Items/DefaultApplicationDockItemProvider.vala`, `lib/DragManager.vala`)** — ✅ **COMPLETED (v0.6.2.2)**:
+   - Direct check on `window_count_for_app > 0`: unpinned apps with 0 windows delete immediately and trigger Cairo `PoofWindow` cloud particle animation with zero transient icon ghosting.
 
 ---
 
