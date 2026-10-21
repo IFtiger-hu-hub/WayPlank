@@ -307,8 +307,11 @@ namespace Plank
 				return cleaned;
 			}
 
-			if (cleaned.has_prefix ("file://") || cleaned.has_prefix ("http://") || cleaned.has_prefix ("https://"))
+			if (cleaned.has_prefix ("file://") || cleaned.has_prefix ("http://") || cleaned.has_prefix ("https://") || cleaned.has_prefix ("ftp://"))
 				return cleaned;
+
+			if (cleaned.has_prefix ("www."))
+				return "https://" + cleaned;
 
 			if (cleaned.has_prefix ("/"))
 				return File.new_for_path (cleaned).get_uri ();
@@ -323,12 +326,13 @@ namespace Plank
 			if (app_info != null && app_info.get_filename () != null)
 				return File.new_for_path (app_info.get_filename ()).get_uri ();
 
-			return cleaned;
+			return null;
 		}
 
 		public static bool is_desktop_launcher_uri (string uri)
 		{
 			string u = uri.strip ();
+
 			if (u.has_suffix (".desktop")
 				|| u.has_prefix ("application://")
 				|| u.has_prefix ("applications://")
@@ -352,8 +356,6 @@ namespace Plank
 		void drag_data_received (Gtk.Widget w, Gdk.DragContext context, int x, int y, Gtk.SelectionData selection_data, uint info, uint time_)
 		{
 			if (drag_data_requested) {
-				unowned string? data = (string?) selection_data.get_data ();
-				
 				drag_data = new Gee.ArrayList<string> ();
 				
 				string[]? raw_uris = selection_data.get_uris ();
@@ -365,12 +367,30 @@ namespace Plank
 					}
 				}
 				
-				if (drag_data.size == 0 && data != null) {
-					var lines = data.split ("\n");
-					foreach (unowned string line in lines) {
-						var resolved = resolve_drop_uri (line);
-						if (resolved != null && !drag_data.contains (resolved))
-							drag_data.add (resolved);
+				if (drag_data.size == 0) {
+					string? raw_text = selection_data.get_text ();
+					if (raw_text == null || raw_text.length == 0) {
+						unowned uint8[]? raw_bytes = selection_data.get_data ();
+						int raw_len = selection_data.get_length ();
+						if (raw_bytes != null && raw_len > 0) {
+							if (raw_len >= 2 && raw_bytes[1] == 0 && raw_bytes[0] != 0) {
+								try {
+									raw_text = GLib.convert ((string) raw_bytes, raw_len, "UTF-8", "UTF-16LE");
+								} catch {}
+							}
+							if (raw_text == null || raw_text.length == 0) {
+								raw_text = (string?) raw_bytes;
+							}
+						}
+					}
+					
+					if (raw_text != null && raw_text.length > 0) {
+						var lines = raw_text.split ("\n");
+						foreach (unowned string line in lines) {
+							var resolved = resolve_drop_uri (line);
+							if (resolved != null && !drag_data.contains (resolved))
+								drag_data.add (resolved);
+						}
 					}
 				}
 				
@@ -451,7 +471,7 @@ namespace Plank
 			else if (item is FileDockItem && item.can_accept_drop (drag_data)) {
 				handled = item.accept_drop (drag_data);
 			}
-			// PRIORITY 2: When payload consists solely of .desktop launchers, PINNING ALWAYS HAS PRIORITY
+			// PRIORITY 2: When payload consists of .desktop launchers (Apps, Chrome Apps, Link Shortcuts), PINNING HAS PRIORITY
 			else if (all_desktop) {
 				unowned DefaultApplicationDockItemProvider? app_prov = controller.default_provider as DefaultApplicationDockItemProvider;
 				if (!controller.prefs.LockItems && app_prov != null) {
@@ -527,15 +547,40 @@ namespace Plank
 					}
 				}
 			}
-			// PRIORITY 3: Non-desktop payloads dropped onto specific dock items (App)
+			// PRIORITY 3: Direct drop onto Web Browser for Web Links / URLs
+			else if (item is ApplicationDockItem && ((ApplicationDockItem) item).is_web_browser () && item.can_accept_drop (drag_data)) {
+				handled = item.accept_drop (drag_data);
+			}
+			// PRIORITY 4: Non-desktop payloads dropped onto specific dock items (App)
 			else if (item != null && item.can_accept_drop (drag_data)) {
 				if (item is ApplicationDockItem && (!contains_directory || ((ApplicationDockItem) item).can_accept_directory ())) {
 					handled = item.accept_drop (drag_data);
 				}
 			}
-			// PRIORITY 4: Non-desktop payloads (pin file/folder to dock if unhandled)
-			if (!handled && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data)) {
+			// PRIORITY 5: Non-desktop payloads (pin file/folder to dock if unhandled and dropped on empty dock space)
+			if (!handled && (item == null || !DragNeedsCheck) && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data)) {
 				handled = provider.accept_drop (drag_data);
+			}
+
+			// PRIORITY 6: Web URLs dropped on dock background -> open in default browser
+			if (!handled) {
+				foreach (string uri in drag_data) {
+					string u = uri.strip ();
+					string? target_url = null;
+					if (u.has_prefix ("http://") || u.has_prefix ("https://") || u.has_prefix ("ftp://"))
+						target_url = u;
+					else if (!all_desktop)
+						target_url = System.extract_link_shortcut_url (u);
+
+					if (target_url != null) {
+						try {
+							AppInfo.launch_default_for_uri (target_url, null);
+							handled = true;
+						} catch (Error e) {
+							warning ("Failed to open URL in default browser: %s", e.message);
+						}
+					}
+				}
 			}
 			
 			if (handled) {
@@ -623,25 +668,7 @@ namespace Plank
 				ExternalDragActive = true;
 				drag_data = null;
 				drag_data_requested = true;
-				Gdk.Atom target_atom = Gdk.Atom.NONE;
-				unowned GLib.List<Gdk.Atom> targets = context.list_targets ();
-				foreach (var target in targets) {
-					if (target.name () == "text/uri-list") {
-						target_atom = target;
-						break;
-					}
-				}
-				if (target_atom == Gdk.Atom.NONE) {
-					foreach (var target in targets) {
-						if (target.name () == "text/plank-uri-list" || target.name () == "application/x-desktop") {
-							target_atom = target;
-							break;
-						}
-					}
-				}
-				if (target_atom == Gdk.Atom.NONE)
-					target_atom = Gtk.drag_dest_find_target (controller.window, context, null);
-
+				Gdk.Atom target_atom = Gtk.drag_dest_find_target (controller.window, context, null);
 				if (target_atom != Gdk.Atom.NONE)
 					Gtk.drag_get_data (controller.window, context, target_atom, time_);
 				else
@@ -672,7 +699,7 @@ namespace Plank
 					if (DragItem.can_be_removed ()) {
 						unowned ApplicationDockItem? app_item = (DragItem as ApplicationDockItem);
 						var was_pinned = !(DragItem is TransientDockItem);
-						var still_running = (app_item != null && (app_item.is_running () || WindowManager.get_default ().window_count_for_app (DragItem.Launcher) > 0));
+						var still_running = (app_item != null && WindowManager.get_default ().window_count_for_app (DragItem.Launcher) > 0);
 						var launcher_uri = DragItem.Launcher;
 						unowned DockContainer? drag_container = DragItem.Container;
 						
@@ -873,13 +900,17 @@ namespace Plank
 			if ((actions & action) == 0) {
 				if ((actions & Gdk.DragAction.COPY) != 0)
 					action = Gdk.DragAction.COPY;
-				else if ((actions & Gdk.DragAction.MOVE) != 0)
-					action = Gdk.DragAction.MOVE;
 				else if ((actions & Gdk.DragAction.LINK) != 0)
 					action = Gdk.DragAction.LINK;
+				else if ((actions & Gdk.DragAction.MOVE) != 0)
+					action = Gdk.DragAction.MOVE;
 				else if ((actions & Gdk.DragAction.ASK) != 0)
 					action = Gdk.DragAction.ASK;
+				else
+					action = Gdk.DragAction.COPY;
 			}
+			if (action == 0)
+				action = Gdk.DragAction.COPY;
 			Gdk.drag_status (context, action, time_);
 
 			if (marker != direct_hash (context)) {
@@ -1204,7 +1235,17 @@ namespace Plank
 			Gtk.TargetEntry te1 = { "text/uri-list", 0, 0 };
 			Gtk.TargetEntry te2 = { "text/plank-uri-list", 0, 0 };
 			Gtk.TargetEntry te3 = { "application/x-desktop", 0, 0 };
-			Gtk.drag_dest_set (window, Gtk.DestDefaults.MOTION | Gtk.DestDefaults.DROP, {te1, te2, te3}, Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK | Gdk.DragAction.ASK);
+			Gtk.TargetEntry te4 = { "application/x-gnome-app-info", 0, 0 };
+			Gtk.TargetEntry te5 = { "application/x-kde-appmenu", 0, 0 };
+			Gtk.TargetEntry te6 = { "text/plain;charset=utf-8", 0, 0 };
+			Gtk.TargetEntry te7 = { "UTF8_STRING", 0, 0 };
+			Gtk.TargetEntry te8 = { "text/plain", 0, 0 };
+			Gtk.TargetEntry te9 = { "STRING", 0, 0 };
+			Gtk.TargetEntry te10 = { "text/x-moz-url", 0, 0 };
+			Gtk.TargetEntry te11 = { "text/html", 0, 0 };
+			Gtk.drag_dest_set (window, Gtk.DestDefaults.MOTION | Gtk.DestDefaults.DROP,
+				{te1, te2, te3, te4, te5, te6, te7, te8, te9, te10, te11},
+				Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK | Gdk.DragAction.ASK);
 		}
 		
 		void disable_drag_to (DockWindow window)

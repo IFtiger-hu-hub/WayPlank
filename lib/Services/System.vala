@@ -192,25 +192,38 @@ namespace Plank
 
 				Logger.verbose ("Launch '%s' with %d URIs", info.get_name (), (int) uris.length);
 
-				// If there are remote URIs (e.g. http://, https://) and app supports URIs:
-				if (has_remote_uri && info.supports_uris ()) {
-					info.launch_uris (uri_list, context);
-					return;
+				// 1. If remote URIs exist (e.g. http://, https://), launch with launch_uris
+				if (has_remote_uri) {
+					try {
+						info.launch_uris (uri_list, context);
+						return;
+					} catch (Error e) {
+						warning ("Failed to launch '%s' with remote URIs: %s", info.get_name (), e.message);
+					}
 				}
 
-				// If app supports files:
+				// 2. If app supports files:
 				if (info.supports_files ()) {
-					info.launch (file_list, context);
-					return;
+					try {
+						info.launch (file_list, context);
+						return;
+					} catch (Error e) {
+						warning ("Failed to launch '%s' with files: %s", info.get_name (), e.message);
+					}
 				}
 
-				// If app supports URIs:
-				if (info.supports_uris ()) {
+				// 3. Fallback: try launch_uris, then basic launch
+				try {
 					info.launch_uris (uri_list, context);
 					return;
+				} catch (Error e) {
+					warning ("launch_uris failed for '%s', falling back to basic launch: %s", info.get_name (), e.message);
+					try {
+						info.launch (null, context);
+					} catch (Error err) {
+						warning ("Failed basic launch for '%s': %s", info.get_name (), err.message);
+					}
 				}
-
-				warning ("The application '%s' doesn't support files/URIs.", info.get_name ());
 			} catch (Error e) {
 				critical ("%s: %s", launcher_path, e.message);
 			}
@@ -266,6 +279,101 @@ namespace Plank
 			return false;
 		}
 		
+		/**
+		 * Safely loads a KeyFile from a file path, automatically sanitizing KDE expanded
+		 * keys such as URL[$e]= to URL= if standard strict desktop entry parsing fails.
+		 */
+		public static bool load_keyfile_safe (KeyFile kf, string file_path, KeyFileFlags flags = KeyFileFlags.NONE)
+		{
+			try {
+				if (kf.load_from_file (file_path, flags))
+					return true;
+			} catch (Error e) {
+				try {
+					var gfile = File.new_for_path (file_path);
+					uint8[] raw_bytes;
+					if (gfile.load_contents (null, out raw_bytes, null)) {
+						string content = (string) raw_bytes;
+						content = content.replace ("[$e]=", "=");
+						content = content.replace ("[$i]=", "=");
+						content = content.replace ("[$d]=", "=");
+						return kf.load_from_data (content, content.length, flags);
+					}
+				} catch {}
+			}
+			return false;
+		}
+
+		/**
+		 * Extracts the destination URL from an internet shortcut file (.desktop of Type=Link or .url file).
+		 * Supports standard URL= as well as KDE URL[$e]= expanded keys.
+		 */
+		public static string? extract_link_shortcut_url (string uri_or_path)
+		{
+			string path = uri_or_path.strip ();
+			if (path.has_prefix ("file://")) {
+				try {
+					path = Filename.from_uri (path);
+				} catch {
+					var gfile = File.new_for_uri (path);
+					path = gfile.get_path () ?? path;
+				}
+			}
+
+			if (!path.has_suffix (".desktop") && !path.has_suffix (".url"))
+				return null;
+
+			try {
+				var file = File.new_for_path (path);
+				if (!file.query_exists ())
+					return null;
+
+				uint8[] contents;
+				if (!file.load_contents (null, out contents, null))
+					return null;
+
+				string raw = (string) contents;
+				var lines = raw.split ("\n");
+				string? found_url = null;
+
+				foreach (unowned string line in lines) {
+					string s = line.strip ();
+					if (path.has_suffix (".url") && (s.has_prefix ("URL=") || s.has_prefix ("URL[$e]=") || s.has_prefix ("URL["))) {
+						int eq = s.index_of ("=");
+						if (eq >= 0)
+							found_url = s.slice (eq + 1, s.length).strip ();
+					} else if (s.has_prefix ("Exec=")) {
+						int app_idx = s.index_of ("--app=");
+						if (app_idx >= 0) {
+							string candidate = s.slice (app_idx + 6, s.length).strip ();
+							if (candidate.has_prefix ("http://") || candidate.has_prefix ("https://")) {
+								int space_idx = candidate.index_of (" ");
+								if (space_idx >= 0)
+									candidate = candidate.slice (0, space_idx).strip ();
+								found_url = candidate;
+							}
+						} else {
+							int http_idx = s.index_of ("http://");
+							if (http_idx < 0)
+								http_idx = s.index_of ("https://");
+							if (http_idx >= 0) {
+								string candidate = s.slice (http_idx, s.length).strip ();
+								int space_idx = candidate.index_of (" ");
+								if (space_idx >= 0)
+									candidate = candidate.slice (0, space_idx).strip ();
+								found_url = candidate;
+							}
+						}
+					}
+				}
+
+				if (found_url != null && (found_url.has_prefix ("http://") || found_url.has_prefix ("https://") || found_url.has_prefix ("ftp://")))
+					return found_url;
+			} catch {}
+
+			return null;
+		}
+		
 		void internal_launch (File? app, GLib.List<File> files)
 		{
 			if (app == null && files.length () == 0)
@@ -274,14 +382,11 @@ namespace Plank
 			AppInfo? info = null;
 			
 			if (app != null) {
-				KeyFile keyfile;
+				KeyFile keyfile = new KeyFile ();
 				var launcher = app.get_path ();
 				
-				try {
-					keyfile = new KeyFile ();
-					keyfile.load_from_file (launcher, KeyFileFlags.NONE);
-				} catch (Error e) {
-					critical ("%s: %s", launcher, e.message);
+				if (!load_keyfile_safe (keyfile, launcher, KeyFileFlags.NONE)) {
+					critical ("%s: unable to parse desktop launcher", launcher);
 					return;
 				}
 				
@@ -294,8 +399,15 @@ namespace Plank
 						break;
 					case KeyFileDesktop.TYPE_LINK:
 						try {
-							var url = keyfile.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_URL);
-							AppInfo.launch_default_for_uri (url, context);
+							string? url = null;
+							if (keyfile.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_URL))
+								url = keyfile.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_URL);
+							else if (keyfile.has_key (KeyFileDesktop.GROUP, "URL"))
+								url = keyfile.get_string (KeyFileDesktop.GROUP, "URL");
+							if (url == null || url == "")
+								url = extract_link_shortcut_url (launcher);
+							if (url != null && url.length > 0)
+								AppInfo.launch_default_for_uri (url, context);
 						} catch (Error e) {
 							critical ("%s: %s", launcher, e.message);
 						}

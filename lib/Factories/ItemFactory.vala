@@ -289,7 +289,7 @@ namespace Plank
 		{
 			foreach (var element in elements) {
 				unowned DockItem? item = (element as DockItem);
-				if (item != null && item.Launcher == uri)
+				if (item != null && DockItemProvider.uri_matches (item.Launcher, uri))
 					return item;
 			}
 			
@@ -581,24 +581,18 @@ namespace Plank
 						try { dockitem_file.delete (null); } catch { }
 					}
 					
-					// Downstream contribution by IFtiger-hu (史有虎): Reuse existing dock item to avoid duplicate files
+					// Reuse or update existing dock item to avoid duplicate files (KISS)
 					if (dockitem_file.query_exists ()) {
 						var existing_launcher = get_launcher_from_dockitem (dockitem_file);
-						if (existing_launcher == uri || existing_launcher == target_uri) {
+						if (existing_launcher != null && DockItemProvider.uri_matches (existing_launcher, target_uri)) {
 							debug ("Reusing existing dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
 							return dockitem_file;
 						}
-					}
-					
-					var counter = 1;
-					while (dockitem_file.query_exists ()) {
-						var existing_launcher = get_launcher_from_dockitem (dockitem_file);
-						if (existing_launcher == uri || existing_launcher == target_uri) {
-							debug ("Reusing existing dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
-							return dockitem_file;
-						}
-						dockitem = "%s-%d.dockitem".printf (launcher_base, counter++);
-						dockitem_file = target_dir.get_child (dockitem);
+						debug ("Updating existing dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
+						var update_stream = new DataOutputStream (dockitem_file.replace (null, false, FileCreateFlags.NONE, null));
+						update_stream.put_string (file.to_data ());
+						update_stream.close ();
+						return dockitem_file;
 					}
 					
 					// save the key file

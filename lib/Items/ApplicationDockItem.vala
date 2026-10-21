@@ -59,7 +59,7 @@ namespace Plank
 		
 		public bool can_accept_any_drop ()
 		{
-			return (accepts_payload || (supported_mime_types != null && supported_mime_types.size > 0));
+			return (accepts_payload || is_web_browser () || (supported_mime_types != null && supported_mime_types.size > 0));
 		}
 		
 		string? unity_dbusname = null;
@@ -390,6 +390,62 @@ namespace Plank
 		}
 
 		/**
+		 * Whether this application is a web browser.
+		 */
+		public bool is_web_browser ()
+		{
+			// Web App shortcuts (e.g. Chrome Apps with --app=...) are standalone web apps, not general web browsers
+			try {
+				string launcher_path = Prefs.Launcher;
+				if (launcher_path.has_prefix ("file://"))
+					launcher_path = Filename.from_uri (launcher_path);
+				var app_info = new DesktopAppInfo.from_filename (launcher_path);
+				if (app_info != null) {
+					string cmd = app_info.get_commandline () ?? "";
+					if (cmd.contains ("--app="))
+						return false;
+				}
+			} catch {}
+
+			if (supported_mime_types != null) {
+				foreach (var ct in supported_mime_types) {
+					if (ct == "text/html" || ct == "application/xhtml+xml"
+						|| ct.contains ("x-scheme-handler/http") || ct.contains ("x-scheme-handler/https"))
+						return true;
+				}
+			}
+
+			string l_launcher = (Prefs != null && Prefs.Launcher != null) ? Prefs.Launcher.down () : "";
+			string l_icon = (Icon != null) ? Icon.down () : "";
+			string l_text = (Text != null) ? Text.down () : "";
+
+			string[] keywords = {
+				"chrome", "chromium", "firefox", "browser", "edge", "brave",
+				"opera", "vivaldi", "epiphany", "zen", "waterfox", "librewolf",
+				"tor-browser", "floorp", "falkon", "midori", "qutebrowser"
+			};
+
+			foreach (var kw in keywords) {
+				if (l_launcher.contains (kw) || l_icon.contains (kw) || l_text.contains (kw))
+					return true;
+			}
+
+			try {
+				string launcher_path = Prefs.Launcher;
+				if (launcher_path.has_prefix ("file://"))
+					launcher_path = Filename.from_uri (launcher_path);
+				var app_info = new DesktopAppInfo.from_filename (launcher_path);
+				if (app_info != null) {
+					var cats = app_info.get_categories ();
+					if (cats != null && cats.contains ("WebBrowser"))
+						return true;
+				}
+			} catch {}
+
+			return false;
+		}
+
+		/**
 		 * {@inheritDoc}
 		 */
 		public override bool can_accept_drop (Gee.ArrayList<string> uris)
@@ -397,42 +453,82 @@ namespace Plank
 			if (uris == null || uris.size == 0 || is_window ())
 				return false;
 			
-			// 1. If application declares file or URI payload support in its Exec line (%f, %F, %u, %U)
-			if (accepts_payload)
-				return true;
-			
-			// 2. If no MIME types specified, assume allowed
-			if (supported_mime_types == null || supported_mime_types.size == 0)
-				return true;
-			
-			foreach (var uri in uris) {
-				if (uri.has_prefix ("http://") || uri.has_prefix ("https://")) {
-					foreach (var content_type in supported_mime_types) {
-						if (content_type.contains ("html") || content_type.contains ("http") || content_type.contains ("url"))
-							return true;
-					}
-				} else {
-					var file = File.new_for_uri (uri);
-					string? uri_content_type = null;
-					try {
-						var info = file.query_info (FileAttribute.STANDARD_CONTENT_TYPE, FileQueryInfoFlags.NONE);
-						uri_content_type = info.get_content_type ();
-					} catch {}
-					
-					// If empty 0-byte file (application/x-zerosize) or query failed, guess MIME from filename
-					if (uri_content_type == null || uri_content_type == "application/x-zerosize") {
-						bool uncertain;
-						uri_content_type = ContentType.guess (uri, null, out uncertain);
-					}
-					
-					if (uri_content_type != null) {
-						foreach (var content_type in supported_mime_types) {
-							if (ContentType.is_a (uri_content_type, content_type) || ContentType.equals (uri_content_type, content_type))
-								return true;
+			// Web browsers always accept web URLs and internet shortcuts
+			bool is_browser = is_web_browser ();
+			if (is_browser) {
+				bool all_web = true;
+				foreach (var uri in uris) {
+					if (!uri.has_prefix ("http://") && !uri.has_prefix ("https://") && !uri.has_prefix ("ftp://")) {
+						if (System.extract_link_shortcut_url (uri) == null) {
+							all_web = false;
+							break;
 						}
 					}
 				}
+				if (all_web)
+					return true;
 			}
+
+			// If application only accepts directories (like file managers: Dolphin, Nautilus, etc.),
+			// require that every dropped item is a directory
+			if (supported_mime_types != null && supported_mime_types.size == 1 && supported_mime_types.contains ("inode/directory")) {
+				foreach (var uri in uris) {
+					if (uri.has_prefix ("http://") || uri.has_prefix ("https://") || uri.has_prefix ("ftp://"))
+						return false;
+					var f = uri.has_prefix ("/") ? File.new_for_path (uri) : File.new_for_uri (uri);
+					if (f.query_file_type (FileQueryInfoFlags.NONE, null) != FileType.DIRECTORY)
+						return false;
+				}
+				return true;
+			}
+
+			// If application explicitly declares supported MIME types, strictly enforce them!
+			if (supported_mime_types != null && supported_mime_types.size > 0) {
+				foreach (var uri in uris) {
+					if (uri.has_prefix ("http://") || uri.has_prefix ("https://") || uri.has_prefix ("ftp://")) {
+						bool match_web = false;
+						foreach (var content_type in supported_mime_types) {
+							if (content_type.contains ("html") || content_type.contains ("http") || content_type.contains ("url")) {
+								match_web = true;
+								break;
+							}
+						}
+						if (!match_web)
+							return false;
+					} else {
+						var file = uri.has_prefix ("/") ? File.new_for_path (uri) : File.new_for_uri (uri);
+						string? uri_content_type = null;
+						try {
+							var info = file.query_info (FileAttribute.STANDARD_CONTENT_TYPE, FileQueryInfoFlags.NONE);
+							uri_content_type = info.get_content_type ();
+						} catch {}
+						
+						// If empty 0-byte file (application/x-zerosize) or query failed, guess MIME from filename
+						if (uri_content_type == null || uri_content_type == "application/x-zerosize") {
+							bool uncertain;
+							uri_content_type = ContentType.guess (uri, null, out uncertain);
+						}
+						
+						if (uri_content_type == null)
+							return false;
+
+						bool matched = false;
+						foreach (var content_type in supported_mime_types) {
+							if (ContentType.is_a (uri_content_type, content_type) || ContentType.equals (uri_content_type, content_type)) {
+								matched = true;
+								break;
+							}
+						}
+						if (!matched)
+							return false;
+					}
+				}
+				return true;
+			}
+
+			// Fallback: only if NO MIME types were specified in .desktop, allow if application declares payload support (%f, %F, %u, %U)
+			if (accepts_payload)
+				return true;
 			
 			return false;
 		}
@@ -453,7 +549,16 @@ namespace Plank
 			else
 				app_file = File.new_for_path (Prefs.Launcher);
 			
-			System.get_default ().launch_with_uris (app_file, uris.to_array ());
+			var effective_uris = new Gee.ArrayList<string> ();
+			foreach (var u in uris) {
+				var link_url = System.extract_link_shortcut_url (u);
+				if (link_url != null)
+					effective_uris.add (link_url);
+				else
+					effective_uris.add (u);
+			}
+
+			System.get_default ().launch_with_uris (app_file, effective_uris.to_array ());
 			
 			var windows = WindowManager.get_default ().matching_windows (Launcher);
 			if (windows.size > 0) {
@@ -495,12 +600,13 @@ namespace Plank
 					accepts_payload = true;
 				} else {
 					var kf = new KeyFile ();
-					kf.load_from_file (launcher_path, KeyFileFlags.NONE);
-					if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
-						var exec_str = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC);
-						if (exec_str.contains ("%f") || exec_str.contains ("%F") || 
-						    exec_str.contains ("%u") || exec_str.contains ("%U")) {
-							accepts_payload = true;
+					if (System.load_keyfile_safe (kf, launcher_path, KeyFileFlags.NONE)) {
+						if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
+							var exec_str = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC);
+							if (exec_str.contains ("%f") || exec_str.contains ("%F") || 
+							    exec_str.contains ("%u") || exec_str.contains ("%U")) {
+								accepts_payload = true;
+							}
 						}
 					}
 				}
@@ -537,13 +643,9 @@ namespace Plank
 				}
 			}
 			
-			KeyFile file;
-			
-			try {
-				file = new KeyFile ();
-				file.load_from_file (file_path, 0);
-			} catch (Error e) {
-				critical ("%s: %s", launcher, e.message);
+			KeyFile file = new KeyFile ();
+			if (!System.load_keyfile_safe (file, file_path, 0)) {
+				critical ("%s: unable to parse desktop launcher", launcher);
 				return;
 			}
 			
@@ -564,7 +666,7 @@ namespace Plank
 					return;
 				case KeyFileDesktop.TYPE_LINK:
 					if (icon == "")
-						icon = "document";
+						icon = "text-html";
 					return;	
 				}
 			} catch (KeyFileError e) {

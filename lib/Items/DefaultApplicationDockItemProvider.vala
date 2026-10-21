@@ -881,7 +881,7 @@ namespace Plank
 			} else {
 				var launcher_uri = item.Launcher;
 				var win_count = WindowManager.get_default ().window_count_for_app (item.Launcher);
-				bool still_running = (win_count > 0 || app_item.is_running ());
+				bool still_running = (win_count > 0);
 				if (internal_elements.contains (item))
 					remove (item);
 				item.delete ();

@@ -261,6 +261,10 @@ namespace Plank
 				string? specific_arg = null;
 				for (int i = 1; i < parts.length; i++) {
 					var p = parts[i].strip ().replace ("\"", "").replace ("'", "");
+					if (p.has_prefix ("--app=")) {
+						specific_arg = p.slice (6, p.length).down ();
+						break;
+					}
 					if (p != "" && !p.has_prefix ("-") && !p.has_prefix ("%")) {
 						var basename = File.new_for_path (p).get_basename ().down ();
 						if (basename != "" && basename != ".") {

@@ -35,6 +35,10 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.ComboBoxText cb_theme;
 		[GtkChild]
+		unowned Gtk.Button btn_add_theme;
+		[GtkChild]
+		unowned Gtk.Button btn_del_theme;
+		[GtkChild]
 		unowned Gtk.ComboBoxText cb_hidemode;
 		[GtkChild]
 		unowned Gtk.ComboBoxText cb_display_plug;
@@ -216,6 +220,13 @@ namespace Plank
 			foreach (var child in dock_preferences_switcher.get_children ()) {
 				child.hexpand = true;
 				child.halign = Gtk.Align.FILL;
+			}
+
+			foreach (var cell in cb_theme.get_cells ()) {
+				var text_cell = cell as Gtk.CellRendererText;
+				if (text_cell != null) {
+					text_cell.ellipsize = Pango.EllipsizeMode.END;
+				}
 			}
 			
 			popup_css = new Gtk.CssProvider ();
@@ -437,7 +448,209 @@ namespace Plank
 		
 		void theme_changed (Gtk.ComboBox widget)
 		{
-			prefs.Theme = ((Gtk.ComboBoxText) widget).get_active_text ();
+			var current_theme = ((Gtk.ComboBoxText) widget).get_active_text ();
+			if (current_theme != null && current_theme != "") {
+				prefs.Theme = current_theme;
+				cb_theme.tooltip_text = current_theme;
+				update_theme_buttons ();
+			}
+		}
+
+		void rebuild_theme_list ()
+		{
+			cb_theme.changed.disconnect (theme_changed);
+			var pos = 0;
+			cb_theme.remove_all ();
+			foreach (unowned string theme in Plank.Theme.get_theme_list ()) {
+				cb_theme.append ("%i".printf (pos), theme);
+				if (theme == prefs.Theme)
+					cb_theme.set_active (pos);
+				pos++;
+			}
+			cb_theme.tooltip_text = prefs.Theme;
+			update_theme_buttons ();
+			cb_theme.changed.connect (theme_changed);
+		}
+
+		void update_theme_buttons ()
+		{
+			string current = cb_theme.get_active_text () ?? prefs.Theme;
+			bool is_user = ThemeManager.is_user_theme (current);
+			btn_del_theme.sensitive = is_user;
+			if (is_user) {
+				btn_del_theme.tooltip_text = _("Delete user theme '%s'").printf (current);
+			} else {
+				btn_del_theme.tooltip_text = _("System themes cannot be deleted");
+			}
+		}
+
+		void on_add_theme_clicked ()
+		{
+			// Temporarily hide PreferencesWindow while choosing theme archive
+			this.hide ();
+
+			var chooser = new Gtk.FileChooserNative (
+				_("Install WayPlank Theme"),
+				null,
+				Gtk.FileChooserAction.OPEN,
+				_("_Open"),
+				_("_Cancel")
+			);
+
+			var filter_archives = new Gtk.FileFilter ();
+			filter_archives.set_name (_("Theme Archives (*.zip, *.tar.gz, *.tar.xz, *.theme)"));
+			filter_archives.add_pattern ("*.zip");
+			filter_archives.add_pattern ("*.ZIP");
+			filter_archives.add_pattern ("*.tar.gz");
+			filter_archives.add_pattern ("*.tgz");
+			filter_archives.add_pattern ("*.tar.xz");
+			filter_archives.add_pattern ("*.txz");
+			filter_archives.add_pattern ("*.tar.bz2");
+			filter_archives.add_pattern ("*.theme");
+			filter_archives.add_pattern ("dock.theme");
+			chooser.add_filter (filter_archives);
+
+			var filter_all = new Gtk.FileFilter ();
+			filter_all.set_name (_("All Files"));
+			filter_all.add_pattern ("*");
+			chooser.add_filter (filter_all);
+
+			string? selected_file = null;
+			if (chooser.run () == Gtk.ResponseType.ACCEPT) {
+				selected_file = chooser.get_filename ();
+			}
+			chooser.destroy ();
+
+			// Restore PreferencesWindow
+			this.show ();
+			this.present ();
+
+			if (selected_file == null || selected_file == "")
+				return;
+
+			string tmp_dir;
+			var themes = ThemeManager.scan_archive (selected_file, out tmp_dir);
+
+			if (themes.size == 0) {
+				var msg = new Gtk.MessageDialog (
+					this,
+					Gtk.DialogFlags.MODAL,
+					Gtk.MessageType.WARNING,
+					Gtk.ButtonsType.OK,
+					_("No valid WayPlank/Plank theme found in the selected file.\nA valid theme must contain a 'dock.theme' configuration file.")
+				);
+				msg.run ();
+				msg.destroy ();
+				ThemeManager.cleanup_tmp (tmp_dir);
+				return;
+			}
+
+			string? last_installed = null;
+
+			if (themes.size == 1) {
+				var t = themes.get (0);
+				var dest = Paths.AppThemeFolder.get_child (t.name);
+				if (dest.query_exists ()) {
+					var confirm = new Gtk.MessageDialog (
+						this,
+						Gtk.DialogFlags.MODAL,
+						Gtk.MessageType.QUESTION,
+						Gtk.ButtonsType.YES_NO,
+						_("A theme named '%s' already exists.\nDo you want to replace it?").printf (t.name)
+					);
+					int res = confirm.run ();
+					confirm.destroy ();
+					if (res != Gtk.ResponseType.YES) {
+						ThemeManager.cleanup_tmp (tmp_dir);
+						return;
+					}
+				}
+
+				if (ThemeManager.install_theme (t, true)) {
+					last_installed = t.name;
+				}
+			} else {
+				// Multiple themes found in archive: show selection dialog
+				var select_dialog = new Gtk.Dialog.with_buttons (
+					_("Install Themes"),
+					this,
+					Gtk.DialogFlags.MODAL,
+					_("_Cancel"), Gtk.ResponseType.CANCEL,
+					_("_Install"), Gtk.ResponseType.ACCEPT
+				);
+				select_dialog.set_default_size (360, 260);
+
+				var content_area = select_dialog.get_content_area ();
+				var label = new Gtk.Label (_("The archive contains multiple themes. Select which ones to install:"));
+				label.set_halign (Gtk.Align.START);
+				label.margin = 12;
+				content_area.pack_start (label, false, false, 0);
+
+				var scrolled = new Gtk.ScrolledWindow (null, null);
+				scrolled.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC);
+				scrolled.margin_start = 12;
+				scrolled.margin_end = 12;
+				scrolled.margin_bottom = 12;
+
+				var box_checks = new Gtk.Box (Gtk.Orientation.VERTICAL, 6);
+				var check_buttons = new Gee.ArrayList<Gtk.CheckButton> ();
+
+				foreach (var t in themes) {
+					var chk = new Gtk.CheckButton.with_label (t.name);
+					chk.active = true;
+					box_checks.pack_start (chk, false, false, 0);
+					check_buttons.add (chk);
+				}
+
+				scrolled.add (box_checks);
+				content_area.pack_start (scrolled, true, true, 0);
+				select_dialog.show_all ();
+
+				if (select_dialog.run () == Gtk.ResponseType.ACCEPT) {
+					for (int i = 0; i < themes.size; i++) {
+						if (check_buttons.get (i).active) {
+							var t = themes.get (i);
+							if (ThemeManager.install_theme (t, true)) {
+								if (last_installed == null)
+									last_installed = t.name;
+							}
+						}
+					}
+				}
+				select_dialog.destroy ();
+			}
+
+			ThemeManager.cleanup_tmp (tmp_dir);
+
+			if (last_installed != null) {
+				prefs.Theme = last_installed;
+				rebuild_theme_list ();
+			}
+		}
+
+		void on_del_theme_clicked ()
+		{
+			string current_theme = cb_theme.get_active_text ();
+			if (current_theme == null || !ThemeManager.is_user_theme (current_theme))
+				return;
+
+			var confirm = new Gtk.MessageDialog (
+				this,
+				Gtk.DialogFlags.MODAL,
+				Gtk.MessageType.QUESTION,
+				Gtk.ButtonsType.YES_NO,
+				_("Are you sure you want to delete the theme '%s'?\nThis will remove it from ~/.local/share/wayplank/themes/.").printf (current_theme)
+			);
+
+			int res = confirm.run ();
+			confirm.destroy ();
+
+			if (res == Gtk.ResponseType.YES) {
+				if (ThemeManager.delete_user_theme (current_theme)) {
+					prefs.Theme = Plank.Theme.DEFAULT_NAME;
+					rebuild_theme_list ();
+				}
+			}
 		}
 		
 		void hidemode_changed (Gtk.ComboBox widget)
@@ -862,6 +1075,8 @@ namespace Plank
 			prefs.notify.connect (prefs_changed);
 			
 			cb_theme.changed.connect (theme_changed);
+			btn_add_theme.clicked.connect (on_add_theme_clicked);
+			btn_del_theme.clicked.connect (on_del_theme_clicked);
 			cb_hidemode.changed.connect (hidemode_changed);
 			cb_position.changed.connect (position_changed);
 			adj_hide_delay.value_changed.connect (hide_delay_changed);
@@ -918,6 +1133,8 @@ namespace Plank
 			prefs.notify.disconnect (prefs_changed);
 			
 			cb_theme.changed.disconnect (theme_changed);
+			btn_add_theme.clicked.disconnect (on_add_theme_clicked);
+			btn_del_theme.clicked.disconnect (on_del_theme_clicked);
 			cb_hidemode.changed.disconnect (hidemode_changed);
 			cb_position.changed.disconnect (position_changed);
 			adj_hide_delay.value_changed.disconnect (hide_delay_changed);
@@ -1022,6 +1239,8 @@ namespace Plank
 					cb_theme.set_active (pos);
 				pos++;
 			}
+			cb_theme.tooltip_text = prefs.Theme;
+			update_theme_buttons ();
 
 			var effective_mode = (prefs.HideMode != HideType.NONE && !WindowCapabilities.hide_mode_supported (prefs.HideMode))
 				? HideType.DODGE_MAXIMIZED

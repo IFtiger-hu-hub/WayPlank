@@ -34,6 +34,41 @@ namespace Plank
 		}
 		
 		/**
+		 * Compare two launcher URIs with canonical path and basename matching.
+		 */
+		public static bool uri_matches (string? uri1, string? uri2)
+		{
+			if (uri1 == uri2)
+				return true;
+			if (uri1 == null || uri2 == null)
+				return false;
+
+			if (uri1.has_prefix ("docklet://") || uri2.has_prefix ("docklet://"))
+				return uri1 == uri2;
+
+			var f1 = uri1.has_prefix ("/") ? File.new_for_path (uri1) : File.new_for_uri (uri1);
+			var f2 = uri2.has_prefix ("/") ? File.new_for_path (uri2) : File.new_for_uri (uri2);
+			if (f1.equal (f2))
+				return true;
+
+			string? p1 = f1.get_path ();
+			string? p2 = f2.get_path ();
+			if (p1 != null && p2 != null) {
+				string? r1 = Posix.realpath (p1);
+				string? r2 = Posix.realpath (p2);
+				if (r1 != null && r2 != null && r1 == r2)
+					return true;
+
+				if (p1.has_suffix (".desktop") && p2.has_suffix (".desktop")) {
+					if (Path.get_basename (p1) == Path.get_basename (p2))
+						return true;
+				}
+			}
+
+			return false;
+		}
+
+		/**
 		 * Whether a dock item with the given URI exists in this provider.
 		 *
 		 * @param uri the URI to look for
@@ -57,7 +92,7 @@ namespace Plank
 		{
 			foreach (var element in internal_elements) {
 				unowned DockItem? item = (element as DockItem);
-				if (item != null && item.Launcher == uri)
+				if (item != null && uri_matches (item.Launcher, uri))
 					return item;
 			}
 			
