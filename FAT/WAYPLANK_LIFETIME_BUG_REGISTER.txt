@@ -3,8 +3,8 @@
 ================================================================================
 Project: WayPlank (Lightweight native Wayland dock based on Plank architecture)
 Author & Maintainer: Sergio Melas
-Scope: Complete Lifetime Audit - From Inception (v0.1.0) to Present (v0.6.2.1)
-Period: 2026-09-19 to 2026-10-17
+Scope: Complete Lifetime Audit - From Inception (v0.1.0) to Present (v0.6.2.2)
+Period: 2026-09-19 to 2026-10-21
 Standard: ISA-88 Qualification Standard & 80-Column Documentation Specification
 
 ================================================================================
@@ -14,18 +14,18 @@ Standard: ISA-88 Qualification Standard & 80-Column Documentation Specification
     * Milestones: 6 (v0.1.0, v0.2.0, v0.3.0, v0.4.0, v0.4.1, v0.4.2)
     * Architectural Bugs & Blockers Resolved: 34 [ko->ok]
 
-  - ERA 2 (Multi-Compositor Qualification: v0.4.3 - v0.6.2.1):
-    * Milestones: 7 (v0.4.3, v0.5.0, v0.5.1, v0.5.2, v0.6.0, v0.6.1, v0.6.2.1)
-    * Formal Tests Executed: 1,361 Total Test Executions across Compositors
-    * Tests Passed on First Run: 1,268 [ok]
-    * Unique Functional Bugs Squashed: 40 [ko->ok]
-    * Total Compositor Test Verifications: 52 [ko->ok]
+  - ERA 2 (Multi-Compositor Qualification: v0.4.3 - v0.6.2.2):
+    * Milestones: 8 (v0.4.3, v0.5.0, v0.5.1, v0.5.2, v0.6.0, v0.6.1, v0.6.2.1, v0.6.2.2)
+    * Formal Tests Executed: 1,667 Total Test Executions across Compositors
+    * Tests Passed on First Run: 1,566 [ok]
+    * Unique Functional Bugs Squashed: 45 [ko->ok]
+    * Total Compositor Test Verifications: 67 [ko->ok]
     * Open Defects Remaining: 0 [ko] (100% Compliant)
 
   - GRAND TOTAL ACROSS LIFETIME:
-    * Total Milestones: 13 Releases
-    * Total Unique Functional & Architectural Bugs Squashed: 74 [ko->ok]
-    * Total Multi-Compositor Verification Instances: 86 [ko->ok]
+    * Total Milestones: 14 Releases
+    * Total Unique Functional & Architectural Bugs Squashed: 79 [ko->ok]
+    * Total Multi-Compositor Verification Instances: 101 [ko->ok]
 
 ================================================================================
                    HISTORICAL MILESTONE QUALIFICATION MATRIX
@@ -48,11 +48,11 @@ v0.5.2     | 2026-10-09   | Session Docklet & Brightness      | 4 (68x3) | 0
 v0.6.0     | 2026-10-11   | Shortcuts Centering & Debounce    | 1 (77x3) | 0
 v0.6.1     | 2026-10-13   | 0-byte MIME, Badges & Gtk+ Engine | 7 (82x3) | 0
 v0.6.2.1   | 2026-10-17   | Fork Integration & Gold Standard  | 16 (94x3)| 0
-v0.6.2.2   | 2026-10-20   | Round 2 Ergonomics & Portal Sync  | PROGRESS | 0
+v0.6.2.2   | 2026-10-21   | Round 2 Ergonomics, DND & Themes  | 5 (102x3)| 0
 -----------+--------------+-----------------------------------+----------+------
-ERA 2 SUB  | Formal FAT   | 7 Multi-Compositor Protocols      | 52 verif | 0
+ERA 2 SUB  | Formal FAT   | 8 Multi-Compositor Protocols      | 67 verif | 0
 -----------+--------------+-----------------------------------+----------+------
-TOTAL      | All Releases | 13 WayPlank Milestone Releases    | 74 Unique| 0
+TOTAL      | All Releases | 14 WayPlank Milestone Releases    | 79 Unique| 0
 ================================================================================
 *Note on v0.5.0: The 7 [ko] defects discovered were formally remediated and
 verified in v0.5.1 under standard ISA-88 qualification protocol.
@@ -109,7 +109,7 @@ verified in v0.5.1 under standard ISA-88 qualification protocol.
    - Inverted pressure reveal semantics: 10px default vs 1px pressure (v0.6.1)
    - Layer-shell tooltip margin clamping against negative coordinates (v0.4.2)
 
-5. APPLICATION MATCHING, SANDBOXES & PINNING (11 Bugs)
+5. APPLICATION MATCHING, SANDBOXES & PINNING (15 Bugs)
    - Asynchronous /proc process scanner for Wayland (v0.2.0 / 2.3)
    - Multi-tier .desktop application discovery & app_id matching (v0.4.0 / 4.4)
    - 0-byte file drop with application/x-zerosize MIME guessing (v0.6.1/1.6)
@@ -117,8 +117,12 @@ verified in v0.5.1 under standard ISA-88 qualification protocol.
    - Sandbox / wrapper unwrapping (Flatpak, Snap, Firejail) (v0.6.2.1 / 2.12)
    - Universal Change Icon & theme change fallback (v0.6.1 & v0.6.2.1 / 1.10)
    - Show Unpinned dynamic layout refresh without window focus (v0.6.1 / 7.14)
+   - Canonical launcher deduplication via Posix.realpath & equal (v0.6.2.2/11.7)
+   - Strict FreeDesktop MIME rejection on application drops (v0.6.2.2 / 11.6)
+   - KISS Drag-Off immediate removal & poof animation (v0.6.2.2 / 11.8)
+   - Desktop link shortcut (Type=Link & URL[$e]) parsing and launch (v0.6.2.2 / 11.1)
 
-6. PROCESS LIFECYCLE, IPC BRIDGES & ARCHITECTURAL PURGE (11 Bugs)
+6. PROCESS LIFECYCLE, IPC BRIDGES & ARCHITECTURAL PURGE (13 Bugs)
    - Purge of 112,000+ lines of obsolete X11 Autotools & VAPIs (v0.1.0 - v0.3.0)
    - Purge of dynamic shared-library docklet plugins (v0.4.0 / 4.5)
    - CLI --replace / -r flag registration & clean killall (v0.4.2 & v0.5.1)
@@ -127,6 +131,8 @@ verified in v0.5.1 under standard ISA-88 qualification protocol.
    - Labwc wlr-toplevel RFC 8259 JSON escaper for UTF-8 bytes (v0.5.1 / 2.13)
    - Labwc toplevel callback 50ms single-shot debouncer (v0.5.1 / 9.7)
    - Native RPM packaging for openSUSE and Fedora (v0.6.2.1 / Round 1)
+   - FreeDesktop color-scheme Settings portal D-Bus sync (v0.6.2.2 / 11.3)
+   - ThemeManager archive scanner & native portal file chooser (v0.6.2.2 / 11.5)
 
 ================================================================================
                     DIRECTORY OF CORRESPONDING FAT DOCUMENTS
@@ -148,5 +154,5 @@ verified in v0.5.1 under standard ISA-88 qualification protocol.
 8. [FAT/2026-10-17 FAT 0.6.2.1.txt]
    Covers: v0.6.2.1 (282 tests, 16 bugs squashed, 100% compliant Gold Standard)
 9. [FAT/2026-10-20 FAT 0.6.2.2.txt]
-   Covers: v0.6.2.2 (292 tests, Round 2 completed, 100% compliant, 0 pending)
+   Covers: v0.6.2.2 (306 tests, Round 2 completed, 100% compliant, 0 pending, Gold Standard)
 ================================================================================

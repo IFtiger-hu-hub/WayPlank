@@ -1,10 +1,11 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-10-19
+Date: 2026-10-21
 Milestone: V0.6.2.x (The Community Unification & Distribution Release: Native
            openSUSE/Fedora RPM Packaging, Dock Overflow Scrolling,
-           Launcher Deduplication, Ghost Window Shield & Multi-Monitor DDC/CI)
+           Hover Window Raising, Portal Color-Scheme Sync, Theme Manager,
+           Strict MIME DND, Launcher Deduplication & KISS Drag Removal)
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):  [NOT STARTED] | [  ] [ok] | [  ] [ko->ok] | [  ] [NA] | [  ] Open
@@ -459,6 +460,54 @@ SESSION 1: GNOME (Mutter Backend)
           from spawning ghost dock items in ApplicationDiscovery and MutterBridge
         - Attributed to IFtiger-hu (史有虎) downstream fork contribution
 
+11. DRAG-AND-DROP ERGONOMICS, THEMES & PORTAL SYNCHRONIZATION
+   [  ] 11.1 Drag-and-Drop Remote Web URLs & Firefox/Chrome Target Compatibility:
+        - Drag web URLs from Firefox, Chromium/Chrome address bars and hyperlinks
+          onto dock
+        - Dropping onto dock background launches default browser with URL target
+        - Dropping onto web browser icon in dock opens URL in new tab / activates
+          browser
+        - Support for text/x-moz-url, text/uri-list, and text/plain fallbacks
+        - Support for desktop link shortcuts (.desktop with Type=Link and URL[$e]=
+          expanded keys, or .url internet shortcuts)
+   [  ] 11.2 Hover-To-Raise Target Window Activation During External Drag-and-Drop:
+        - Hover over running dock item with cursor carrying external file/text
+        - 500ms hover delay activates WindowManager focus request, raising the
+          application's window to the foreground
+        - Operator can release cursor directly inside target application's
+          workspace
+   [  ] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+        - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
+          key changes
+        - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
+          when OS switches between Light and Dark mode without requiring dock
+          restart
+   [  ] 11.4 ReverseRoundness & Theme Subsystem Restructuring:
+        - Concave skirt Cairo arc rendering with 0.75 proportional clearance
+        - Theme catalog cleanup (Default promoted to top adaptive GTK engine,
+          Arian Theme Dark/Light pairs, IFtiger Theme Dark/Light imported,
+          Matte purged, natural fallback to Default for missing themes)
+   [  ] 11.5 Interactive Theme Manager (Install Archives & Native File Chooser):
+        - In Preferences -> Appearance -> Theme, click '+' button.
+        - Native file chooser opens (Gtk.FileChooserNative portal dialog with places, breadcrumbs, search).
+        - Select theme archive (.zip, .tar.gz, .tar.xz) from FAT/Test Files/Themes/.
+        - Theme installs cleanly into ~/.local/share/wayplank/themes/, appears in combo box and applies immediately.
+        - Test deletion: select user theme, click trash button -> deletes user theme and falls back to Default cleanly.
+        - Verify system themes (/usr/share/wayplank/themes/) cannot be deleted (trash button insensitive).
+   [  ] 11.6 Strict FreeDesktop MIME Type Drop Validation:
+        - Drag incompatible file (e.g. 'Sergio Melas CV.pdf' from FAT/Test Files/Files/) onto text editors (Kate, VS Code) or Dolphin.
+        - App icon bounces and strictly rejects the incompatible file (does not attempt to open, does not fall back to pinning).
+        - Drag compatible file (e.g. text file or folder) onto Kate / Dolphin -> accepted and opened properly.
+   [  ] 11.7 Canonical Launcher Deduplication & Desktop Pinning Precedence:
+        - Drag .desktop file (e.g. 'Youtube.desktop' from FAT/Test Files/Links/) onto dock while hovering near/over a web browser icon.
+        - Dock strictly prioritizes pinning the launcher over opening it in browser; launcher is pinned to dock.
+        - Drag the same .desktop again -> repositioned along the dock, NO duplicate '-1.dockitem' created on disk or dock.
+        - Canonical URI matching handles percent-encoding ('Test%20Files'), symlinks ('Desktop' vs 'Others'), and desktop IDs.
+   [  ] 11.8 Clean Drag-Off Removal & Poof Animation (KISS Zero-Ghosting):
+        - Drag pinned launcher (e.g. 'Youtube.desktop') off dock into empty desktop space to remove it.
+        - When the app has 0 open windows: poof animation plays cleanly at cursor release, item is deleted immediately with ZERO transient icon ghosting or hopping into unpinned.
+        - If the app has active open windows on screen: dragging it off dock preserves it as an unpinned running item (TransientDockItem) until its window is closed.
+
 
 ================================================================================
 SESSION 1 RESULT: (GNOME / Mutter Backend)
@@ -900,6 +949,54 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Windows with skipTaskbar == true or specialWindow == true are excluded
           from spawning ghost dock items in ApplicationDiscovery and KWinBridge
         - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+
+11. DRAG-AND-DROP ERGONOMICS, THEMES & PORTAL SYNCHRONIZATION
+   [  ] 11.1 Drag-and-Drop Remote Web URLs & Firefox/Chrome Target Compatibility:
+        - Drag web URLs from Firefox, Chromium/Chrome address bars and hyperlinks
+          onto dock
+        - Dropping onto dock background launches default browser with URL target
+        - Dropping onto web browser icon in dock opens URL in new tab / activates
+          browser
+        - Support for text/x-moz-url, text/uri-list, and text/plain fallbacks
+        - Support for desktop link shortcuts (.desktop with Type=Link and URL[$e]=
+          expanded keys, or .url internet shortcuts)
+   [  ] 11.2 Hover-To-Raise Target Window Activation During External Drag-and-Drop:
+        - Hover over running dock item with cursor carrying external file/text
+        - 500ms hover delay activates WindowManager focus request, raising the
+          application's window to the foreground
+        - Operator can release cursor directly inside target application's
+          workspace
+   [  ] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+        - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
+          key changes
+        - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
+          when OS switches between Light and Dark mode without requiring dock
+          restart
+   [  ] 11.4 ReverseRoundness & Theme Subsystem Restructuring:
+        - Concave skirt Cairo arc rendering with 0.75 proportional clearance
+        - Theme catalog cleanup (Default promoted to top adaptive GTK engine,
+          Arian Theme Dark/Light pairs, IFtiger Theme Dark/Light imported,
+          Matte purged, natural fallback to Default for missing themes)
+   [  ] 11.5 Interactive Theme Manager (Install Archives & Native File Chooser):
+        - In Preferences -> Appearance -> Theme, click '+' button.
+        - Native file chooser opens (Gtk.FileChooserNative portal dialog with places, breadcrumbs, search).
+        - Select theme archive (.zip, .tar.gz, .tar.xz) from FAT/Test Files/Themes/.
+        - Theme installs cleanly into ~/.local/share/wayplank/themes/, appears in combo box and applies immediately.
+        - Test deletion: select user theme, click trash button -> deletes user theme and falls back to Default cleanly.
+        - Verify system themes (/usr/share/wayplank/themes/) cannot be deleted (trash button insensitive).
+   [  ] 11.6 Strict FreeDesktop MIME Type Drop Validation:
+        - Drag incompatible file (e.g. 'Sergio Melas CV.pdf' from FAT/Test Files/Files/) onto text editors (Kate, VS Code) or Dolphin.
+        - App icon bounces and strictly rejects the incompatible file (does not attempt to open, does not fall back to pinning).
+        - Drag compatible file (e.g. text file or folder) onto Kate / Dolphin -> accepted and opened properly.
+   [  ] 11.7 Canonical Launcher Deduplication & Desktop Pinning Precedence:
+        - Drag .desktop file (e.g. 'Youtube.desktop' from FAT/Test Files/Links/) onto dock while hovering near/over a web browser icon.
+        - Dock strictly prioritizes pinning the launcher over opening it in browser; launcher is pinned to dock.
+        - Drag the same .desktop again -> repositioned along the dock, NO duplicate '-1.dockitem' created on disk or dock.
+        - Canonical URI matching handles percent-encoding ('Test%20Files'), symlinks ('Desktop' vs 'Others'), and desktop IDs.
+   [  ] 11.8 Clean Drag-Off Removal & Poof Animation (KISS Zero-Ghosting):
+        - Drag pinned launcher (e.g. 'Youtube.desktop') off dock into empty desktop space to remove it.
+        - When the app has 0 open windows: poof animation plays cleanly at cursor release, item is deleted immediately with ZERO transient icon ghosting or hopping into unpinned.
+        - If the app has active open windows on screen: dragging it off dock preserves it as an unpinned running item (TransientDockItem) until its window is closed.
 
 
 ================================================================================
@@ -1344,6 +1441,54 @@ SESSION 3: LABWC (wlroots Backend)
         - Windows with skipTaskbar == true or specialWindow == true are excluded
           from spawning ghost dock items in ApplicationDiscovery and LabwcBackend
         - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+
+11. DRAG-AND-DROP ERGONOMICS, THEMES & PORTAL SYNCHRONIZATION
+   [  ] 11.1 Drag-and-Drop Remote Web URLs & Firefox/Chrome Target Compatibility:
+        - Drag web URLs from Firefox, Chromium/Chrome address bars and hyperlinks
+          onto dock
+        - Dropping onto dock background launches default browser with URL target
+        - Dropping onto web browser icon in dock opens URL in new tab / activates
+          browser
+        - Support for text/x-moz-url, text/uri-list, and text/plain fallbacks
+        - Support for desktop link shortcuts (.desktop with Type=Link and URL[$e]=
+          expanded keys, or .url internet shortcuts)
+   [  ] 11.2 Hover-To-Raise Target Window Activation During External Drag-and-Drop:
+        - Hover over running dock item with cursor carrying external file/text
+        - 500ms hover delay activates WindowManager focus request, raising the
+          application's window to the foreground
+        - Operator can release cursor directly inside target application's
+          workspace
+   [  ] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+        - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
+          key changes
+        - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
+          when OS switches between Light and Dark mode without requiring dock
+          restart
+   [  ] 11.4 ReverseRoundness & Theme Subsystem Restructuring:
+        - Concave skirt Cairo arc rendering with 0.75 proportional clearance
+        - Theme catalog cleanup (Default promoted to top adaptive GTK engine,
+          Arian Theme Dark/Light pairs, IFtiger Theme Dark/Light imported,
+          Matte purged, natural fallback to Default for missing themes)
+   [  ] 11.5 Interactive Theme Manager (Install Archives & Native File Chooser):
+        - In Preferences -> Appearance -> Theme, click '+' button.
+        - Native file chooser opens (Gtk.FileChooserNative portal dialog with places, breadcrumbs, search).
+        - Select theme archive (.zip, .tar.gz, .tar.xz) from FAT/Test Files/Themes/.
+        - Theme installs cleanly into ~/.local/share/wayplank/themes/, appears in combo box and applies immediately.
+        - Test deletion: select user theme, click trash button -> deletes user theme and falls back to Default cleanly.
+        - Verify system themes (/usr/share/wayplank/themes/) cannot be deleted (trash button insensitive).
+   [  ] 11.6 Strict FreeDesktop MIME Type Drop Validation:
+        - Drag incompatible file (e.g. 'Sergio Melas CV.pdf' from FAT/Test Files/Files/) onto text editors (Kate, VS Code) or Dolphin.
+        - App icon bounces and strictly rejects the incompatible file (does not attempt to open, does not fall back to pinning).
+        - Drag compatible file (e.g. text file or folder) onto Kate / Dolphin -> accepted and opened properly.
+   [  ] 11.7 Canonical Launcher Deduplication & Desktop Pinning Precedence:
+        - Drag .desktop file (e.g. 'Youtube.desktop' from FAT/Test Files/Links/) onto dock while hovering near/over a web browser icon.
+        - Dock strictly prioritizes pinning the launcher over opening it in browser; launcher is pinned to dock.
+        - Drag the same .desktop again -> repositioned along the dock, NO duplicate '-1.dockitem' created on disk or dock.
+        - Canonical URI matching handles percent-encoding ('Test%20Files'), symlinks ('Desktop' vs 'Others'), and desktop IDs.
+   [  ] 11.8 Clean Drag-Off Removal & Poof Animation (KISS Zero-Ghosting):
+        - Drag pinned launcher (e.g. 'Youtube.desktop') off dock into empty desktop space to remove it.
+        - When the app has 0 open windows: poof animation plays cleanly at cursor release, item is deleted immediately with ZERO transient icon ghosting or hopping into unpinned.
+        - If the app has active open windows on screen: dragging it off dock preserves it as an unpinned running item (TransientDockItem) until its window is closed.
 
 
 ================================================================================
