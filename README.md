@@ -5,9 +5,8 @@
 > Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Current Live Release: v0.6.2.2 (Round 2)](https://img.shields.io/badge/Live_on_GitHub-v0.6.2.2_(Round_2)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
-> [![Next GitHub Release: v0.6.2.3 (Round 3) - Monday Oct 26](https://img.shields.io/badge/Next_Release-v0.6.2.3_(Monday_Oct_26)-blue.svg)](Changelogs/CHANGELOG_v0.6.2.md)
-> [![Public Beta: Planned v0.7.0 (November 2026)](https://img.shields.io/badge/Public_Beta-v0.7.0_Planned_(Nov_2026)-orange.svg)](README.md)
+> [![Current Live Release: v0.6.2.3 (Round 3)](https://img.shields.io/badge/Live_on_GitHub-v0.6.2.3_(Round_3)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
+> [![Next Release: Public Beta v0.7.0 (Monday Oct 26)](https://img.shields.io/badge/Next_Release-Public_Beta_v0.7.0_(Monday_Oct_26)-orange.svg)](README.md)
 > [![FAT: 100% Passed (335/335)](https://img.shields.io/badge/FAT_Status-100%25_PASS_(335%2F335)-success.svg)](FAT/2026-10-21%20FAT%200.6.2.3.txt)
 
 ![Wayplank Release Banner](Release%20Pic.png)
@@ -16,9 +15,8 @@
 
 > [!IMPORTANT]
 > ### 📅 Release Schedule & Roadmap to Public Beta (v0.7.0)
-> - **Currently on GitHub**: **v0.6.2.2 (Round 2)** is the current live release on GitHub.
-> - **Next Monday, October 26, 2026**: **v0.6.2.3 (Round 3)** will be officially published to GitHub following our current 4-day intensive smoketesting phase (Oct 21–25).
-> - **Public Beta Launch (v0.7.0) Coming Soon**: Following the Round 3 publication on Monday, we will run a 1-week community feedback and refinement cycle. As planned, the major milestone **WayPlank Public Beta (v0.7.0)** will officially launch immediately after in early November 2026!
+> - **Currently on GitHub**: **v0.6.2.3 (Round 3)** is now officially live on GitHub!
+> - **Next Monday, October 26, 2026**: The milestone **WayPlank Public Beta (v0.7.0)** will officially launch on GitHub!
 
 ---
 
@@ -307,12 +305,10 @@ wayplank -d
   - [x] Folder Running Dots, Drawer Parity & Native Stacking (v0.6.2.3): Illuminated running indicator dots on pinned folder items (single dot for 1 active app, dual dots for 2+ active apps), running dots on drawer application rows with stabilized geometry, full drawer click/launch parity (Ctrl/Middle click for new instances, mouse wheel window cycling, context menu guard), elimination of Mutter async timer assertion crashes, KWin D-Bus auto-recovery, and clean bidirectional peer dialog stacking.
   - [x] Full multi-compositor FAT qualification: 335 tests executed, 333 passed (324 baseline + 9 squashed), 0 open defects, 2 NA (100% PASS rate).
   - [x] Finish documentation, packaging, and configuration migration.
-  - [x] 4-day intensive smoketesting phase (Oct 21 – Oct 25, 2026).
+  - [x] Official GitHub Release of v0.6.2.3 (Round 3).
 
 - [ ] Phase 7 (Upcoming) WayPlank Public Beta (v0.7.0) & Road to Stable Release
-  - [ ] **Monday, October 26, 2026: Official GitHub Release of v0.6.2.3 (Round 3)!**
-  - [ ] 1 week of community feedback, testing, and fine-tuning on Round 3 in the wild.
-  - [ ] **Official Launch of Public Beta (v0.7.0) on GitHub (November 2026)!**
+  - [ ] **Monday, October 26, 2026: Official Launch of Public Beta (v0.7.0) on GitHub!**
   - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
   - [ ] Publish Version 1.0 first stable with a clear list of supported compositors.
   - [ ] After release, focus on community bug fixes and compatibility updates.
@@ -322,8 +318,8 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
-* 🚀 **v0.6.2.3 (Round 3, Pre-Beta) — Planned GitHub Release: Monday, Oct 26, 2026 [100% FAT PASSED]**:  
-  Currently in 4-day smoketesting. Universal Cairo multi-window preview cards across all Wayland compositors (live D-Bus thumbnails on KWin and GNOME Mutter, clean blank card fallback on Labwc), dynamic real-time light/dark theme switching across KDE and GNOME, recent files jump list in context menus (`RecentFilesService`), packaged stock theme suite (Dark, Light, Arian Dark/Light, IFtiger Dark/Light), folder running indicator dots (single/dual on dock, row indicators in drawer), complete folder drawer application contract parity (middle/ctrl-click new instance, mouse wheel window cycling, row context menu guard), elimination of Mutter async timer crashes via deterministic map activation, KWin D-Bus bridge self-healing, native peer dialog stacking, and 0 open defects across 335 FAT test points. Paves the way for the **Public Beta (v0.7.0)**!
+* 🚀 **v0.6.2.3 (Round 3, Pre-Beta) — Current Live GitHub Release (2026-10-22) [100% FAT PASSED]**:  
+  Universal Cairo multi-window preview cards across all Wayland compositors (live D-Bus thumbnails on KWin and GNOME Mutter, clean blank card fallback on Labwc), dynamic real-time light/dark theme switching across KDE and GNOME, recent files jump list in context menus (`RecentFilesService`), packaged stock theme suite (Dark, Light, Arian Dark/Light, IFtiger Dark/Light), folder running indicator dots (single/dual on dock, row indicators in drawer), complete folder drawer application contract parity (middle/ctrl-click new instance, mouse wheel window cycling, row context menu guard), elimination of Mutter async timer crashes via deterministic map activation, KWin D-Bus bridge self-healing, native peer dialog stacking, and 0 open defects across 335 FAT test points. Directly paves the way for the **Public Beta (v0.7.0)** launching Monday, October 26!
 * 🌟 **v0.6.2.2 (Round 2, Pre-Beta) — Current Live GitHub Release (2026-10-21) [COMPLETED / 100% FAT PASSED]**:  
   Remote web URL & browser shortcut DND delivery (`DesktopAppInfo.launch_uris`), hover-to-raise target window activation,  
   real-time dark/light portal color-scheme synchronization (`org.freedesktop.portal.Settings`), interactive Theme Manager  

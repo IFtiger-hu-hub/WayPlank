@@ -48,7 +48,7 @@ Wayplank **V0.6.2 series** marks a landmark milestone in the project's evolution
   - **Running Dots & Drawer UX Parity**: Pinned folder dock items render illuminated running dots (and dual dots for 2+ active apps); drawer rows render running indicators with stabilized geometry; complete application contract parity (Ctrl/Middle click launch instance, wheel window cycling, row context menu guard).
   - **Native Window Stacking & Crash Elimination**: Completely excised asynchronous presentation timers eliminating Mutter `meta_window_unmanage` assertion crashes; decoupled peer dialogs for natural bidirectional stacking; reconnected native CSD HeaderBar on Mutter; KWin D-Bus service watcher for automatic bridge script recovery.
   - **Full Multi-Compositor Qualification**: 335 tests executed, 333 passed (324 baseline + 9 squashed), 2 NA, 0 open defects (100% PASS rate across GNOME Shell, KDE Plasma 6, and Labwc).
-  - **Release Schedule**: 4-day intensive smoketesting phase (Oct 21–25); official publication of v0.6.2.3 (Round 3) on GitHub scheduled for Monday, October 26, 2026. Official Public Beta (v0.7.0) launch planned after 1 week of user feedback and bugfixing.
+  - **Release Schedule**: v0.6.2.3 (Round 3) is officially released and live on GitHub! The official WayPlank Public Beta (v0.7.0) will launch next Monday, October 26, 2026!
 
 ---
 
@@ -280,12 +280,10 @@ This milestone exemplifies collaborative open-source synergy:
       - **Session 3 (Labwc / wlroots)**: 111 tests | 109 [ok] | 2 [NA] (wlroots protocol limitations) | 100% PASS
     - **Scoreboard**: 324 Passed Baseline `[ok]`, 9 Squashed `[ko->ok]`, 2 Not Applicable `[NA]`, 0 Pending `[ ]`, 0 Open Defects (100% PASS rate across all Tier-1 compositors).
 
-11. **📦 Release Finalization, Smoketest & Beta Roadmap**:
-    - Current release live on GitHub: **v0.6.2.2 (Round 2)**.
-    - Pre-Beta Round 3 officially marked 100% FAT tested, packages generated:
+11. **📦 Release Finalization & Public Beta (v0.7.0) Roadmap**:
+    - **Current Live GitHub Release**: **v0.6.2.3 (Round 3)** is officially released on GitHub with 100% FAT qualification.
+    - Distribution packages available:
       - `build/wayplank_0.6.2.3_amd64.deb`
       - `build/wayplank-0.6.2.3-1.x86_64.rpm`
-    - **4-Day Intensive Smoketest**: October 21 – October 25, 2026.
-    - **Monday, October 26, 2026**: Official GitHub Release of **v0.6.2.3 (Round 3)**.
-    - **Public Beta (v0.7.0) Planned**: Following a 1-week community feedback and bugfixing cycle on Round 3, the official WayPlank Public Beta (v0.7.0) will launch in November 2026!
+    - **Next Monday, October 26, 2026**: **Official GitHub Launch of WayPlank Public Beta (v0.7.0)**!
 
