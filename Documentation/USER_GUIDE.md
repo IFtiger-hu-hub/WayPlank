@@ -87,6 +87,20 @@ When WayPlank starts with default settings, the dock is arranged into clean, log
 - **Running Applications (Center-Right):** Temporary icons for active, unpinned windows.
 - **Trash (Right):** Anchored permanently at the end of the dock for quick file disposal and ejection.
 
+### Multi-Window Navigation & Cairo Preview Cards
+Starting in **v0.6.2.3**, WayPlank provides modern elevated Cairo preview cards when hovering or clicking applications with multiple open windows:
+- **Live Compositor Thumbnails**:
+  - Under **KDE Plasma 6 (KWin)**, live window previews are captured via `org.kde.KWin.ScreenShot2` D-Bus IPC.
+  - Under **GNOME Shell (Mutter)**, live window previews are captured via the internal Mutter extension bridge (`/mutter/screen/preview`).
+  - Under **Labwc / wlroots**, elegant high-contrast blank cards display the application icon, window title, and interactive action controls.
+- **Card Controls**:
+  - **Left-Click Card**: Activates and raises the target window to the foreground (`WindowManager.activate()`).
+  - **Close Button (X)**: Top-right corner of each card lets you close that specific window instance directly (`WindowManager.close_window()`).
+- **Preferences Toggle**:
+  - In **Preferences $\rightarrow$ Behaviour**, you can toggle between visual window preview cards and classic cyclic window switching.
+- **Recent Files Jump List**:
+  - Right-clicking compatible applications reveals a "Recent Documents" submenu powered by FreeDesktop `Gtk.RecentManager`, allowing one-click reopening of recently accessed documents.
+
 ---
 
 ## 3. Folder Launchers (App Drawer Menus)
@@ -378,10 +392,16 @@ WayPlank ships with a curated selection of built-in themes and an adaptive dynam
 3. **Arian Theme Light**: Clean frosted glass designed for light desktop environments.
 4. **IFtiger Theme Dark**: Sleek high-contrast dark theme contributed by downstream collaborator 史有虎 (IFtiger-hu).
 5. **IFtiger Theme Light**: Crisp, clean light theme with subtle frosted edges.
-6. **Transparent**: Ultra-minimalist borderless design showing only floating icons.
+6. **Dark**: Classic monochrome dark theme with rounded styling.
+7. **Light**: Classic monochrome light theme.
+8. **Transparent**: Ultra-minimalist borderless design showing only floating icons.
 
-### FreeDesktop Settings Portal Synchronization
-WayPlank connects directly over D-Bus to the `org.freedesktop.portal.Settings` interface (`color-scheme` key). Whenever your desktop environment toggles between Light Mode and Dark Mode, WayPlank dynamically updates its adaptive themes in real time with zero dock restarts required.
+### True Dynamic Real-Time Light/Dark System Theming
+Starting in **v0.6.2.3**, WayPlank features multi-bus and filesystem convergence for instantaneous system theme tracking:
+- **FreeDesktop Settings Portal**: Intercepts `color-scheme` key changes over D-Bus (`org.freedesktop.portal.Settings`).
+- **GNOME Shell GSettings**: Directly tracks `org.gnome.desktop.interface.color-scheme`.
+- **KDE Plasma Inotify Monitoring**: Monitors `~/.config/kdeglobals` for immediate color changes under KDE Plasma 6.
+- **Dynamic Counterpart Swapping**: When the desktop toggles between Dark and Light mode, WayPlank automatically switches between paired counterpart themes (*Arian Theme Light* $\longleftrightarrow$ *Arian Theme Dark*, *IFtiger Theme Light* $\longleftrightarrow$ *IFtiger Theme Dark*, *Light* $\longleftrightarrow$ *Dark*) and dynamically updates the adaptive `Default` theme with zero dock restarts required.
 
 ### Interactive Theme Manager (One-Click Archive Install & Removal)
 Starting in **v0.6.2.2**, WayPlank includes an integrated Theme Manager directly within the Preferences dialog (**Preferences $\rightarrow$ Appearance**):
@@ -427,7 +447,7 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   ```bash
   chmod +x BuildDeb.sh
   ./BuildDeb.sh
-  sudo apt install ./build/wayplank_0.6.2.2_amd64.deb
+  sudo apt install ./build/wayplank_0.6.2.3_amd64.deb
   ```
 
 - **openSUSE, Fedora & RHEL (`.rpm`)**:
@@ -435,9 +455,9 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   chmod +x BuildRpm.sh
   ./BuildRpm.sh
   # On openSUSE:
-  sudo zypper install ./build/wayplank-0.6.2.2-1.x86_64.rpm
+  sudo zypper install ./build/wayplank-0.6.2.3-1.x86_64.rpm
   # On Fedora / RHEL:
-  sudo dnf install ./build/wayplank-0.6.2.2-1.x86_64.rpm
+  sudo dnf install ./build/wayplank-0.6.2.3-1.x86_64.rpm
   ```
 
 > 💡 **Headless / CI Automation**: All build scripts support non-interactive execution via `WAYPLANK_NO_PROMPT=1` (e.g., `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh`).

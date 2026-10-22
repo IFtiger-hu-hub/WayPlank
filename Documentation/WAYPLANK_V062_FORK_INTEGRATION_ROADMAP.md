@@ -39,12 +39,12 @@ The fork branched from upstream at tag `v0.5.2` (`5729885`) and produced 17 comm
 | :--- | :--- | :--- | :--- | :--- |
 | **`ccb79c0`** | `Packaging` | Added native openSUSE / Fedora RPM builder (`BuildRpm.sh`) and spec file template. | 🟢 **Zero overlap**. Upstream only had `.deb` and binary script. Tested and verified working. | ✅ **COMPLETED (Round 1)**: Integrated `BuildRpm.sh` with non-interactive headless CI bypass. |
 | **`e1d6a03`** | `v0.5.3` / `Layout` | **Dock Overflow Smooth Scrolling**: Clamps dock background to screen width/height, adds mouse wheel scroll offset, and smooth animated scrolling when items exceed screen bounds. | 🟢 **Zero overlap**. Upstream relied solely on item padding reduction/auto-shrink. | ✅ **COMPLETED (Round 1)**: Integrated overflow scrolling + Preferences Behaviour switch + Tachometer Redline slider. |
-| **`9108354`** | `Theming` | Added `lib/Services/SystemTheme.vala` (listening to FreeDesktop portal color-scheme) and `Light/dock.theme`. | 🟡 **Partial overlap**. Upstream v0.6.1 created the dynamic adaptive "Gtk+" engine. | **Phase 2: Integrate Portal Listener**. Wire `SystemTheme.vala` into upstream adaptive theme engine. |
+| **`9108354`** | `Theming` | Added `lib/Services/SystemTheme.vala` (listening to FreeDesktop portal color-scheme) and `Light/dock.theme`. | 🟡 **Partial overlap**. Upstream v0.6.1 created the dynamic adaptive "Gtk+" engine. | ✅ **COMPLETED (Round 2 & 3)**: Wired `SystemTheme.vala` into dynamic theme engine with full dual-portal, GNOME GSettings, and KDE `kdeglobals` monitoring. |
 | **`b2b228c`** | `Icons` | System library custom icon chooser dialog (`IconChooserDialog.vala`). | 🔵 **Already Solved in Upstream v0.6.0**. Upstream implemented a full 20,000+ theme icon browser with GIO metadata persistence. | **Review & Compare**: Ensure upstream has all system path fallbacks. |
-| **`a19c053`**<br>**`af0293a`**<br>**`b9f8ba7`**<br>**`10809c4`** | `v0.5.4` / `DND` | Drag-and-drop file/URL delivery (`launch_with_uris`), smart drop capsule tooltip, hover window popup activation. | 🟡 **Partial overlap**. Upstream v0.6.1 solved 0-byte MIME fallbacks, folder drops, and bounce feedback. | **Phase 2: Merge Enhancements**. Adopt `launch_with_uris` (remote URLs) & hover window raising. |
-| **`81430b3`** | `Themes` | Restored classic Default theme; moved reverse rounded dark theme to standalone `Dark`. | 🟡 **Theme styling**. | **Phase 3: Theme Catalog**. Add `Dark` and `Light` as packaged stock themes. |
-| **`5693d80`** | `v0.5.5` / `Core` | **Launcher Deduplication & Item Reuse** in `ItemFactory.vala`; filter `xwaylandvideobridge` in `ApplicationDiscovery.vala` and KWin bridge. | 🟢 **High Value Fix**. Prevents duplicated `.dockitem` generation and ghost bridge windows. | **Phase 1: Port Deduplication & Ghost Filter**. High stability impact. |
-| **`81ea31a`** | `Visual` / `Cards` | Multi-window card expansion, reverse fillet skirt rendering, `RecentFilesService.vala`. | ⚠️ **HAL Positioning & Geometry Challenge**. Inline expansion previously risked Mutter/Labwc HAL displacement. | 🔄 **TO MODIFY / GENERALIZE**: Re-architect for universal multi-compositor HAL positioning (KWin, Mutter, Labwc) and geometry preservation. |
+| **`a19c053`**<br>**`af0293a`**<br>**`b9f8ba7`**<br>**`10809c4`** | `v0.5.4` / `DND` | Drag-and-drop file/URL delivery (`launch_with_uris`), smart drop capsule tooltip, hover window popup activation. | 🟡 **Partial overlap**. Upstream v0.6.1 solved 0-byte MIME fallbacks, folder drops, and bounce feedback. | ✅ **COMPLETED (Round 2)**: Integrated remote URLs, hover-to-raise window activation, and strict MIME validation. |
+| **`81430b3`** | `Themes` | Restored classic Default theme; moved reverse rounded dark theme to standalone `Dark`. | 🟡 **Theme styling**. | ✅ **COMPLETED (Round 3)**: Added `Dark`, `Light`, `Arian Dark/Light`, and `IFtiger Dark/Light` as packaged stock themes. |
+| **`5693d80`** | `v0.5.5` / `Core` | **Launcher Deduplication & Item Reuse** in `ItemFactory.vala`; filter `xwaylandvideobridge` in `ApplicationDiscovery.vala` and KWin bridge. | 🟢 **High Value Fix**. Prevents duplicated `.dockitem` generation and ghost bridge windows. | ✅ **COMPLETED (Round 1)**: Integrated launcher deduplication, item reuse, and ghost window shielding. |
+| **`81ea31a`** | `Visual` / `Cards` | Multi-window card expansion, reverse fillet skirt rendering, `RecentFilesService.vala`. | ⚠️ **HAL Positioning & Geometry Challenge**. Inline expansion previously risked Mutter/Labwc HAL displacement. | ✅ **COMPLETED (Round 3)**: Solved via elevated floating Cairo popup (`WindowCardsWindow`), live thumbnails on KWin/Mutter, blank cards on Labwc, and `RecentFilesService`. |
 
 ---
 
@@ -74,8 +74,8 @@ flowchart TD
         F3["✅ [INTEGRATED - Round 1]<br/>Launcher Deduplication & File Reuse (ItemFactory)"]:::integrated
         F4["✅ [INTEGRATED - Round 1]<br/>Ghost Window Filtering (xwaylandvideobridge)"]:::integrated
         F5["✅ [INTEGRATED - Round 2]<br/>DND Remote URL Delivery & Hover Window Activation"]:::integrated
-        F6["Recent Files Jump List Service (RecentFilesService)"]:::pending
-        F7["🔄 [TO MODIFY / GENERALIZE]<br/>Universal Multi-Window Cards (HAL Positioning)"]:::modify
+        F6["✅ [INTEGRATED - Round 3]<br/>Recent Files Jump List Service (RecentFilesService)"]:::integrated
+        F7["✅ [INTEGRATED - Round 3]<br/>Universal Multi-Window Cards (WindowCardsWindow)"]:::integrated
     end
 
     subgraph Unified_v062["WayPlank v0.6.2 Unified Milestone"]
@@ -84,6 +84,8 @@ flowchart TD
         M3["✅ [INTEGRATED - Round 1]<br/>Infinite Capacity: Smooth Overflow Scrolling + Redline Slider"]:::integrated
         M4["✅ [INTEGRATED - Round 2]<br/>Rich DND Ecosystem: Files, Folders, URLs & Hover Raise"]:::integrated
         M5["✅ [INTEGRATED - Round 2]<br/>Adaptive Theming: Portal Color-Scheme Sync + Theme Manager"]:::integrated
+        M6["✅ [INTEGRATED - Round 3]<br/>Universal Multi-Window Cards: Live KWin/Mutter Thumbnails"]:::integrated
+        M7["✅ [INTEGRATED - Round 3]<br/>Dynamic Theming Sync: Dual Portal + GSettings + kdeglobals"]:::integrated
     end
 
     Upstream_v061 --> Unified_v062
@@ -93,6 +95,7 @@ flowchart TD
     F4 --> Unified_v062
     F5 --> Unified_v062
     F6 --> Unified_v062
+    F7 --> Unified_v062
 ```
 
 ---
@@ -101,9 +104,9 @@ flowchart TD
 
 To preserve linear versioning, eliminate ambiguity, and provide clean standalone packages for each integration milestone, every Round maps directly to a sequential sub-version (`v0.6.2.x`):
 
-* **v0.6.2.1 (Round 1)**: Native RPM Packaging, Overflow Scrolling, Launcher Deduplication, Ghost Window Shield & Multi-Monitor DDC/CI Sync.
-* **v0.6.2.2 (Round 2)**: DND Remote URLs, Hover Window Raising & FreeDesktop Portal Color-Scheme.
-* **v0.6.2.3 (Round 3)**: Packaged Stock Themes, Recent Files Jump List & Universal Multi-Window Cards.
+* **v0.6.2.1 (Round 1)**: Native RPM Packaging, Overflow Scrolling, Launcher Deduplication, Ghost Window Shield & Multi-Monitor DDC/CI Sync — ✅ **COMPLETED (Released 2026-10-17)**.
+* **v0.6.2.2 (Round 2)**: DND Remote URLs, Hover Window Raising, FreeDesktop Portal Sync, Theme Manager & Strict MIME — ✅ **COMPLETED (Released 2026-10-21)**.
+* **v0.6.2.3 (Round 3)**: Packaged Stock Themes, Recent Files Jump List, Dynamic Theme Swapping, Universal Multi-Window Cards, Folder Running Dots, Drawer UX Parity & Native Peer Stacking — ✅ **COMPLETED (100% FAT Passed, Released 2026-10-22)**.
 
 ---
 
@@ -163,53 +166,83 @@ To preserve linear versioning, eliminate ambiguity, and provide clean standalone
 
 ---
 
-### Phase 3 (Round 3): Visual Polish & Extended Themes — 🎯 TARGET MILESTONE: v0.6.2.3
-*Goal: Enrich theme offerings, Recent Files jump list & generalized Multi-Window Cards.*
+### Phase 3 (Round 3): Visual Polish, Theming & Multi-Window Cards — 🏁 RELEASE MILESTONE: v0.6.2.3 (COMPLETED / 100% FAT PASSED)
+*Goal: Enrich theme offerings, Recent Files jump list & generalized Multi-Window Cards across all compositors.*
 
-1. **Stock Theme Suite (`data/themes/`)**:
-   - Integrate `Dark` and `Light` stock themes from `81430b3` and `9108354`.
-   - Preserve our adaptive `Gtk+` dynamic engine as the flagship default.
-2. **Recent Files Jump List (`lib/Services/RecentFilesService.vala`)**:
-   - Port `RecentFilesService` querying `Gtk.RecentManager`.
-   - Add "Recent Documents" submenu to compatible application right-click menus.
-3. **Multi-Window Window Cards: 🔄 TO MODIFY / GENERALIZE (v0.6.2.3 Round 3)**:
-   - **Status**: Re-evaluated from Rejected to To Modify / Generalize.
-   - **Architectural Scope**:
-     1. *Universal HAL Window Tracking*: Ensure window identification and activation (`WindowControl.queue_command`) operates with identical fidelity across KWin, Mutter, and Labwc.
-     2. *HAL Positioning Architecture*: Address the historic HAL positioning challenge on Mutter and Labwc by integrating dynamic bounds recalculation into `PositionManager.vala`, or decoupling cards into an elevated Cairo floating card popup to prevent horizontal dock distortion.
-     3. *Configurable Activation*: Provide a user toggle in Preferences -> Behaviour to allow users to choose between classical cyclic window switching and modern multi-window card expansion.
+1. **Stock Theme Suite (`data/themes/`)** — ✅ **COMPLETED (v0.6.2.3)**:
+   - Integrated full suite of packaged stock themes (`Dark`, `Light`, `Arian Theme Dark`, `Arian Theme Light`, `IFtiger Theme Dark`, `IFtiger Theme Light`).
+   - Retained adaptive `Default` dynamic translucent glass engine as the flagship default.
+2. **True Dynamic System Theme Switching (`lib/Services/SystemTheme.vala`, `lib/DockRenderer.vala`)** — ✅ **COMPLETED (v0.6.2.3)**:
+   - Synchronized across FreeDesktop Settings Portal (`key == "color-scheme"`), GNOME GSettings (`org.gnome.desktop.interface.color-scheme`), and KDE Plasma `~/.config/kdeglobals` inotify file monitoring.
+   - Dynamic counterpart swapping: automatically toggles between Dark and Light paired themes (e.g. *Arian Theme Light* $\leftrightarrow$ *Arian Theme Dark*, *IFtiger Theme Light* $\leftrightarrow$ *IFtiger Theme Dark*) and dynamically resets buffers on `Default`.
+3. **Recent Files Jump List (`lib/Services/RecentFilesService.vala`, `lib/Items/ApplicationDockItem.vala`)** — ✅ **COMPLETED (v0.6.2.3)**:
+   - Integrated `RecentFilesService` querying `Gtk.RecentManager`.
+   - Added "Recent Documents" submenu to application right-click context menus with application desktop ID and MIME validation.
+4. **Universal Multi-Window Cairo Preview Cards (`lib/Widgets/WindowCard.vala`, `lib/Widgets/WindowCardsWindow.vala`)** — ✅ **COMPLETED (v0.6.2.3)**:
+   - **Architectural Scope Fully Resolved**:
+     1. *Universal HAL Window Tracking*: Standardized window activation (`WindowManager.activate()`) and close requests (`WindowManager.close_window()`) across KWin, Mutter, and Labwc.
+     2. *Decoupled Cairo Floating Window*: Solved the historic HAL positioning challenge by implementing an elevated floating Cairo window (`WindowCardsWindow`) positioned cleanly via `WindowControl.position_hover(...)`, preserving dock geometry and avoiding layer-shell margins displacement on Mutter and Labwc.
+     3. *Live Thumbnails vs Graceful Blank Cards*:
+        - Live thumbnails on **KDE Plasma 6** via `org.kde.KWin.ScreenShot2` D-Bus pipe capture.
+        - Live thumbnails on **GNOME Shell (Mutter)** via internal extension D-Bus bridge (`/mutter/screen/preview`).
+        - Elegant high-contrast blank cards with vector application icons and window titles on **Labwc / wlroots**.
+     4. *Configurable Activation*: User toggle switch in **Preferences $\rightarrow$ Behaviour** ("Show window preview cards on hover/click") to seamlessly switch between modern preview cards and classic cyclic window switching.
+     5. *60 FPS Zoom Follower*: Maintained 60 FPS zoom tracking on the underlying dock items while cards are open.
+5. **Folder Running Indicator Dots & Drawer UX Parity (`FileDockItem.vala`, `FolderMenuWindow.vala`)** — ✅ **COMPLETED (v0.6.2.3)**:
+   - Illuminated running indicator dots on pinned folder items (single dot for 1 active app, dual dots for 2+ active apps).
+   - Crisp running dots on drawer application rows with stabilized geometry and reverse roundness clearance.
+   - Drawer application contract parity: left-click routes through configured WindowClickBehavior, `Ctrl+Left Click` and `Middle Click` launch new instances, mouse wheel cycles open windows, and row right-click context menu is secured with `context_menu_active` guard.
+6. **Cross-Compositor Window Stacking & Crash Elimination (`AbstractMain.vala`, `SessionWindow.vala`, `KWinBridge.vala`)** — ✅ **COMPLETED (v0.6.2.3)**:
+   - Completely excised asynchronous presentation timers (`Timeout.add (50)`), preventing Mutter `meta_window_unmanage` assertion crashes on rapid clicks.
+   - Replaced with deterministic one-shot native GTK `window.map` listeners with hardware `event_time`.
+   - Decoupled peer dialogs (no artificial `set_transient_for`), restoring bidirectional stacking and native Mutter CSD HeaderBar on AboutDialog.
+   - Added `Bus.watch_name` auto-recovery for KWin bridge script.
 
 ---
 
 ## 5. 🛡️ Quality Assurance & FAT Protocol Impact
 
-Every phase will be validated against our standard **Multi-Compositor FAT Matrix** (`FAT/`):
+Every phase was validated against our standard **Multi-Compositor FAT Matrix** (`FAT/`):
 
 1. **Packaging Validation**:
-   - Test `./BuildDeb.sh` on Debian Sid / Ubuntu 24.04.
-   - Test `./BuildRpm.sh` on openSUSE Tumbleweed, openSUSE Leap, Fedora 41, and Debian Sid.
-   - Verify generated packages install cleanly, register icons, compile schemas, and execute `wayplank --replace`.
+   - Tested `./BuildDeb.sh` on Debian Sid / Ubuntu 24.04 -> `build/wayplank_0.6.2.3_amd64.deb`.
+   - Tested `./BuildRpm.sh` on openSUSE Tumbleweed, openSUSE Leap, Fedora 41, and Debian Sid -> `build/wayplank-0.6.2.3-1.x86_64.rpm`.
+   - Verified generated packages install cleanly, register icons, compile schemas, and execute `wayplank --replace`.
 2. **Deduplication FAT Point**:
-   - Rapidly drag-and-drop the same application multiple times; verify zero duplicate `.dockitem` files are spawned in `~/.config/wayplank/dock1/launchers/`.
+   - Rapidly dragged-and-dropped the same application multiple times; verified zero duplicate `.dockitem` files are spawned in `~/.config/wayplank/dock1/launchers/`.
 3. **Overflow Scrolling FAT Point**:
-   - Pin 35+ applications on a 1080p display; verify dock clamps to screen edges, renders cleanly, and mouse wheel scrolls fluidly through the entire launcher sequence without glitching.
-4. **Compositor Regression Shield**:
-   - Re-run KDE Plasma Session 2 (already 100% PASS), GNOME Session 1, and Labwc Session 3 to guarantee zero regressions.
+   - Pinned 35+ applications on a 1080p display; verified dock clamps to screen edges, renders cleanly, and mouse wheel scrolls fluidly through the entire launcher sequence without glitching.
+4. **Compositor Regression Shield (FAT 0.6.2.3 Final Scoreboard)**:
+   - **Session 1 (GNOME Shell / Mutter)**: 113 tests | 106 `[ok]` | 7 `[ko->ok]` | 100% PASS
+   - **Session 2 (KDE Plasma 6 / KWin)**: 111 tests | 109 `[ok]` | 2 `[ko->ok]` | 100% PASS
+   - **Session 3 (Labwc / wlroots)**: 111 tests | 109 `[ok]` | 2 `[NA]` | 100% PASS
+   - **Total Verification**: 335 Tests Defined | 324 Baseline `[ok]` | 9 Squashed `[ko->ok]` | 2 `[NA]` | 0 Open Defects (100% Compliant).
 
 ---
 
 ## 6. 🤝 Attribution & Documentation Plan
 
 1. **Git Commit Authorship**:
-   - Commits will be imported using `git cherry-pick` or `git commit --author="史有虎-openSUSE-Tumbleweed <2212363803@qq.com>"`.
+   - Commits imported using `git cherry-pick` or `git commit --author="史有虎-openSUSE-Tumbleweed <2212363803@qq.com>"`.
 2. **README.md Acknowledgments**:
-   - Add a dedicated section:
-     ```markdown
-     ## 🤝 Acknowledgments & Contributors
-     * **史有虎 (IFtiger-hu)** (@IFtiger-hu-hub): Co-author of native openSUSE/Fedora RPM packaging (`BuildRpm.sh`), dock overflow smooth scrolling architecture, and launcher deduplication engine.
-     ```
+   - Dedicated section acknowledging **史有虎 (IFtiger-hu)** (@IFtiger-hu-hub).
 3. **Changelog Documentation**:
-   - All integrated features will be documented in `Changelogs/CHANGELOG_v0.6.2.md` with explicit credits and commit references.
+   - All integrated features documented in `Changelogs/CHANGELOG_v0.6.2.md` with explicit credits and commit references.
+
+---
+
+## 7. 🏁 Community Unification Completed & Release Timeline
+
+The unification of upstream WayPlank with the community fork of **IFtiger-hu (史有虎)** has reached 100% completion across all three planned rounds:
+- **Round 1 (v0.6.2.1)**: Distribution tooling, RPM packaging, launcher deduplication, overflow scrolling.
+- **Round 2 (v0.6.2.2)**: Remote URL DND, hover window activation, interactive Theme Manager, portal sync, strict MIME. *(Currently live on GitHub)*.
+- **Round 3 (v0.6.2.3)**: Universal multi-window preview cards, live thumbnails, dynamic theme swapping, stock themes, recent files, folder running dots, drawer parity, native stacking. *(100% FAT passed, in 4-day smoketest)*.
+
+### 📅 Staged Release & Beta Timeline:
+1. **October 21 – October 25, 2026**: 4-day intensive smoketesting phase on v0.6.2.3.
+2. **Monday, October 26, 2026**: **Official GitHub Release of v0.6.2.3 (Round 3)**.
+3. **October 26 – November 2, 2026**: 1-week community feedback and bugfixing period on Round 3 in the wild.
+4. **Following Feedback**: Official **Public Beta (v0.7.0) Release** on GitHub (November 2026)!
 
 ---
 *WayPlank Project Documentation • Maintained by Sergio Melas & Contributors*

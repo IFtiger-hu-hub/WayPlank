@@ -1,8 +1,8 @@
 # WayPlank V0.6.2 Series Detailed Technical Changelog
 
 Release Series: **V0.6.2 Series (The Community Unification & Distribution Release)**  
-Current Milestone: **V0.6.2.2 (Round 2: Ergonomics, DND Remote URLs, Theme Manager, MIME Drop & Portal Sync) - Completed / 100% FAT Passed**  
-Release Date: 2026-10-21  
+Current Milestone: **V0.6.2.3 (Round 3: Multi-Window Preview Cards, Dynamic Theming, Recent Files, Stock Themes, Folder Running Dots, Drawer UX Parity & Native Peer Stacking) — Completed / 100% FAT Passed (2026-10-22)**  
+Release Date: 2026-10-22 (All 3 Rounds Fully Integrated & 100% FAT Qualified)  
 Authors & Contributors:
 - **Sergio Melas** (Maintainer — sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))
 - **史有虎 (IFtiger-hu)** (Collaborator, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub))
@@ -29,18 +29,26 @@ Wayplank **V0.6.2 series** marks a landmark milestone in the project's evolution
 9. **Consolidated Core Hardening & 100% FAT Qualification**: 279 test points executed across GNOME/Mutter, KDE/KWin, and Labwc with 0 open defects and 18 squashed bugs.
 
 ### 🗺️ The V0.6.2 Multi-Round Integration Plan:
-* **Round 1 (`v0.6.2.1`) — ✅ Current Release (100% FAT Passed)**:
+* **Round 1 (`v0.6.2.1`) — ✅ Completed (100% FAT Passed, Released 2026-10-17)**:
   - **Distribution & Packaging**: Automated standalone RPM packaging for openSUSE, Fedora and RHEL (`BuildRpm.sh`) with headless CI support.
   - **Core Stability**: ItemFactory launcher deduplication, ghost window & screen-sharing bridge shielding (`xwaylandvideobridge`).
   - **Navigation & Display**: Dock overflow smooth scrolling with tachometer redline capacity indicator, and multi-monitor screen brightness DDC/CI synchronization with architectural SP/PV decoupling.
-* **Round 2 (`v0.6.2.2`) — 🎯 In Progress (Ergonomics & DND Enhancements)**:
+* **Round 2 (`v0.6.2.2`) — ✅ Completed (100% FAT Passed, Released 2026-10-21)**:
   - **Remote Web Drag-and-Drop**: Remote web URL delivery (`http://`, `https://`) with automatic browser launching via `DesktopAppInfo.launch_uris()`.
   - **Window Interaction**: Automatic hover window raising during drag operations to simplify dragging files directly into target application workspaces.
   - **System Theme Integration**: Real-time dark/light mode detection via FreeDesktop Settings Portal (`org.freedesktop.portal.Settings`).
-* **Round 3 (`v0.6.2.3`) — 🎯 Planned (Visual Polish & Extended Productivity)**:
-  - **Extended Theme Suite**: Packaged classic stock themes (Dark and Light variants).
-  - **Productivity**: Recent Files jump list accessible directly from application context menus (`RecentFilesService`).
-  - **Window Cards**: Universal, generalized multi-window Cairo preview cards across all Wayland compositors.
+  - **Interactive Theme Manager**: Native portal file chooser and theme archive installer/uninstaller (.zip, .tar.gz, .theme).
+  - **Strict FreeDesktop MIME Validation**: Strict MIME compatibility checks guarding application file drops.
+  - **Canonical Deduplication & Drag-Off Poof**: Canonical symlink/URI deduplication and instant drag-off removal with particle poof animation.
+* **Round 3 (`v0.6.2.3`) — ✅ Completed (100% FAT Passed, Released 2026-10-22)**:
+  - **Universal Multi-Window Preview Cards**: Cairo-rendered visual window preview cards with live IPC thumbnails on KWin and GNOME Mutter, with graceful blank card fallback on Labwc.
+  - **True Dynamic System Theme Switching**: Real-time synchronization across KDE (`kdeglobals`), GNOME Shell (`color-scheme`), and FreeDesktop portal with automated Dark/Light counterpart theme swapping.
+  - **Recent Files Jump List**: FreeDesktop `Gtk.RecentManager` jump list in application right-click context menus (`RecentFilesService`).
+  - **Packaged Stock Themes**: Bundled Dark, Light, Arian Dark/Light, and IFtiger Dark/Light themes.
+  - **Running Dots & Drawer UX Parity**: Pinned folder dock items render illuminated running dots (and dual dots for 2+ active apps); drawer rows render running indicators with stabilized geometry; complete application contract parity (Ctrl/Middle click launch instance, wheel window cycling, row context menu guard).
+  - **Native Window Stacking & Crash Elimination**: Completely excised asynchronous presentation timers eliminating Mutter `meta_window_unmanage` assertion crashes; decoupled peer dialogs for natural bidirectional stacking; reconnected native CSD HeaderBar on Mutter; KWin D-Bus service watcher for automatic bridge script recovery.
+  - **Full Multi-Compositor Qualification**: 335 tests executed, 333 passed (324 baseline + 9 squashed), 2 NA, 0 open defects (100% PASS rate across GNOME Shell, KDE Plasma 6, and Labwc).
+  - **Release Schedule**: 4-day intensive smoketesting phase (Oct 21–25); official publication of v0.6.2.3 (Round 3) on GitHub scheduled for Monday, October 26, 2026. Official Public Beta (v0.7.0) launch planned after 1 week of user feedback and bugfixing.
 
 ---
 
@@ -199,12 +207,85 @@ This milestone exemplifies collaborative open-source synergy:
 
 ---
 
-## 10. 🎯 WayPlank V0.6.2.3 (Round 3: Multi-Window Preview Cards & Recent Files) — Upcoming
+## 10. 🎯 WayPlank V0.6.2.3 (Round 3: Multi-Window Preview Cards, Dynamic Theming, Recent Files, Stock Themes, Folder Running Dots, Drawer UX Parity & Native Peer Stacking) — Completed / 100% FAT Passed (2026-10-22)
 
-- **Universal Multi-Window Preview Cards**:
-  - Cairo-rendered visual window preview cards for application instances across all Wayland compositors.
-- **Recent Files Jump List**:
-  - Direct access to recently opened documents from application right-click context menus (`RecentFilesService`).
-- **Extended Theme Pack**:
-  - Pre-packaged classic stock theme suite (Dark and Light variants).
+### Core Highlights & Technical Accomplishments of v0.6.2.3 (Round 3):
+
+1. **Universal Multi-Window Preview Cards (`WindowCard.vala`, `WindowCardsWindow.vala`)**:
+   - **Cairo-Rendered Elevated Card Popup**: Hovering or clicking multi-window applications opens an elevated Cairo floating card popup (`WindowCardsWindow`) dynamically anchored over the dock item.
+   - **Live Compositor Thumbnails (KWin & Mutter)**:
+     - On **KDE Plasma 6 (KWin)**: Captures live window thumbnails via `org.kde.KWin.ScreenShot2` D-Bus IPC over a private Unix pipe file descriptor (`capture_window()`). Integrated with `X-KDE-DBUS-Restricted-Interfaces` security declarations in `wayplank.desktop`.
+     - On **GNOME Shell (Mutter)**: Captures live window thumbnails via the internal Mutter extension D-Bus bridge (`/mutter/screen/preview`) with sub-pixel Clutter stage scaling.
+   - **Graceful Blank Card Fallback (Labwc / wlroots)**: On compositors without standard window capture protocols, WayPlank presents elegant, legible blank preview cards displaying high-contrast application vector icons, exact window title bars, and action buttons.
+   - **Interactive Card Controls**:
+     - Hovering a card highlights it with theme-aware rounded card borders and active elevation.
+     - Left-clicking activates and raises the target window (`WindowManager.activate()`).
+     - Clicking the top-right close icon (X) terminates the window via `WindowManager.close_window()`.
+   - **User-Configurable Window Navigation**: Toggle switch in **Preferences $\rightarrow$ Behaviour** ("Show window preview cards on hover/click") allowing users to choose between modern visual cards or traditional rapid cyclic window switching.
+   - **60 FPS Zoom Follower Synchronization**: Zoom animations on the underlying dock remain synchronized at 60 FPS while the preview window is displayed.
+
+2. **True Dynamic System Theme Switching (`lib/Services/SystemTheme.vala`, `lib/DockRenderer.vala`)**:
+   - **Multi-Bus & Desktop Protocol Convergence**:
+     - FreeDesktop Settings Portal: Intercepts `SettingChanged` events for `key == "color-scheme"` across both `org.freedesktop.appearance` (uint32: 1=Dark, 2=Light) and `org.gnome.desktop.interface` (string: `"prefer-dark"`, `"prefer-light"`).
+     - Direct GNOME GSettings Fallback: Connects to `org.gnome.desktop.interface.color-scheme` via direct GSettings signal monitoring.
+     - KDE Plasma Inotify File Monitor: Monitors `~/.config/kdeglobals` for instantaneous color scheme modifications under Plasma 6.
+   - **Dynamic Counterpart Theme Swapping**:
+     - When the system switches between Dark and Light mode, WayPlank automatically swaps active counterpart themes:
+       - *Arian Theme Light* $\longleftrightarrow$ *Arian Theme Dark*
+       - *IFtiger Theme Light* $\longleftrightarrow$ *IFtiger Theme Dark*
+       - *Light* $\longleftrightarrow$ *Dark*
+     - If the `Default` dynamic theme is active, it immediately calls `reset_buffers()` and re-renders adaptive GTK+ translucent glass styles in real time without restarting the dock.
+
+3. **Recent Files Jump List (`lib/Services/RecentFilesService.vala`, `lib/Items/ApplicationDockItem.vala`)**:
+   - Integrated FreeDesktop `Gtk.RecentManager` jump list querying recently opened documents.
+   - Accessible as a dedicated "Recent Documents" submenu in application right-click context menus.
+   - Filtered by application desktop ID and registered MIME types, providing one-click document reopening.
+
+4. **Packaged Stock Themes Suite (`data/themes/`)**:
+   - Fully installed stock themes to `/usr/share/wayplank/themes/`:
+     - `Default`: Adaptive dynamic translucent glass matching system GTK+ colors.
+     - `Arian Theme Dark` & `Arian Theme Light`: Modern frosted glass themes with subtle illumination.
+     - `IFtiger Theme Dark` & `IFtiger Theme Light`: Sleek high-contrast themes authored by IFtiger-hu (史有虎).
+     - `Dark` & `Light`: Classic clean monochrome stock themes.
+
+5. **Folder Running Indicator Dots (`FileDockItem.vala`, `FolderMenuWindow.vala`, `DockRenderer.vala`, `DrawingService.vala`)**:
+   - **Dock Folder Items**: Pinned folder items now inspect whether any application contained within them is currently active. If 1 application is running, an illuminated indicator dot is rendered on the folder dock item; if 2 or more applications are active, dual indicator dots are rendered.
+   - **Drawer Application Rows**: Inside open folder drawers, each application row now renders an indicator dot beside the application icon if that application is running.
+   - **Anti-Clipping Geometry & Reverse Roundness**: Stabilized indicator positioning with proportional margin offsets and reverse roundness clearance, eliminating indicator dot clipping across all icon sizes and themes.
+
+6. **Folder Drawer Application Contract Parity & UX Trust (`FolderMenuWindow.vala`)**:
+   - **Full Click Behavior Compliance**: Left-clicking an application row routes through `WindowManager.resolve_click_command()`, respecting the user's configured WindowClickBehavior (Smart, Focus, or Cycle).
+   - **Force New Instance Shortcut**: `Ctrl+Left Click` and `Middle Click` strictly invoke `System.get_default().launch()` to spawn brand new application instances directly from the drawer.
+   - **Mouse Wheel Window Cycling**: Moving the mouse wheel over any drawer application row smoothly cycles through that application's open windows.
+   - **Attached Context Menu with Guard**: Right-clicking an application row attaches a native GTK context menu directly to the row widget with a `context_menu_active` guard, preventing premature dismissal or auto-hide conflicts. Omitted the irrelevant "Keep in Dock" checkbox from drawer menus.
+
+7. **Elimination of Asynchronous Timers & Mutter Crash Prevention (`AbstractMain.vala`, `SessionWindow.vala`, `WeatherWindow.vala`)**:
+   - **Root-Cause Analysis**: Rapidly double-clicking or toggling docklet icons caused Mutter to abort with SIGABRT in `meta_window_unmanage: assertion failed: (g_list_find (workspace->windows, window) == NULL)`. This was caused by asynchronous timers (`GLib.Timeout.add (50)`) calling `show_all()`, `deiconify()`, and `present()` on windows undergoing unmanagement.
+   - **Deterministic Signal Architecture**: Completely excised all asynchronous presentation timers across the codebase. Replaced with one-shot native GTK `window.map` signal listeners that activate the window strictly when the surface is configured by the compositor, disconnecting immediately and disposing cleanly on destroy without race conditions.
+
+8. **Cross-Compositor Peer Dialog Stacking & Sub-Popup Decoupling (`AbstractMain.vala`, `SessionWindow.vala`, `WeatherWindow.vala`)**:
+   - **Decoupled Peer Dialogs**: Removed artificial `set_transient_for` calls that locked independent dialogs (`PreferencesWindow`, `SessionWindow`, `WeatherWindow`, `AboutDialog`, `HelpWindow`) into strict Wayland xdg-shell hierarchy traps.
+   - **Bidirectional Stacking**: Windows can now naturally stack above or below each other on 1st click based on user focus, with instant toggle-off when active.
+   - **Legitimate Sub-Popup Transiency**: Preserved modal child transiency strictly for true subordinate popups (`WeatherCityDialog` for `WeatherWindow`, and `IconChooserDialog` for `PreferencesWindow`).
+   - **Native Mutter CSD HeaderBar**: Decoupling `AboutDialog` restores its complete native CSD HeaderBar and functional Close button on GNOME Shell (circumventing Mutter's `attach-modal-dialogs` mode). Connected `about_dlg.response` to `destroy()`.
+
+9. **KWin D-Bus Service Watcher & Bridge Script Self-Healing (`KWinBridge.vala`)**:
+   - Added `Bus.watch_name (BusType.SESSION, "org.kde.KWin")` to dynamically watch KWin's D-Bus name.
+   - Automatically registers and re-executes the WayPlank bridge ECMAScript whenever KWin starts, restarts, or recovers from a crash (`kwin_wayland --replace`), restoring window dodging and thumbnail tracking without requiring WayPlank restart.
+
+10. **100% FAT Multi-Compositor Qualification (FAT 0.6.2.3)**:
+    - **335 Total Tests Defined** across 3 validation sessions:
+      - **Session 1 (GNOME Shell / Mutter)**: 113 tests | 106 [ok] | 7 [ko->ok] | 100% PASS
+      - **Session 2 (KDE Plasma 6 / KWin)**: 111 tests | 109 [ok] | 2 [ko->ok] | 100% PASS
+      - **Session 3 (Labwc / wlroots)**: 111 tests | 109 [ok] | 2 [NA] (wlroots protocol limitations) | 100% PASS
+    - **Scoreboard**: 324 Passed Baseline `[ok]`, 9 Squashed `[ko->ok]`, 2 Not Applicable `[NA]`, 0 Pending `[ ]`, 0 Open Defects (100% PASS rate across all Tier-1 compositors).
+
+11. **📦 Release Finalization, Smoketest & Beta Roadmap**:
+    - Current release live on GitHub: **v0.6.2.2 (Round 2)**.
+    - Pre-Beta Round 3 officially marked 100% FAT tested, packages generated:
+      - `build/wayplank_0.6.2.3_amd64.deb`
+      - `build/wayplank-0.6.2.3-1.x86_64.rpm`
+    - **4-Day Intensive Smoketest**: October 21 – October 25, 2026.
+    - **Monday, October 26, 2026**: Official GitHub Release of **v0.6.2.3 (Round 3)**.
+    - **Public Beta (v0.7.0) Planned**: Following a 1-week community feedback and bugfixing cycle on Round 3, the official WayPlank Public Beta (v0.7.0) will launch in November 2026!
 

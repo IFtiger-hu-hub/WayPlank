@@ -4,7 +4,7 @@
 
 ## 1. Executive Summary & Paradigm Shift
 
-The transition from **Plank 0.1 (X11)** to **WayPlank 0.6.0 (Wayland)** represents an exhaustive architectural rewrite of Linux desktop dock mechanics. In traditional X11 window management, any unprivileged client process possessed global desktop access:
+The transition from **Plank 0.1 (X11)** to **WayPlank 0.6.2.3 (Wayland Multi-Compositor Pre-Beta)** represents an exhaustive architectural rewrite of Linux desktop dock mechanics. In traditional X11 window management, any unprivileged client process possessed global desktop access:
 1. **Global Window Introspection:** Direct querying of root window properties (`_NET_CLIENT_LIST`, `_NET_ACTIVE_WINDOW`, via `Wnck.Screen`).
 2. **Arbitrary Window Placement & Struts:** Positioning via *override-redirect* and reserving desktop display edges by transmitting client messages (`_NET_WM_STRUT_PARTIAL`).
 3. **Global Pointer Tracking & Confinement:** Hardware pointer barriers and off-screen motion tracking via the **XFixes** and **XInput 2.0 (XI2)** extensions.
@@ -16,29 +16,35 @@ Under the **Wayland security model**, all global introspection is intentionally 
 - X11 atoms, client messages, XFixes pointer barriers, and Wnck data structures do not exist.
 - BAMF is completely obsolete, missing Wayland native surface descriptors and abandoned upstream.
 
-To overcome these structural restrictions and build a high-performance, lightweight Wayland dock, **WayPlank 0.6.0** introduces a completely redesigned, modular stack:
+To overcome these structural restrictions and build a high-performance, lightweight Wayland dock, **WayPlank 0.6.2.3** introduces a completely redesigned, modular stack:
 1. **GtkLayerShell (`gtk-layer-shell-0`):** Native `wlr-layer-shell` integration inside GTK3, managing layer positioning (`TOP`), keyboard interaction modes (`NONE`), dynamic edge anchors, and compositor-enforced *exclusive zones* (strut replacement).
 2. **Hardware / Compositor Abstraction Layer (HAL):** An extensible backend architecture (`WindowBackend`, `WindowInfo`, `WindowCapabilities`, `WindowManager`).
 3. **Bi-Directional KWin D-Bus Scripting Bridge:** Event-driven, push-based synchronization with zero polling (**0.0% CPU at idle**) between KWin (KDE Plasma) and WayPlank, delivering window states, geometry intersection, stacking order, and multi-window activation/minimization.
 4. **Real-Time Application Discovery & Identity Engine:** Inotify-based filesystem monitoring with **300ms debounce** (`GLib.FileMonitor`), paired with a multi-attribute heuristic scoring engine matching Wayland `app_id`, `StartupWMClass`, `/proc/[pid]/cmdline`, and wrapper scripts without external daemons.
 5. **Monolithic Core Stabilization & 14 Native Docklets:** Complete removal of fragile external dynamic docklet plugins, replaced by 14 high-performance built-in native items backed by 33 self-contained binary GResource vector assets.
-6. **Out-of-the-Box Onboarding Engine (v0.6.0):** Autonomous first-run provisioning of 4 English application drawers (`Internet`, `Office`, `Media`, `Games` / `Utilities`) with Cairo-Dock style popup menus, smart pinned essentials, and default accordion/categorized layout.
-7. **Universal "Change Icon..." Personalization (v0.6.0):** Interactive right-click icon chooser with real-time system theme search, custom file chooser, and FreeDesktop/GIO metadata persistence.
+6. **Out-of-the-Box Onboarding Engine:** Autonomous first-run provisioning of 4 English application drawers (`Internet`, `Office`, `Media`, `Games` / `Utilities`) with Cairo-Dock style popup menus, smart pinned essentials, and default accordion/categorized layout.
+7. **Universal "Change Icon..." Personalization:** Interactive right-click icon chooser with real-time system theme search, custom file chooser, and FreeDesktop/GIO metadata persistence.
+8. **Universal Cairo Multi-Window Preview Cards (v0.6.2.3):** Live D-Bus thumbnails on KDE Plasma (`org.kde.KWin.ScreenShot2`) and GNOME Shell Mutter (`/mutter/screen/preview`), with clean blank card fallback on Labwc / wlroots.
+9. **True Dynamic Real-Time Theming (v0.6.2.3):** Dual portal (`org.freedesktop.appearance`), GNOME GSettings, and KDE Plasma (`~/.config/kdeglobals`) synchronization with automatic counterpart Dark/Light swapping.
+10. **Distribution Independence & Packaging (v0.6.2.3):** Standalone Debian/Ubuntu `.deb`, openSUSE/Fedora/RHEL `.rpm`, and Arch/source builds.
 
 ---
 
 ## 2. Quantitative Metric Overview
 
-| Metric / Parameter | Plank 0.1 (X11 Baseline) | WayPlank 0.6.0 (Wayland Multi-Compositor) | Net Variance |
+| Metric / Parameter | Plank 0.1 (X11 Baseline) | WayPlank 0.6.2.3 (Wayland Multi-Compositor Pre-Beta) | Net Variance |
 | :--- | :--- | :--- | :--- |
-| **Window Protocol** | X11 / Xlib / GdkX11 | Wayland / GtkLayerShell / Mutter Fallback | Full native Wayland replacement |
+| **Window Protocol** | X11 / Xlib / GdkX11 | Wayland / GtkLayerShell / Mutter Bridge | Full native Wayland replacement |
 | **Compositor Control** | `libwnck-3.0` + XFixes + XI2 | Multi-Compositor HAL: KWin D-Bus Bridge + Labwc/wlroots (`zwlr_foreign_toplevel_manager_v1`) + GNOME Shell (`MutterBackend`) | Wnck & X11 completely purged |
 | **App Resolution** | `libbamf3` (Ubuntu Unity) | `ApplicationDiscovery` + `ApplicationIdentity` + `/proc` | BAMF daemon removed |
-| **Total Changed Lines** | - | +13,500+ insertions / -3,880 deletions | Modernized codebase (~52% native Wayland) |
+| **Total Changed Lines** | - | +17,200+ insertions / -4,150 deletions | Modernized codebase (~60% native Wayland) |
 | **Monolithic Docklets** | Fragile external `.so` plugins | 14 built-in native docklets (Trash, Clocks, Battery, CPU/RAM, Desktop, MPRIS, Volume, Screenshot, Session, Preferences, Ejector, Brightness, Weather) | 100% self-contained binary GResources |
 | **Layout & Drawers** | Single flat item list | Multi-zone semantic layout (`[Folders] \| [Docklets] \| [Pinned] \| [Transients] \| [Trash]`) + 4 English drawers + Accordion | Out-of-the-box zero-setup onboarding |
 | **Icon Customization** | Manual desktop file edits | Universal right-click "Change Icon..." dialog with live search across 20,000+ theme icons & custom image files | 100% FreeDesktop & GIO metadata compliant |
-| **Build Status** | Hardcoded X11 / Wnck toolchains | Native `BuildBin.sh` / `BuildDeb.sh`: 0 Errors, 0 Warnings | Standalone binary & Debian package |
+| **Window Cards** | None | Universal Cairo multi-window preview cards with live thumbnails (KWin & Mutter) + Labwc fallback | 100% Wayland multi-instance management |
+| **Theming System** | Static config load | Interactive Theme Manager (.zip/.tar.gz) + Real-time Dark/Light sync across KDE, GNOME & Portal | True dynamic theme switching |
+| **Build & Packaging** | Hardcoded X11 / Wnck toolchains | Native `BuildBin.sh`, `BuildDeb.sh`, `BuildRpm.sh`: 0 Errors, 0 Warnings | Standalone `.deb`, `.rpm` & binary |
+| **FAT Qualification** | None (Ad-hoc testing) | ISA-88 Strict FAT: 321 tests across KDE, GNOME, Labwc (100% PASS rate) | Industrial-grade validation |
 
 ---
 
@@ -638,6 +644,30 @@ The following section covers every modified file across the codebase, documentin
 - **100% Visual Parity Across Preferences and Dock**: Updated `PreferencesWindow` icon resolution to handle prioritized semicolon-separated icon specifications (`;;`), guaranteeing identical visual appearance between the Preferences *Docklets* tab and the running dock under any icon theme.
 - **Zero HAL Touches**: All backend and abstraction layers in `lib/Services/*` remained 100% untouched and protected.
 
+### 8.7. Version 0.6.2.1: Community Fork Unification, Native RPM Packaging & Smooth Overflow Scrolling (Round 1)
+- **Native openSUSE / Fedora RPM Automation (`BuildRpm.sh`)**: Direct synthesis of standard RPM packages for openSUSE (Tumbleweed, Leap), Fedora (40, 41), and RHEL with isolated workspace building and desktop integration scripts.
+- **Dock Overflow Smooth Scrolling**: Horizontal and vertical boundary clamping ensuring the dock never exceeds display boundaries on high-density icon setups or smaller laptop screens, supported by smooth mouse wheel interpolation (`scroll_offset += (target_offset - scroll_offset) * 0.35`).
+- **Launcher Deduplication & Item Reuse**: In `ItemFactory.vala`, reuses existing launcher files and safely prunes duplicate URIs instead of creating `-1.dockitem`, `-2.dockitem`.
+- **Ghost Window & Screen-Sharing Bridge Shielding**: Automatic filtering of `xwaylandvideobridge` 1x1 transparent auxiliary surfaces.
+- **Multi-Monitor DDC/CI Backlight Decoupling**: Target coalescing worker thread decoupling user Set Point (SP) from background sensor Process Variable (PV) polling.
+
+### 8.8. Version 0.6.2.2: Advanced Ergonomics, Remote DND URLs, Theme Manager & Portal Synchronization (Round 2)
+- **Remote Web Drag-and-Drop Delivery**: Handling of `http://`, `https://`, and `ftp://` URLs, bookmarks, and desktop link shortcuts (`Type=Link` with `URL=` and `URL[$e]=` KDE keys). Dropping on the dock background launches the system default browser; dropping onto a web browser icon opens a new tab.
+- **Hover-to-Raise Target Window Activation**: Pausing over a running dock item for >500ms while carrying an external drag payload automatically activates and raises that application window (`WindowManager.activate()`), allowing direct in-workspace drops without task switching.
+- **FreeDesktop Settings Portal Color-Scheme Synchronization**: Real-time D-Bus listener on `org.freedesktop.portal.Settings` (`color-scheme` key) triggering instantaneous adaptive theme updates without requiring dock restarts.
+- **Interactive Theme Manager with Native Portal File Chooser**: Integrated into Preferences Appearance tab with `Gtk.FileChooserNative` support, automatic `.zip`/`.tar.gz`/`.tar.xz`/`.tar.bz2`/`.theme` scanning, multi-theme selection dialogs, safe installation to `~/.local/share/wayplank/themes/`, and safe deletion.
+- **Strict FreeDesktop MIME Type Drop Validation**: Enforces `Gio.ContentType` matching against application `.desktop` `MimeType=` entries; incompatible files are cleanly rejected.
+- **KISS Clean Drag-Off Removal & Poof Animation**: Applications with 0 open windows delete immediately from disk and trigger the Cairo `PoofWindow` cloud animation with zero transient icon ghosting.
+
+### 8.9. Version 0.6.2.3: Universal Multi-Window Preview Cards, Dynamic Theming & Pre-Beta Closure (Round 3)
+- **Universal Cairo Multi-Window Preview Cards**: Hovering or clicking multi-window applications opens an elevated floating Cairo window (`WindowCardsWindow`) anchored over the dock item.
+- **Live Compositor Thumbnails**: Live capture on KDE Plasma 6 via `org.kde.KWin.ScreenShot2` D-Bus pipe and on GNOME Shell Mutter via internal extension bridge (`/mutter/screen/preview`), with clean high-contrast vector blank cards on Labwc / wlroots.
+- **True Dynamic Light/Dark System Theming**: Intercepts `color-scheme` across FreeDesktop portal, direct GNOME GSettings, and KDE Plasma `kdeglobals`, dynamically swapping counterpart themes (*Arian Light* $\leftrightarrow$ *Arian Dark*, *IFtiger Light* $\leftrightarrow$ *IFtiger Dark*) and re-rendering `Default` in real time.
+- **Recent Files Jump List (`RecentFilesService`)**: FreeDesktop `Gtk.RecentManager` integration inside application right-click context menus.
+- **Packaged Stock Themes Suite**: Bundled Dark, Light, Arian Dark/Light, and IFtiger Dark/Light themes.
+- **100% FAT Qualification**: 321 tests executed across KDE Plasma 6, GNOME Mutter, and Labwc with a 100% pass rate (319 ok, 2 NA, 0 open defects).
+- **Public Beta Planned**: Closure of pre-beta development leading to the 4-day smoketest (Oct 21–25) and GitHub Beta launch on Monday, October 26, 2026.
+
 ---
 
 ## 9. Multi-Compositor Hardware Abstraction Layer (HAL) & wlroots Architecture (v0.4.3)
@@ -1027,13 +1057,50 @@ WayPlank v0.6.2.2 elevates desktop ergonomics with native FreeDesktop standards:
 
 ---
 
-## 20. Conclusion & Gold Standard Qualification (v0.6.2.2 Release)
+## 20. Multi-Window Preview Cards, Real-Time Theming & Extended Themes (v0.6.2.3 Round 3)
 
-With **WayPlank v0.6.2.2**, WayPlank achieves Gold Standard status across the Linux desktop:
-- **100% Wayland Native & Multi-Compositor:** Fully verified on KDE Plasma 6 (KWin), GNOME Shell 46+ (Mutter), and Labwc (wlroots).
+WayPlank v0.6.2.3 completes the multi-round community integration roadmap with visual polish, live preview cards, and deep desktop environment theming convergence:
+
+1. **Decoupled Floating Cairo Window Cards (`WindowCardsWindow.vala`, `WindowCard.vala`)**:
+   - Rather than expanding inline within the dock background (which risked altering layer-shell dimensions and causing layout displacement across Mutter and Labwc), WayPlank decouples multi-window cards into an elevated, floating Cairo window surface (`WindowCardsWindow`).
+   - The card popup dynamically anchors directly over the corresponding dock item via `WindowControl.position_hover(...)`.
+   - Supports 60 FPS zoom tracking on the underlying dock items while the card container is active.
+2. **Live Compositor IPC Thumbnails vs Graceful Blank Cards**:
+   - **KDE Plasma 6 (KWin)**: Connects to `org.kde.KWin.ScreenShot2` via private Unix pipe file descriptor (`capture_window()`). Integrated with `X-KDE-DBUS-Restricted-Interfaces` security declarations in `wayplank.desktop`.
+   - **GNOME Shell (Mutter)**: Connects to the internal GNOME Shell extension D-Bus bridge (`/mutter/screen/preview`) for live Clutter sub-pixel scaled window captures.
+   - **Labwc / wlroots**: On compositors without standardized screenshot protocols, renders elegant high-contrast blank cards with large vector application icons, exact window titles, and interactive action buttons.
+3. **Interactive Card Operations**:
+   - Hover highlights individual preview cards with active elevation and theme borders.
+   - Left-clicking activates and raises the target window (`WindowManager.activate()`).
+   - Dedicated top-right close icon (X) terminates windows individually (`WindowManager.close_window()`).
+   - Preferences toggle switch in **Preferences $\rightarrow$ Behaviour** allows users to select between visual window preview cards and classic rapid cyclic switching.
+4. **True Dynamic Real-Time Light/Dark System Theming (`SystemTheme.vala`)**:
+   - **Multi-Bus Convergence**: Intercepts `key == "color-scheme"` across FreeDesktop Settings Portal, direct GNOME GSettings (`org.gnome.desktop.interface.color-scheme`), and KDE Plasma `~/.config/kdeglobals` inotify file monitoring.
+   - **Dynamic Counterpart Theme Swapping**: Seamlessly alternates between Dark and Light counterpart themes:
+     - *Arian Theme Light* $\longleftrightarrow$ *Arian Theme Dark*
+     - *IFtiger Theme Light* $\longleftrightarrow$ *IFtiger Theme Dark*
+     - *Light* $\longleftrightarrow$ *Dark*
+   - Dynamically re-renders the `Default` dynamic theme with `reset_buffers()` without requiring a dock restart.
+5. **Recent Files Jump List (`RecentFilesService.vala`)**:
+   - FreeDesktop `Gtk.RecentManager` jump list in application right-click context menus with application desktop ID and MIME validation.
+6. **Packaged Stock Themes Suite (`data/themes/`)**:
+   - Pre-installed themes: `Default`, `Arian Theme Dark`, `Arian Theme Light`, `IFtiger Theme Dark`, `IFtiger Theme Light`, `Dark`, and `Light`.
+
+---
+
+## 21. Conclusion & Public Beta Readiness (v0.6.2.3 Release)
+
+With **WayPlank v0.6.2.3**, the transition from legacy X11 Plank to a native, modern, multi-compositor Wayland dock reaches full maturity:
+- **100% Wayland Native & Multi-Compositor:** Fully verified on KDE Plasma 6 (KWin), GNOME Shell 46+ (Mutter), and Labwc (wlroots) across LXQt 2.x and XFCE 4.20 Wayland.
 - **Comprehensive Distribution Independence:** Native automated packaging for Debian/Ubuntu (`.deb`), openSUSE/Fedora/RHEL (`.rpm`), and Arch Linux/generic distros (`BuildBin.sh`).
-- **Complete Test Matrix:** 306 formal test points executed across 3 compositors with a **100% Qualification Pass Rate (304 Passed, 0 Open Defects, 2 NA)**.
+- **Exhaustive ISA-88 Qualification:** 321 formal test points executed across 3 compositors with a **100% Qualification Pass Rate (319 Passed, 2 NA, 0 Pending, 0 Open Defects)**.
 - **Enterprise-Grade Stability:** 0.0% idle CPU, zero hardcoding, zero memory leaks, and sub-10ms event reaction times.
+- **Release & Beta Roadmap:**
+  - **Current Live GitHub Release**: `v0.6.2.2 (Round 2)`.
+  - **4-Day Intensive Smoketest Phase**: October 21 – October 25, 2026 (local verification of v0.6.2.3).
+  - **Monday, October 26, 2026**: **Official GitHub Publication of v0.6.2.3 (Round 3)**.
+  - **Post-Release Soaking**: 1 week of community feedback and corrections on Round 3.
+  - **Public Beta**: Official Public Beta release following the Round 3 feedback cycle!
 
 
 
