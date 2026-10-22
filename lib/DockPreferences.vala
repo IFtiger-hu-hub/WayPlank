@@ -37,6 +37,9 @@ namespace Plank
 		[Description(nick = "window-click-behavior", blurb = "How clicking a running application selects its windows: 0 smart, 1 focus, 2 cycle.")]
 		public int WindowClickBehavior { get; set; }
 
+		[Description(nick = "show-window-cards", blurb = "Whether to show floating visual preview cards for applications with multiple windows.")]
+		public bool ShowWindowCards { get; set; }
+
 		[Description(nick = "restore-minimized-windows", blurb = "Whether window cycling restores minimized windows when needed.")]
 		public bool RestoreMinimizedWindows { get; set; }
 

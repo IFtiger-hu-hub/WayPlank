@@ -228,7 +228,7 @@ namespace Plank
 			}
 			
 			// disable hiding if menu is visible, folder menu is visible, or drags are active
-			var disabled = (window.menu_is_visible () || controller.folder_menu.get_visible () || drag_manager.InternalDragActive || drag_manager.ExternalDragActive);
+			var disabled = (window.menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible () || drag_manager.InternalDragActive || drag_manager.ExternalDragActive);
 			if (Disabled != disabled) {
 				Disabled = disabled;
 				update_needed = true;

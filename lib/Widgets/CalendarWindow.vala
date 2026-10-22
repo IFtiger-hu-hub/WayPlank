@@ -62,6 +62,7 @@ namespace Plank
 		construct
 		{
 			title = _("Calendar");
+			set_role ("help");
 			set_default_size (280, 220);
 			window_position = Gtk.WindowPosition.MOUSE;
 			skip_taskbar_hint = true;

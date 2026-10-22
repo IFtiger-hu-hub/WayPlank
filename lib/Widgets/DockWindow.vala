@@ -245,6 +245,11 @@ namespace Plank
 					controller.folder_menu.close_menu ();
 			}
 
+			if (controller.window_cards.get_visible ()) {
+				if (HoveredItem != controller.window_cards.TargetItem)
+					controller.window_cards.close_cards ();
+			}
+
 			if (controller.hide_manager.Hidden)
 				return Gdk.EVENT_STOP;
 
@@ -324,6 +329,25 @@ namespace Plank
 					ClickedItem = null;
 					return Gdk.EVENT_STOP;
 				}
+
+				bool has_ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK) != 0;
+				if (button == PopupButton.LEFT && !has_ctrl && ClickedItem is ApplicationDockItem) {
+					var app_item = (ApplicationDockItem) ClickedItem;
+					unowned DefaultApplicationDockItemProvider? provider = (app_item.Container as DefaultApplicationDockItemProvider);
+					var show_cards = (provider != null ? provider.Prefs.ShowWindowCards : true);
+					var win_count = WindowManager.get_default ().window_count_for_app (app_item.Launcher);
+					if (show_cards && win_count > 1) {
+						if (controller.window_cards.get_visible () && controller.window_cards.TargetItem == ClickedItem) {
+							controller.window_cards.close_cards ();
+						} else {
+							controller.window_cards.show_for_item (app_item);
+						}
+						ClickedItem = null;
+						return Gdk.EVENT_STOP;
+					}
+				}
+				if (controller.window_cards.get_visible ())
+					controller.window_cards.close_cards ();
 				HoveredItem.clicked (button, event.state, event.time);
 			}
 
@@ -348,6 +372,9 @@ namespace Plank
 
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.on_dock_leave ();
+
+			if (controller.window_cards.get_visible ())
+				controller.window_cards.on_dock_leave ();
 
 			if (!menu_is_visible ()) {
 				set_hovered_provider (null);
@@ -429,6 +456,9 @@ namespace Plank
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.cancel_dismiss_timer ();
 
+			if (controller.window_cards.get_visible ())
+				controller.window_cards.cancel_dismiss_timer ();
+
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
@@ -471,10 +501,10 @@ namespace Plank
 
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.on_dock_hover (HoveredItem);
-			
-			// Force animated rendering to activate icon zoom when the pointer passes over
-			controller.renderer.animated_draw ();
 
+			if (controller.window_cards.get_visible ())
+				controller.window_cards.on_dock_hover (HoveredItem);
+			
 			return Gdk.EVENT_STOP;
 		}
 
@@ -627,6 +657,9 @@ namespace Plank
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.update_position ();
 
+			if (controller.window_cards.get_visible ())
+				controller.window_cards.update_position ();
+
 			return Gdk.EVENT_STOP;
 		}
 
@@ -721,7 +754,7 @@ namespace Plank
 				var monitor = PositionManager.get_monitor_for_plug_name (get_display (), controller.prefs.Monitor);
 				hover.show_at (x, y, controller.position_manager.Position, dock_thickness, monitor);
 
-				if (menu_is_visible () || controller.folder_menu.get_visible ())
+				if (menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible ())
 					hover.hide ();
 
 				return false;
@@ -926,6 +959,9 @@ namespace Plank
 
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.close_menu ();
+
+			if (controller.window_cards.get_visible ())
+				controller.window_cards.close_cards ();
 
 			menu_items = null;
 			Gtk.MenuPositionFunc? position_func = null;

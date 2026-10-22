@@ -24,6 +24,7 @@ namespace Plank
 	public class PreferencesWindow : Gtk.Window
 	{
 		public static bool is_open { get; private set; default = false; }
+		public static PreferencesWindow? active_instance { get; private set; default = null; }
 
 		/**
 		 * The controller for this dock.
@@ -114,6 +115,8 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.ComboBoxText cb_window_click_behavior;
 		[GtkChild]
+		unowned Gtk.Switch sw_show_window_cards;
+		[GtkChild]
 		unowned Gtk.Switch sw_restore_minimized;
 		[GtkChild]
 		unowned Gtk.Switch sw_show_running_indicators;
@@ -200,6 +203,7 @@ namespace Plank
 		
 		construct
 		{
+			active_instance = this;
 			set_title (_("WayPlank Preferences"));
 			set_role ("preferences");
 			configure_hide_mode_rows ();
@@ -276,16 +280,21 @@ namespace Plank
 			});
 			this.show.connect (() => {
 				is_open = true;
+				active_instance = this;
 				update_accordion_visibility ();
 				update_icon_size_feedback ();
 			});
 			this.hide.connect (() => {
 				is_open = false;
+				if (active_instance == this)
+					active_instance = null;
 			});
 			
 			notify["controller"].connect (controller_changed);
 			destroy.connect (() => {
 				is_open = false;
+				if (active_instance == this)
+					active_instance = null;
 				disconnect_signals ();
 			});
 		}
@@ -293,6 +302,8 @@ namespace Plank
 		~PreferencesWindow ()
 		{
 			is_open = false;
+			if (active_instance == this)
+				active_instance = null;
 			disconnect_signals ();
 			if (popup_css_screen != null && popup_css != null)
 				Gtk.StyleContext.remove_provider_for_screen (popup_css_screen, popup_css);
@@ -426,6 +437,9 @@ namespace Plank
 				break;
 			case "WindowClickBehavior":
 				cb_window_click_behavior.active_id = prefs.WindowClickBehavior.to_string ();
+				break;
+			case "ShowWindowCards":
+				sw_show_window_cards.set_active (prefs.ShowWindowCards);
 				break;
 			case "RestoreMinimizedWindows":
 				sw_restore_minimized.set_active (prefs.RestoreMinimizedWindows);
@@ -847,6 +861,11 @@ namespace Plank
 			prefs.WindowClickBehavior = int.parse (widget.get_active_id ());
 		}
 
+		void show_window_cards_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.ShowWindowCards = ((Gtk.Switch) widget).get_active ();
+		}
+
 		void restore_minimized_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.RestoreMinimizedWindows = ((Gtk.Switch) widget).get_active ();
@@ -1100,6 +1119,7 @@ namespace Plank
 			btn_reorder_free_items.clicked.connect (reorder_free_items_clicked);
 			sw_accordion_docklets.notify["active"].connect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].connect (accordion_click_to_expand_toggled);
+			sw_show_window_cards.notify["active"].connect (show_window_cards_toggled);
 			sw_restore_minimized.notify["active"].connect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].connect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].connect (show_attention_indicators_toggled);
@@ -1158,6 +1178,7 @@ namespace Plank
 			btn_reorder_free_items.clicked.disconnect (reorder_free_items_clicked);
 			sw_accordion_docklets.notify["active"].disconnect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].disconnect (accordion_click_to_expand_toggled);
+			sw_show_window_cards.notify["active"].disconnect (show_window_cards_toggled);
 			sw_restore_minimized.notify["active"].disconnect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].disconnect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].disconnect (show_attention_indicators_toggled);
@@ -1291,6 +1312,7 @@ namespace Plank
 		void init_window_tab ()
 		{
 			cb_window_click_behavior.active_id = prefs.WindowClickBehavior.to_string ();
+			sw_show_window_cards.set_active (prefs.ShowWindowCards);
 			sw_restore_minimized.set_active (prefs.RestoreMinimizedWindows);
 			sw_show_running_indicators.set_active (prefs.ShowRunningIndicators);
 			sw_show_attention_indicators.set_active (prefs.ShowAttentionIndicators);

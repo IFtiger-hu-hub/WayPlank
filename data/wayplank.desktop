@@ -3,20 +3,21 @@ Name=WayPlank
 GenericName=Dock
 Comment=Stupidly simple dock for Wayland
 Categories=Utility;
-Exec=wayplank
+Exec=/usr/bin/wayplank
 Icon=plank
 Terminal=false
 Type=Application
 StartupNotify=true
 X-GNOME-Autostart-Delay=2
+X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2
 Actions=Preferences;Restart;
 
 [Desktop Action Preferences]
 Name=Preferences
-Exec=wayplank --preferences
+Exec=/usr/bin/wayplank --preferences
 Icon=preferences-system
 
 [Desktop Action Restart]
 Name=Restart Dock
-Exec=wayplank --replace
+Exec=/usr/bin/wayplank --replace
 Icon=view-refresh

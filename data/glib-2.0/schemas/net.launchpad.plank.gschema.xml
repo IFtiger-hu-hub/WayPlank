@@ -118,6 +118,11 @@
 			<summary>Window click behavior</summary>
 			<description>0 smart, 1 focus, 2 cycle.</description>
 		</key>
+		<key name="show-window-cards" type="b">
+			<default>true</default>
+			<summary>Show window preview cards</summary>
+			<description>Display floating visual preview cards when interacting with applications that have multiple open windows.</description>
+		</key>
 		<key name="restore-minimized-windows" type="b">
 			<default>true</default>
 			<summary>Restore minimized windows</summary>

@@ -1030,7 +1030,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="left_attach">0</property>
                 <property name="top_attach">0</property>
-                <property name="width">2</property>
+                <property name="width">4</property>
               </packing>
             </child>
             <child>
@@ -1060,17 +1060,43 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">1</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_show_window_cards">
+                <property name="visible">True</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Window Preview Cards:</property>
+                <property name="tooltip_text" translatable="yes">Display floating visual preview cards when interacting with applications that have multiple open windows</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_show_window_cards">
+                <property name="visible">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Display floating visual preview cards when interacting with applications that have multiple open windows</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="l_restore_minimized">
                 <property name="visible">True</property>
                 <property name="halign">end</property>
+                <property name="margin_left">24</property>
                 <property name="label" translatable="yes">Restore Minimized:</property>
                 <property name="tooltip_text" translatable="yes">Restore and unminimize windows when clicking their dock icon</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
+                <property name="left_attach">2</property>
                 <property name="top_attach">2</property>
               </packing>
             </child>
@@ -1082,7 +1108,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="tooltip_text" translatable="yes">Restore and unminimize windows when clicking their dock icon</property>
               </object>
               <packing>
-                <property name="left_attach">1</property>
+                <property name="left_attach">3</property>
                 <property name="top_attach">2</property>
               </packing>
             </child>
@@ -1099,7 +1125,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="left_attach">0</property>
                 <property name="top_attach">3</property>
-                <property name="width">2</property>
+                <property name="width">4</property>
               </packing>
             </child>
             <child>
@@ -1130,12 +1156,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkLabel" id="l_show_attention_indicators">
                 <property name="visible">True</property>
                 <property name="halign">end</property>
+                <property name="margin_left">24</property>
                 <property name="label" translatable="yes">Show Attention:</property>
                 <property name="tooltip_text" translatable="yes">Highlight or animate indicator dots when an application requests user attention</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">5</property>
+                <property name="left_attach">2</property>
+                <property name="top_attach">4</property>
               </packing>
             </child>
             <child>
@@ -1146,8 +1173,8 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="tooltip_text" translatable="yes">Highlight or animate indicator dots when an application requests user attention</property>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">5</property>
+                <property name="left_attach">3</property>
+                <property name="top_attach">4</property>
               </packing>
             </child>
           </object>

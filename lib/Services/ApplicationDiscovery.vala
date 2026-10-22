@@ -223,6 +223,15 @@ namespace Plank
 
 			var file = File.new_for_uri (launcher_uri);
 			var target_id = file.get_basename ();
+
+			// Guard 2: Canonical Exact Match
+			// If window's DesktopFileName matches this launcher's desktop file name exactly,
+			// this launcher is the authoritative match for this window.
+			var norm_target = ApplicationIdentity.normalize (target_id);
+			if (window.DesktopFileName != "" && ApplicationIdentity.normalize (window.DesktopFileName) == norm_target) {
+				return true;
+			}
+
 			foreach (var entry in identities.entries) {
 				if (entry.key != target_id && entry.value.match_score (window) > my_score)
 					return false;

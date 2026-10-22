@@ -36,6 +36,7 @@ namespace Plank
 		public abstract bool position_hover (int x, int y, int width, int height) throws GLib.Error;
 		public abstract bool position_poof (int x, int y, int width, int height) throws GLib.Error;
 		public abstract string eval (string code) throws GLib.Error;
+		public abstract bool capture_window (string uuid, string filename) throws GLib.Error;
 		public signal void windows_changed ();
 	}
 
@@ -66,7 +67,7 @@ namespace Plank
   "uuid": "wayplank-bridge@wayplank.org",
   "shell-version": ["45", "46", "47", "48", "49", "50"],
   "url": "https://github.com/wayplank",
-  "version": 10
+  "version": 12
 }
 """;
 
@@ -140,6 +141,11 @@ const IFACE_XML = `
       <arg type="i" name="y" direction="in"/>
       <arg type="i" name="width" direction="in"/>
       <arg type="i" name="height" direction="in"/>
+      <arg type="b" name="success" direction="out"/>
+    </method>
+    <method name="CaptureWindow">
+      <arg type="s" name="uuid" direction="in"/>
+      <arg type="s" name="filename" direction="in"/>
       <arg type="b" name="success" direction="out"/>
     </method>
     <signal name="WindowsChanged"/>
@@ -307,14 +313,19 @@ export default class WayplankBridgeExtension extends Extension {
             return 'poof';
 
         // 1. Tooltip / Hover / Folder Window (ensure poof is not mistaken for hover)
-        if (lowerTitle.includes('hover') || lowerTitle.includes('folder') || role === 'tooltip' || role === 'popup-menu' || (type === Meta.WindowType.TOOLTIP && !lowerTitle.includes('poof') && role !== 'poof'))
+        if (lowerTitle === 'hover' || lowerTitle.includes('folder') || lowerTitle.includes('cards') ||
+            (role === 'tooltip' && lowerTitle === 'hover') ||
+            (role === 'popup-menu' && (lowerTitle.includes('folder') || lowerTitle.includes('cards'))))
             return 'hover';
 
-        // 2. Dialog Windows (Preferences, Shortcuts/Help)
+        // 2. Dialog Windows (Preferences, Shortcuts/Help, Weather, Session, Icon Chooser, About)
         if (lowerTitle.includes('prefer') || lowerTitle.includes('setting') ||
             lowerTitle.includes('short') || lowerTitle.includes('help') ||
+            lowerTitle.includes('weather') || lowerTitle.includes('meteo') ||
             lowerTitle.includes('scorciatoie') || lowerTitle.includes('aiuto') ||
-            role === 'preferences' || role === 'help' || type === Meta.WindowType.DIALOG)
+            lowerTitle.includes('session') || lowerTitle.includes('icon') ||
+            role === 'preferences' || role === 'help' || role.includes('dialog') ||
+            type === Meta.WindowType.DIALOG)
             return 'dialog';
 
         // 3. Dock Window: ONLY if title is exactly 'wayplank' or role is 'dock' or type is DOCK
@@ -327,8 +338,12 @@ export default class WayplankBridgeExtension extends Extension {
     _centerWindow(win) {
         if (!win || win._wayplankCentered) return false;
         try {
-            const monitor = win.get_monitor ? win.get_monitor() : global.display.get_primary_monitor();
+            let monitor = win.get_monitor ? win.get_monitor() : -1;
+            if (monitor === -1 || monitor === null || monitor === undefined) {
+                monitor = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
+            }
             const monGeo = global.display.get_monitor_geometry(monitor);
+            if (!monGeo) return false;
             const frameRect = win.get_frame_rect();
             if (!frameRect || frameRect.width < 100 || frameRect.height < 100)
                 return false;
@@ -390,17 +405,10 @@ export default class WayplankBridgeExtension extends Extension {
             }
             this._lastDockGeo = { x: targetX, y: targetY, width, height };
 
-            if (targetMon !== -1 && win.get_monitor && win.get_monitor() !== targetMon && win.move_to_monitor) {
-                try { win.move_to_monitor(targetMon); } catch (e) { }
-            }
-
             const move = () => {
                 try {
                     if (this._classifyWindow(win) !== 'dock')
                         return;
-                    if (targetMon !== -1 && win.get_monitor && win.get_monitor() !== targetMon && win.move_to_monitor) {
-                        try { win.move_to_monitor(targetMon); } catch (e) { }
-                    }
                     if (win.move_resize_frame) {
                         win.move_resize_frame(false, targetX, targetY, width, height);
                     } else if (win.move_frame) {
@@ -486,17 +494,10 @@ export default class WayplankBridgeExtension extends Extension {
                 }
             }
 
-            if (targetMon !== -1 && win.get_monitor && win.get_monitor() !== targetMon && win.move_to_monitor) {
-                try { win.move_to_monitor(targetMon); } catch (e) { }
-            }
-
             const move = () => {
                 try {
                     if (this._classifyWindow(win) !== 'hover')
                         return;
-                    if (targetMon !== -1 && win.get_monitor && win.get_monitor() !== targetMon && win.move_to_monitor) {
-                        try { win.move_to_monitor(targetMon); } catch (e) { }
-                    }
                     if (win.move_resize_frame) {
                         const frameRect = win.get_frame_rect();
                         const w = (width && width > 0) ? width : frameRect.width;
@@ -547,9 +548,6 @@ export default class WayplankBridgeExtension extends Extension {
                     targetMon = i;
                     break;
                 }
-            }
-            if (targetMon !== -1 && win.get_monitor && win.get_monitor() !== targetMon && win.move_to_monitor) {
-                try { win.move_to_monitor(targetMon); } catch (e) { }
             }
 
             const move = () => {
@@ -694,9 +692,10 @@ export default class WayplankBridgeExtension extends Extension {
     }
 
     _findHoverWindow() {
-        for (const actor of global.get_window_actors()) {
-            const win = actor.meta_window;
-            if (win && this._classifyWindow(win) === 'hover')
+        const actors = global.get_window_actors();
+        for (let i = actors.length - 1; i >= 0; i--) {
+            const win = actors[i].meta_window;
+            if (win && !win.minimized && this._classifyWindow(win) === 'hover')
                 return win;
         }
         return null;
@@ -986,6 +985,26 @@ export default class WayplankBridgeExtension extends Extension {
         }
     }
 
+    // D-Bus Method: CaptureWindow
+    CaptureWindow(uuid, filename) {
+        try {
+            const win = this._findWindowByUuid(uuid);
+            if (!win)
+                return false;
+            const actor = win.get_compositor_private ? win.get_compositor_private() : null;
+            if (!actor || !actor.get_image)
+                return false;
+            const surface = actor.get_image(null);
+            if (!surface || !surface.writeToPNG)
+                return false;
+            surface.writeToPNG(filename);
+            return true;
+        } catch (e) {
+            console.error('[WayplankBridge] CaptureWindow error:', e);
+            return false;
+        }
+    }
+
     // D-Bus Method: GetPrimaryMonitor
     GetPrimaryMonitor() {
         const pMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
@@ -1052,6 +1071,43 @@ export default class WayplankBridgeExtension extends Extension {
 
 		void ensure_extension_installed ()
 		{
+			// GNOME Safety Mode Self-Healing:
+			// If GNOME Shell previously crashed and entered failsafe mode ('disable-user-extensions = true'),
+			// reset the master switch and ensure our extension UUID is enrolled.
+			var schema_source = SettingsSchemaSource.get_default ();
+			if (schema_source != null && schema_source.lookup ("org.gnome.shell", true) != null) {
+				var shell_settings = new GLib.Settings ("org.gnome.shell");
+				if (shell_settings.get_boolean ("disable-user-extensions")) {
+					message ("MutterBackend: GNOME Shell Safety Mode detected (disable-user-extensions=true), auto-recovering...");
+					shell_settings.set_boolean ("disable-user-extensions", false);
+				}
+
+				var disabled = shell_settings.get_strv ("disabled-extensions");
+				if (EXTENSION_UUID in disabled) {
+					var updated_disabled = new Gee.ArrayList<string> ();
+					foreach (var d in disabled) {
+						if (d != EXTENSION_UUID)
+							updated_disabled.add (d);
+					}
+					string[] new_arr = new string[updated_disabled.size];
+					for (int i = 0; i < updated_disabled.size; i++)
+						new_arr[i] = updated_disabled.get (i);
+					shell_settings.set_strv ("disabled-extensions", new_arr);
+				}
+
+				var enabled = shell_settings.get_strv ("enabled-extensions");
+				if (!(EXTENSION_UUID in enabled)) {
+					var updated_enabled = new Gee.ArrayList<string> ();
+					foreach (var e in enabled)
+						updated_enabled.add (e);
+					updated_enabled.add (EXTENSION_UUID);
+					string[] new_arr = new string[updated_enabled.size];
+					for (int i = 0; i < updated_enabled.size; i++)
+						new_arr[i] = updated_enabled.get (i);
+					shell_settings.set_strv ("enabled-extensions", new_arr);
+				}
+			}
+
 			var ext_dir = Path.build_filename (Environment.get_user_data_dir (), "gnome-shell", "extensions", EXTENSION_UUID);
 			var js_file = Path.build_filename (ext_dir, "extension.js");
 			var meta_file = Path.build_filename (ext_dir, "metadata.json");
@@ -1360,6 +1416,18 @@ export default class WayplankBridgeExtension extends Extension {
 				return proxy.position_poof (x, y, width, height);
 			} catch (Error e) {
 				debug ("MutterBackend: position_poof D-Bus: %s", e.message);
+				return false;
+			}
+		}
+
+		public bool capture_window (string uuid, string filename)
+		{
+			if (proxy == null)
+				return false;
+			try {
+				return proxy.capture_window (uuid, filename);
+			} catch (Error e) {
+				debug ("MutterBackend: capture_window D-Bus error: %s", e.message);
 				return false;
 			}
 		}

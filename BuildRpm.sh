@@ -45,7 +45,7 @@ if ! command -v rpmbuild >/dev/null 2>&1; then
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.6.2.2"
+PKG_VER="0.6.2.3"
 PKG_REL="1"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RPM_TOPDIR="${BASE_DIR}/build_rpm_workspace"
