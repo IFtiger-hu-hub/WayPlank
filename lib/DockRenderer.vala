@@ -194,7 +194,24 @@ namespace Plank
 		
 		void on_system_theme_changed (bool is_dark)
 		{
-			if (controller.prefs.Theme == Theme.DEFAULT_NAME || controller.prefs.Theme == Theme.GTK_THEME_NAME) {
+			unowned string cur_theme = controller.prefs.Theme;
+			if (cur_theme == Theme.DEFAULT_NAME || cur_theme == Theme.GTK_THEME_NAME) {
+				load_theme ();
+			} else if (is_dark && cur_theme.has_suffix (" Light")) {
+				string dark_counterpart = cur_theme.substring (0, cur_theme.length - 6) + " Dark";
+				if (Theme.is_valid_name (dark_counterpart)) {
+					controller.prefs.Theme = dark_counterpart;
+				} else {
+					load_theme ();
+				}
+			} else if (!is_dark && cur_theme.has_suffix (" Dark")) {
+				string light_counterpart = cur_theme.substring (0, cur_theme.length - 5) + " Light";
+				if (Theme.is_valid_name (light_counterpart)) {
+					controller.prefs.Theme = light_counterpart;
+				} else {
+					load_theme ();
+				}
+			} else {
 				load_theme ();
 			}
 		}
@@ -227,8 +244,13 @@ namespace Plank
 			theme.load ("dock");
 			theme.notify.connect (theme_changed);
 			
-			if (is_reload)
+			if (is_reload) {
+				reset_buffers ();
+				reset_item_buffers ();
 				theme_changed ();
+				if (controller.window != null)
+					controller.window.queue_draw ();
+			}
 		}
 		
 		/**
@@ -881,37 +903,39 @@ namespace Plank
 #if BENCHMARK
 			var start = new DateTime.now_local ();
 #endif
-			var icon_surface = get_item_surface (item, icon_size).copy ();
-			unowned Cairo.Context icon_cr = icon_surface.Context;
-			
-			Surface? icon_overlay_surface = null;
-			if (item.CountVisible || item.ProgressVisible)
-				icon_overlay_surface = item.get_foreground_surface (icon_size, icon_size, item_buffer, (DrawDataFunc<DockItem>) draw_item_foreground);
-			
-			if (icon_overlay_surface != null) {
-				icon_cr.set_source_surface (icon_overlay_surface.Internal, 0, 0);
-				icon_cr.paint ();
-			}
-			
-#if BENCHMARK
-			var end = new DateTime.now_local ();
-			benchmark.add ("	item.get_surface time - %f ms".printf (end.difference (start) / 1000.0));
-#endif
-			
-			// lighten the icon
-			if (draw_value.lighten > 0) {
-				icon_cr.set_operator (Cairo.Operator.ADD);
-				icon_cr.paint_with_alpha (draw_value.lighten);
-				icon_cr.set_operator (Cairo.Operator.OVER);
-			}
-			
-			// darken the icon
-			if (draw_value.darken > 0) {
-				icon_cr.rectangle (0, 0, icon_surface.Width, icon_surface.Height);
-				icon_cr.set_source_rgba (0, 0, 0, draw_value.darken);
-				icon_cr.set_operator (Cairo.Operator.ATOP);
-				icon_cr.fill ();
-				icon_cr.set_operator (Cairo.Operator.OVER);
+			bool has_overlay = (item.CountVisible || item.ProgressVisible);
+			bool has_tint = (draw_value.lighten > 0 || draw_value.darken > 0);
+
+			Surface icon_surface;
+			if (has_overlay || has_tint) {
+				icon_surface = get_item_surface (item, icon_size).copy ();
+				unowned Cairo.Context icon_cr = icon_surface.Context;
+
+				if (has_overlay) {
+					var icon_overlay_surface = item.get_foreground_surface (icon_size, icon_size, item_buffer, (DrawDataFunc<DockItem>) draw_item_foreground);
+					if (icon_overlay_surface != null) {
+						icon_cr.set_source_surface (icon_overlay_surface.Internal, 0, 0);
+						icon_cr.paint ();
+					}
+				}
+
+				// lighten the icon
+				if (draw_value.lighten > 0) {
+					icon_cr.set_operator (Cairo.Operator.ADD);
+					icon_cr.paint_with_alpha (draw_value.lighten);
+					icon_cr.set_operator (Cairo.Operator.OVER);
+				}
+
+				// darken the icon
+				if (draw_value.darken > 0) {
+					icon_cr.rectangle (0, 0, icon_surface.Width, icon_surface.Height);
+					icon_cr.set_source_rgba (0, 0, 0, draw_value.darken);
+					icon_cr.set_operator (Cairo.Operator.ATOP);
+					icon_cr.fill ();
+					icon_cr.set_operator (Cairo.Operator.OVER);
+				}
+			} else {
+				icon_surface = get_item_surface (item, icon_size);
 			}
 			
 			// draw active glow
@@ -939,7 +963,7 @@ namespace Plank
 			
 			// draw indicators
 			if (draw_value.show_indicator && item.Indicator != IndicatorState.NONE)
-				draw_indicator_state (cr, draw_value.hover_region, item.Indicator, item.State);
+				draw_indicator_state (cr, draw_value.draw_region, item.Indicator, item.State);
 		}
 		
 		void draw_item_shadow (Cairo.Context cr, DockItem item, DockItemDrawValue draw_value)
@@ -1052,23 +1076,24 @@ namespace Plank
 			
 			unowned Surface indicator_surface = (item_state & ItemState.URGENT) != 0 ? urgent_indicator_buffer : indicator_buffer;
 			
+			var offset = Math.round (position_manager.IconSize / 6.5).clamp (6.0, 10.0);
 			var x = 0.0, y = 0.0;
 			switch (position_manager.Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
 				x = item_rect.x + item_rect.width / 2.0 - indicator_surface.Width / 2.0;
-				y = item_buffer.Height - indicator_surface.Height / 2.0 - 2.0 * theme.get_bottom_offset () - indicator_surface.Height / 24.0;
+				y = item_buffer.Height - indicator_surface.Height / 2.0 - offset;
 				break;
 			case Gtk.PositionType.TOP:
 				x = item_rect.x + item_rect.width / 2.0 - indicator_surface.Width / 2.0;
-				y = - indicator_surface.Height / 2.0 + 2.0 * theme.get_bottom_offset () + indicator_surface.Height / 24.0;
+				y = - indicator_surface.Height / 2.0 + offset;
 				break;
 			case Gtk.PositionType.LEFT:
-				x = - indicator_surface.Width / 2.0 + 2.0 * theme.get_bottom_offset () + indicator_surface.Width / 24.0;
+				x = - indicator_surface.Width / 2.0 + offset;
 				y = item_rect.y + item_rect.height / 2.0 - indicator_surface.Height / 2.0;
 				break;
 			case Gtk.PositionType.RIGHT:
-				x = item_buffer.Width - indicator_surface.Width / 2.0 - 2.0 * theme.get_bottom_offset () - indicator_surface.Width / 24.0;
+				x = item_buffer.Width - indicator_surface.Width / 2.0 - offset;
 				y = item_rect.y + item_rect.height / 2.0 - indicator_surface.Height / 2.0;
 				break;
 			}
@@ -1079,9 +1104,9 @@ namespace Plank
 			} else {
 				var x_offset = 0.0, y_offset = 0.0;
 				if (position_manager.is_horizontal_dock ())
-					x_offset = position_manager.IconSize / 16.0;
+					x_offset = position_manager.IconSize / 8.0;
 				else
-					y_offset = position_manager.IconSize / 16.0;
+					y_offset = position_manager.IconSize / 8.0;
 				
 				cr.set_source_surface (indicator_surface.Internal, x - x_offset, y - y_offset);
 				cr.paint ();

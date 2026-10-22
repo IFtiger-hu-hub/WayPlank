@@ -39,6 +39,9 @@ namespace Plank
 
 		uint dismiss_timer_id = 0U;
 		bool pointer_inside = false;
+		bool context_menu_active = false;
+		string? hovered_app_uri = null;
+		int hovered_win_count = 0;
 
 		public FolderMenuWindow (DockController controller)
 		{
@@ -89,6 +92,12 @@ namespace Plank
 			scrolled.set_propagate_natural_height (true);
 			scrolled.set_max_content_height (MAX_HEIGHT);
 			scrolled.set_min_content_width (MIN_WIDTH);
+			scrolled.add_events (Gdk.EventMask.SCROLL_MASK);
+			scrolled.scroll_event.connect ((event) => {
+				if (hovered_app_uri != null && hovered_win_count > 0)
+					return handle_app_scroll (hovered_app_uri, hovered_win_count, event);
+				return false;
+			});
 			main_box.pack_start (scrolled, true, true, 0);
 
 			items_box = new Gtk.Box (Gtk.Orientation.VERTICAL, 2);
@@ -99,11 +108,17 @@ namespace Plank
 			add_events (
 				Gdk.EventMask.ENTER_NOTIFY_MASK |
 				Gdk.EventMask.LEAVE_NOTIFY_MASK |
-				Gdk.EventMask.POINTER_MOTION_MASK
+				Gdk.EventMask.POINTER_MOTION_MASK |
+				Gdk.EventMask.SCROLL_MASK
 			);
 
 			enter_notify_event.connect (on_enter);
 			leave_notify_event.connect (on_leave);
+			scroll_event.connect ((event) => {
+				if (hovered_app_uri != null && hovered_win_count > 0)
+					return handle_app_scroll (hovered_app_uri, hovered_win_count, event);
+				return false;
+			});
 		}
 
 		bool on_enter (Gdk.EventCrossing event)
@@ -117,7 +132,8 @@ namespace Plank
 		{
 			if (event.detail != Gdk.NotifyType.INFERIOR) {
 				pointer_inside = false;
-				schedule_dismiss (DISMISS_DELAY);
+				if (!context_menu_active)
+					schedule_dismiss (DISMISS_DELAY);
 			}
 			return false;
 		}
@@ -132,10 +148,12 @@ namespace Plank
 
 		public void schedule_dismiss (uint delay_ms = DISMISS_DELAY)
 		{
+			if (context_menu_active)
+				return;
 			cancel_dismiss_timer ();
 			dismiss_timer_id = Timeout.add (delay_ms, () => {
 				dismiss_timer_id = 0U;
-				if (!pointer_inside) {
+				if (!pointer_inside && !context_menu_active) {
 					close_menu ();
 				}
 				return false;
@@ -144,7 +162,7 @@ namespace Plank
 
 		public void on_dock_hover (DockItem? hovered_item)
 		{
-			if (!get_visible () || TargetItem == null)
+			if (!get_visible () || TargetItem == null || context_menu_active)
 				return;
 
 			if (hovered_item == TargetItem) {
@@ -162,17 +180,17 @@ namespace Plank
 			// When moving from the folder icon towards the menu, hovered_item becomes null
 			// as the cursor passes through the dock window padding/edge.
 			// Give the user a graceful window to cross into the menu without abruptly closing.
-			if (!pointer_inside) {
+			if (!pointer_inside && !context_menu_active) {
 				schedule_dismiss (DISMISS_DELAY);
 			}
 		}
 
 		public void on_dock_leave ()
 		{
-			if (!get_visible ())
+			if (!get_visible () || context_menu_active)
 				return;
 
-			if (!pointer_inside)
+			if (!pointer_inside && !context_menu_active)
 				schedule_dismiss (DISMISS_DELAY);
 		}
 
@@ -217,8 +235,7 @@ namespace Plank
 						background-color: transparent;
 						background: transparent;
 					}
-					.folder-menu-label,
-					.folder-menu-item label {
+					.folder-menu-label {
 						color: #ffffff;
 						font-size: 13px;
 						font-weight: 500;
@@ -244,8 +261,6 @@ namespace Plank
 						background-color: rgba(255, 255, 255, 0.20);
 						border: 1px solid rgba(255, 255, 255, 0.35);
 					}
-					.folder-menu-item:hover label,
-					.folder-menu-item.hovered label,
 					.folder-menu-item:hover .folder-menu-label,
 					.folder-menu-item.hovered .folder-menu-label {
 						color: #ffffff;
@@ -338,9 +353,15 @@ namespace Plank
 			update_position ();
 		}
 
-		public void close_menu ()
+		public void close_menu (bool force = false)
 		{
+			if (!force && context_menu_active)
+				return;
 			cancel_dismiss_timer ();
+			context_menu_active = false;
+			pointer_inside = false;
+			hovered_app_uri = null;
+			hovered_win_count = 0;
 			hide ();
 			TargetItem = null;
 			current_dir = null;
@@ -464,6 +485,11 @@ namespace Plank
 				} catch { }
 
 				var row = create_row ("folder", display_name, true);
+				row.enter_notify_event.connect (() => {
+					hovered_app_uri = null;
+					hovered_win_count = 0;
+					return false;
+				});
 				row.button_press_event.connect (() => {
 					history.add (current_dir);
 					current_dir = child;
@@ -489,13 +515,58 @@ namespace Plank
 					if (icon == null || icon == "")
 						icon = "application-x-executable";
 
-					var row = create_row (icon, text, false);
-					row.button_press_event.connect (() => {
-						System.get_default ().launch (child);
-						if (TargetItem != null)
-							TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
-						close_menu ();
-						return true;
+					int win_count = WindowManager.get_default ().window_count_for_app (uri);
+					var row = create_row (icon, text, false, win_count);
+					row.add_events (Gdk.EventMask.SCROLL_MASK);
+					row.enter_notify_event.connect (() => {
+						hovered_app_uri = uri;
+						hovered_win_count = win_count;
+						return false;
+					});
+					row.leave_notify_event.connect (() => {
+						if (hovered_app_uri == uri) {
+							hovered_app_uri = null;
+							hovered_win_count = 0;
+						}
+						return false;
+					});
+					row.scroll_event.connect ((event) => {
+						return handle_app_scroll (uri, win_count, event);
+					});
+					row.button_press_event.connect ((event) => {
+						bool is_ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK) != 0;
+						if (event.button == 2 || (event.button == 1 && is_ctrl)) {
+							// Middle click or Ctrl+Left click: force launch new instance
+							System.get_default ().launch (child);
+							if (TargetItem != null)
+								TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
+							close_menu (true);
+							return true;
+						} else if (event.button == 1) {
+							if (win_count > 0) {
+								int click_behavior = controller.prefs.WindowClickBehavior;
+								bool restore_minimized = controller.prefs.RestoreMinimizedWindows;
+								string? uuid;
+								string action;
+								if (WindowManager.get_default ().resolve_click_command (uri, click_behavior, restore_minimized, out uuid, out action)) {
+									WindowControl.queue_command (uuid, action);
+									if (TargetItem != null)
+										TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
+									close_menu (true);
+									return true;
+								}
+							}
+							System.get_default ().launch (child);
+							if (TargetItem != null)
+								TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
+							close_menu (true);
+							return true;
+						} else if (event.button == 3) {
+							// Right click: show app context menu anchored to row
+							show_app_context_menu (row, event, child, uri, text, win_count);
+							return true;
+						}
+						return false;
 					});
 					items_box.pack_start (row, false, false, 0);
 					item_count++;
@@ -508,11 +579,16 @@ namespace Plank
 					} catch { }
 
 					var row = create_row (icon, text, false);
+					row.enter_notify_event.connect (() => {
+						hovered_app_uri = null;
+						hovered_win_count = 0;
+						return false;
+					});
 					row.button_press_event.connect (() => {
 						System.get_default ().open (child);
 						if (TargetItem != null)
 							TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
-						close_menu ();
+						close_menu (true);
 						return true;
 					});
 					items_box.pack_start (row, false, false, 0);
@@ -529,12 +605,48 @@ namespace Plank
 			items_box.show_all ();
 		}
 
-		Gtk.EventBox create_row (string icon_name, string title, bool is_folder)
+		bool handle_app_scroll (string app_uri, int win_count, Gdk.EventScroll event)
+		{
+			if (win_count <= 0)
+				return false;
+
+			double dx = 0.0, dy = 0.0;
+			bool has_deltas = (event.direction == Gdk.ScrollDirection.SMOOTH && event.get_scroll_deltas (out dx, out dy));
+			bool forward = false;
+
+			if (event.direction == Gdk.ScrollDirection.UP || event.direction == Gdk.ScrollDirection.RIGHT) {
+				forward = true;
+			} else if (event.direction == Gdk.ScrollDirection.DOWN || event.direction == Gdk.ScrollDirection.LEFT) {
+				forward = false;
+			} else if (event.direction == Gdk.ScrollDirection.SMOOTH) {
+				if (has_deltas) {
+					if (Math.fabs (dy) < 0.1 && Math.fabs (dx) < 0.1)
+						return false;
+					forward = (dy < 0.0 || dx < 0.0);
+				} else {
+					forward = (event.delta_y < 0.0);
+				}
+			}
+
+			string? uuid;
+			if (WindowManager.get_default ().cycle_window (app_uri, forward, out uuid)) {
+				WindowControl.queue_command (uuid, "activate");
+				return true;
+			}
+			return false;
+		}
+
+		Gtk.EventBox create_row (string icon_name, string title, bool is_folder, int win_count = 0)
 		{
 			var eb = new Gtk.EventBox ();
 			eb.get_style_context ().add_class ("folder-menu-item");
+			eb.set_above_child (true);
 
-			eb.add_events (Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK);
+			eb.add_events (
+				Gdk.EventMask.ENTER_NOTIFY_MASK |
+				Gdk.EventMask.LEAVE_NOTIFY_MASK |
+				Gdk.EventMask.SCROLL_MASK
+			);
 			eb.enter_notify_event.connect (() => {
 				eb.set_state_flags (Gtk.StateFlags.PRELIGHT, false);
 				eb.get_style_context ().add_class ("hovered");
@@ -564,6 +676,38 @@ namespace Plank
 			lbl.set_ellipsize (Pango.EllipsizeMode.END);
 			box.pack_start (lbl, true, true, 0);
 
+			if (win_count > 0) {
+				var dot_da = new Gtk.DrawingArea ();
+				int w = (win_count > 1) ? 22 : 14;
+				dot_da.set_size_request (w, 14);
+				dot_da.valign = Gtk.Align.CENTER;
+				dot_da.halign = Gtk.Align.CENTER;
+				dot_da.draw.connect ((cr) => {
+					double[] centers = (win_count > 1) ? new double[] { 5.0, 15.0 } : new double[] { 7.0 };
+					double size = 10.0;
+
+					foreach (var cx in centers) {
+						double cy = 7.0;
+						cr.move_to (cx, cy);
+						cr.arc (cx, cy, size / 2.0, 0, Math.PI * 2);
+						cr.close_path ();
+
+						var rg = new Cairo.Pattern.radial (cx, cy, 0, cx, cy, size / 2.0);
+						rg.add_color_stop_rgba (0.0, 1.0, 1.0, 1.0, 1.0);
+						rg.add_color_stop_rgba (0.22, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 1.0);
+						rg.add_color_stop_rgba (0.45, 14.0 / 255.0, 165.0 / 255.0, 233.0 / 255.0, 0.75);
+						rg.add_color_stop_rgba (0.75, 2.0 / 255.0, 132.0 / 255.0, 199.0 / 255.0, 0.30);
+						rg.add_color_stop_rgba (1.0, 2.0 / 255.0, 132.0 / 255.0, 199.0 / 255.0, 0.0);
+
+						cr.set_source (rg);
+						cr.fill ();
+					}
+					return false;
+				});
+				dot_da.set_tooltip_text (_("Application is running (%d windows)").printf (win_count));
+				box.pack_start (dot_da, false, false, 4);
+			}
+
 			if (is_folder) {
 				var arrow = new Gtk.Image.from_icon_name ("go-next-symbolic", Gtk.IconSize.MENU);
 				arrow.set_opacity (0.6);
@@ -572,6 +716,121 @@ namespace Plank
 
 			eb.add (box);
 			return eb;
+		}
+
+		void show_app_context_menu (Gtk.Widget row, Gdk.EventButton event, File child, string uri, string title, int win_count)
+		{
+			cancel_dismiss_timer ();
+			context_menu_active = true;
+			var menu = new Gtk.Menu ();
+			menu.attach_to_widget (row, null);
+
+			// 1. Windows list & window management
+			if (win_count > 0) {
+				var windows = WindowManager.get_default ().matching_windows (uri);
+				if (windows.size > 1) {
+					foreach (var w in windows) {
+						var win_title = (w.Caption != null && w.Caption != "") ? w.Caption : title;
+						if (win_title.length > 50)
+							win_title = win_title.substring (0, 47) + "...";
+						var w_item = new Gtk.MenuItem.with_label (win_title);
+						var target_uuid = w.Id;
+						w_item.activate.connect (() => {
+							WindowControl.queue_command (target_uuid, "activate");
+							close_menu (true);
+						});
+						menu.append (w_item);
+					}
+					menu.append (new Gtk.SeparatorMenuItem ());
+					var close_all_item = DockElement.create_menu_item (_("Close _All"), "window-close", true);
+					close_all_item.activate.connect (() => {
+						foreach (var w in windows) {
+							WindowControl.queue_command (w.Id, "close");
+						}
+						close_menu (true);
+					});
+					menu.append (close_all_item);
+				} else if (windows.size == 1) {
+					var target_uuid = windows[0].Id;
+					var close_item = DockElement.create_menu_item (_("_Close"), "window-close", true);
+					close_item.activate.connect (() => {
+						WindowControl.queue_command (target_uuid, "close");
+						close_menu (true);
+					});
+					menu.append (close_item);
+				}
+			}
+
+			// 2. Desktop Actions & Shortcuts from .desktop file (e.g. "New Window", "New Incognito Window")
+			var actions = new Gee.ArrayList<string> ();
+			var actions_map = new Gee.HashMap<string, string> ();
+			var desktop_action_ids = new Gee.HashMap<string, string> ();
+			string unused_icon, unused_text;
+			ApplicationDockItem.parse_launcher (uri, out unused_icon, out unused_text, actions, actions_map, null, desktop_action_ids);
+
+			if (actions.size > 0) {
+				if (menu.get_children ().length () > 0)
+					menu.append (new Gtk.SeparatorMenuItem ());
+
+				foreach (var s in actions) {
+					var values = actions_map.get (s).split (";;");
+					var action_id = desktop_action_ids.get (s);
+					var item = DockElement.create_menu_item (s, values.length > 1 ? values[1] : "", true);
+					item.activate.connect (() => {
+						if (action_id != null) {
+							string? path = null;
+							if (uri.has_prefix ("file://"))
+								path = File.new_for_uri (uri).get_path ();
+							else
+								path = uri;
+							if (path != null) {
+								var desktop_info = new DesktopAppInfo.from_filename (path);
+								if (desktop_info != null) {
+									desktop_info.launch_action (action_id, System.get_default ().context);
+									close_menu (true);
+									return;
+								}
+							}
+						}
+						if (values.length > 0 && values[0] != "") {
+							try {
+								AppInfo.create_from_commandline (values[0], null, AppInfoCreateFlags.NONE).launch (null, null);
+							} catch { }
+						}
+						close_menu (true);
+					});
+					menu.append (item);
+				}
+			} else {
+				if (menu.get_children ().length () > 0)
+					menu.append (new Gtk.SeparatorMenuItem ());
+
+				if (win_count > 0) {
+					var new_win_item = DockElement.create_menu_item (_("_New Window"), "window-new", true);
+					new_win_item.activate.connect (() => {
+						System.get_default ().launch (child);
+						close_menu (true);
+					});
+					menu.append (new_win_item);
+				} else {
+					var open_item = DockElement.create_menu_item (_("_Open"), "document-open", true);
+					open_item.activate.connect (() => {
+						System.get_default ().launch (child);
+						close_menu (true);
+					});
+					menu.append (open_item);
+				}
+			}
+
+			// Context menu dismiss handling: keep folder menu open if context menu is cancelled
+			menu.hide.connect (() => {
+				context_menu_active = false;
+				if (!pointer_inside)
+					schedule_dismiss (DISMISS_DELAY);
+			});
+
+			menu.show_all ();
+			menu.popup_at_pointer ((Gdk.Event) event);
 		}
 
 		public void update_position ()

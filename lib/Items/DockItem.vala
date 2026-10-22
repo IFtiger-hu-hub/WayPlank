@@ -167,7 +167,7 @@ namespace Plank
 		
 		construct
 		{
-			buffer = new SurfaceCache<DockItem> (SurfaceCacheFlags.NONE);
+			buffer = new SurfaceCache<DockItem> (SurfaceCacheFlags.ALLOW_DOWNSCALE);
 			background_buffer = new SurfaceCache<DockItem> (SurfaceCacheFlags.ALLOW_SCALE);
 			
 			Prefs.deleted.connect (handle_deleted);

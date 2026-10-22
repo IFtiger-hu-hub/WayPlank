@@ -33,6 +33,8 @@ namespace Plank
 		public File OwnedFile { get; protected construct set; }
 		
 		FileMonitor? dir_monitor;
+		Gee.ArrayList<string> contained_launchers = new Gee.ArrayList<string> ();
+		bool is_window_connected = false;
 		
 		/**
 		 * {@inheritDoc}
@@ -73,6 +75,10 @@ namespace Plank
 		~FileDockItem ()
 		{
 			stop_monitor ();
+			if (is_window_connected) {
+				WindowManager.get_default ().windows_refreshed.disconnect (update_indicator);
+				is_window_connected = false;
+			}
 		}
 		
 		/**
@@ -103,6 +109,12 @@ namespace Plank
 				} catch {
 					critical ("Unable to watch the stack directory '%s'.", OwnedFile.get_path () ?? "");
 				}
+				refresh_contained_launchers ();
+				if (!is_window_connected) {
+					WindowManager.get_default ().windows_refreshed.connect (update_indicator);
+					is_window_connected = true;
+				}
+				update_indicator ();
 			}
 		}
 
@@ -148,12 +160,75 @@ namespace Plank
 				dir_monitor.cancel ();
 				dir_monitor = null;
 			}
+			if (is_window_connected) {
+				WindowManager.get_default ().windows_refreshed.disconnect (update_indicator);
+				is_window_connected = false;
+			}
 		}
 		
 		[CCode (instance_pos = -1)]
 		void handle_dir_changed (File f, File? other, FileMonitorEvent event)
 		{
 			reset_icon_buffer ();
+			refresh_contained_launchers ();
+			update_indicator ();
+		}
+
+		void refresh_contained_launchers ()
+		{
+			contained_launchers.clear ();
+			if (!is_directory ())
+				return;
+
+			try {
+				var enumerator = OwnedFile.enumerate_children (
+					FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_IS_HIDDEN + "," + FileAttribute.STANDARD_TYPE,
+					FileQueryInfoFlags.NONE,
+					null
+				);
+				FileInfo? info;
+				while ((info = enumerator.next_file (null)) != null) {
+					if (info.get_is_hidden ())
+						continue;
+					var name = info.get_name ();
+					if (name.has_suffix (".desktop")) {
+						contained_launchers.add (OwnedFile.get_child (name).get_uri ());
+					}
+				}
+			} catch (Error e) {
+				debug ("FileDockItem: Failed to enumerate directory '%s': %s", OwnedFile.get_path () ?? "", e.message);
+			}
+		}
+
+		public void update_indicator ()
+		{
+			if (!is_directory () || contained_launchers.size == 0) {
+				if (Indicator != IndicatorState.NONE)
+					Indicator = IndicatorState.NONE;
+				return;
+			}
+
+			var wm = WindowManager.get_default ();
+			int total_windows = 0;
+			int running_apps = 0;
+			foreach (var uri in contained_launchers) {
+				int count = wm.window_count_for_app (uri);
+				if (count > 0) {
+					running_apps++;
+					total_windows += count;
+				}
+			}
+
+			IndicatorState new_state = IndicatorState.NONE;
+			if (total_windows > 1 || running_apps > 1) {
+				new_state = IndicatorState.SINGLE_PLUS;
+			} else if (total_windows == 1) {
+				new_state = IndicatorState.SINGLE;
+			}
+
+			if (Indicator != new_state) {
+				Indicator = new_state;
+			}
 		}
 		
 		bool has_default_icon_match ()

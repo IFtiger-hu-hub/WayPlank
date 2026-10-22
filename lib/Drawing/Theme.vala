@@ -198,9 +198,9 @@ namespace Plank
 
 			if (is_dark) {
 				// Modern dark translucent theme harmonizing with GTK Dark Mode
-				double r = bg_rgba.red;
-				double g = bg_rgba.green;
-				double b = bg_rgba.blue;
+				double r = bg_rgba.red < 0.5 ? bg_rgba.red : 0.18;
+				double g = bg_rgba.green < 0.5 ? bg_rgba.green : 0.18;
+				double b = bg_rgba.blue < 0.5 ? bg_rgba.blue : 0.20;
 				
 				FillStartColor = {
 					(r + 0.05).clamp (0.0, 1.0),
@@ -218,9 +218,9 @@ namespace Plank
 				InnerStrokeColor = { 1.0, 1.0, 1.0, 0.18 };
 			} else {
 				// Clean, elegant light translucent theme harmonizing with GTK Light Mode
-				double r = bg_rgba.red;
-				double g = bg_rgba.green;
-				double b = bg_rgba.blue;
+				double r = bg_rgba.red > 0.5 ? bg_rgba.red : 0.94;
+				double g = bg_rgba.green > 0.5 ? bg_rgba.green : 0.94;
+				double b = bg_rgba.blue > 0.5 ? bg_rgba.blue : 0.96;
 				
 				FillStartColor = {
 					(r + 0.02).clamp (0.0, 1.0),
@@ -235,12 +235,9 @@ namespace Plank
 					0.88
 				};
 				OuterStrokeColor = {
-					(border_rgba.red * 0.8).clamp (0.0, 1.0),
-					(border_rgba.green * 0.8).clamp (0.0, 1.0),
-					(border_rgba.blue * 0.8).clamp (0.0, 1.0),
-					0.45
+					0.5, 0.5, 0.5, 0.45
 				};
-				InnerStrokeColor = { 1.0, 1.0, 1.0, 0.65 };
+				InnerStrokeColor = { 1.0, 1.0, 1.0, 0.75 };
 			}
 		}
 		
@@ -669,6 +666,26 @@ namespace Plank
 		 * @param name the basename of the folder
 		 * @return {@link GLib.File} the folder of the theme or NULL
 		 */
+		public static bool is_valid_name (string name)
+		{
+			if (name == DEFAULT_NAME || name == GTK_THEME_NAME)
+				return true;
+
+			if (is_valid_theme_dir (Paths.AppThemeFolder.get_child (name)))
+				return true;
+			if (is_valid_theme_dir (Paths.DataHomeFolder.get_child ("plank/themes/%s".printf (name))))
+				return true;
+			if (is_valid_theme_dir (Paths.HomeFolder.get_child (".themes/%s".printf (name))))
+				return true;
+			if (is_valid_theme_dir (Paths.ThemeFolder.get_child (name)))
+				return true;
+			foreach (var datafolder in Paths.DataDirFolders) {
+				if (is_valid_theme_dir (datafolder.get_child ("plank/themes/%s".printf (name))))
+					return true;
+			}
+			return false;
+		}
+
 		public static File? get_theme_folder (string name)
 		{
 			if (name == DEFAULT_NAME || name == GTK_THEME_NAME)

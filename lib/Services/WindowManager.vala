@@ -125,8 +125,50 @@ namespace Plank
 			
 			if (matches.size == 1) {
 				target = matches[0].Id;
-				action = "toggle";
+				if (click_behavior == 1) {
+					// 1 = Focus: Raise active window to front, never minimize
+					action = "activate";
+				} else {
+					// 0 = Smart, 2 = Cycle: toggle (minimize if active, activate if inactive)
+					action = "toggle";
+				}
 				return true;
+			}
+			
+			if (click_behavior == 1) {
+				// Focus: keep focus on currently active window, or raise first window
+				foreach (var w in matches) {
+					if (w.Active) {
+						target = w.Id;
+						action = "activate";
+						return true;
+					}
+				}
+				target = matches[0].Id;
+				action = "activate";
+				return true;
+			}
+
+			if (restore_minimized) {
+				bool all_minimized = true;
+				foreach (var w in matches) {
+					if (!w.Minimized) {
+						all_minimized = false;
+						break;
+					}
+				}
+				if (all_minimized) {
+					WindowInfo? newest = null;
+					foreach (var w in matches) {
+						if (newest == null || w.MinimizedSequence > newest.MinimizedSequence)
+							newest = w;
+					}
+					if (newest != null) {
+						target = newest.Id;
+						action = "activate";
+						return true;
+					}
+				}
 			}
 			
 			cycle_window (launcher_uri, true, out target);
