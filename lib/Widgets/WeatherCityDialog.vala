@@ -39,16 +39,25 @@ namespace Plank
 		{
 			GLib.Object (
 				title: _("Weather Location Settings"),
-				transient_for: parent,
-				modal: true,
-				destroy_with_parent: true,
 				window_position: Gtk.WindowPosition.CENTER
 			);
 			this.weather_item = item;
+			if (parent != null) {
+				set_transient_for (parent);
+				set_destroy_with_parent (false);
+			}
 		}
 
 		construct
 		{
+			set_role ("help");
+			set_type_hint (Gdk.WindowTypeHint.DIALOG);
+			set_position (Gtk.WindowPosition.CENTER);
+			window_position = Gtk.WindowPosition.CENTER;
+			gravity = Gdk.Gravity.CENTER;
+			set_keep_above (true);
+			set_skip_taskbar_hint (true);
+			set_skip_pager_hint (true);
 			set_default_size (420, 240);
 			resizable = false;
 
@@ -122,6 +131,10 @@ namespace Plank
 
 			destroy.connect (() => {
 				is_open = false;
+				if (search_timer_id != 0) {
+					GLib.Source.remove (search_timer_id);
+					search_timer_id = 0;
+				}
 				weather_item.get_dock ()?.check_collapse_after_interaction (this);
 			});
 		}
@@ -225,6 +238,8 @@ namespace Plank
 				} catch (GLib.Error e) { }
 
 				GLib.Idle.add (() => {
+					if (!is_open)
+						return false;
 					if (city_entry.text.strip () == query) {
 						completion_store.clear ();
 						Gtk.TreeIter iter;
@@ -245,6 +260,7 @@ namespace Plank
 
 		public void init_values (string current_city, string current_units)
 		{
+			city_entry.changed.disconnect (on_city_entry_changed);
 			city_entry.text = current_city;
 			if (current_city.strip ().length > 0)
 				is_valid_selection = true;
@@ -254,6 +270,7 @@ namespace Plank
 			} else {
 				unit_c_radio.active = true;
 			}
+			city_entry.changed.connect (on_city_entry_changed);
 		}
 
 		private bool check_location_validity_sync (string query)

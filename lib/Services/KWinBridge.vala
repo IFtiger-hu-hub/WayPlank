@@ -351,6 +351,7 @@ namespace Plank
 		static int script_id = -1;
 		static DBusConnection? dbus_connection;
 		static uint dbus_registration_id = 0U;
+		static uint kwin_watch_id = 0U;
 		public signal void state_changed ();
 
 		public static unowned KWinBridge get_default ()
@@ -530,6 +531,11 @@ namespace Plank
 
 		public static void cleanup ()
 		{
+			if (kwin_watch_id > 0U) {
+				Bus.unwatch_name (kwin_watch_id);
+				kwin_watch_id = 0U;
+			}
+
 			if (dbus_registration_id > 0U && dbus_connection != null) {
 				dbus_connection.unregister_object (dbus_registration_id);
 				dbus_registration_id = 0U;
@@ -683,12 +689,57 @@ namespace Plank
 			} catch (Error e) {}
 		}
 
+		static void setup_kwin_watcher ()
+		{
+			if (kwin_watch_id > 0U)
+				return;
+
+			kwin_watch_id = Bus.watch_name (
+				BusType.SESSION,
+				"org.kde.KWin",
+				BusNameWatcherFlags.NONE,
+				on_kwin_appeared,
+				on_kwin_vanished
+			);
+		}
+
+		static void on_kwin_appeared (DBusConnection connection, string name, string name_owner)
+		{
+			message ("KWinBridge: org.kde.KWin appeared on D-Bus (owner=%s), ensuring bridge script is active", name_owner);
+			if (script_id >= 0 && script_path != null) {
+				try {
+					var result = connection.call_sync ("org.kde.KWin", "/Scripting",
+						"org.kde.kwin.Scripting", "isScriptLoaded",
+						new Variant ("(s)", script_path),
+						new VariantType ("(b)"), DBusCallFlags.NONE, 250, null);
+					bool is_loaded = false;
+					result.get ("(b)", out is_loaded);
+					if (is_loaded) {
+						debug ("KWinBridge: bridge script is already alive in KWin");
+						return;
+					}
+				} catch (Error e) { }
+			}
+			reload_script ();
+		}
+
+		static void on_kwin_vanished (DBusConnection connection, string name)
+		{
+			message ("KWinBridge: org.kde.KWin vanished from D-Bus, resetting bridge state");
+			script_id = -1;
+			if (script_path != null) {
+				FileUtils.remove (script_path);
+				script_path = null;
+			}
+		}
+
 		public static void start ()
 		{
 			if (!environment_is_session_desktop (XdgSessionDesktop.KDE)
 				|| !environment_is_session_type (XdgSessionType.WAYLAND))
 				return;
 
+			setup_kwin_watcher ();
 			clean_old_script_files ();
 
 			try {

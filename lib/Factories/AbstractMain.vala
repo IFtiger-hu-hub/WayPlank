@@ -439,18 +439,28 @@ namespace Plank
 		 */
 		void show_about ()
 		{
+			uint32 click_time = Gtk.get_current_event_time ();
 			if (about_dlg != null) {
-				raise_and_focus_window (about_dlg);
+				raise_and_focus_window (about_dlg, click_time);
 				return;
 			}
 			
 			about_dlg = new Gtk.AboutDialog ();
 			is_about_open = true;
+			about_dlg.set_role ("help");
+			about_dlg.set_title (_("About WayPlank"));
+			about_dlg.set_decorated (true);
+			about_dlg.set_destroy_with_parent (false);
+			about_dlg.set_position (Gtk.WindowPosition.CENTER);
 			about_dlg.window_position = Gtk.WindowPosition.CENTER;
 			about_dlg.gravity = Gdk.Gravity.CENTER;
-			about_dlg.set_transient_for (primary_dock.window);
+			about_dlg.set_type_hint (Gdk.WindowTypeHint.DIALOG);
+			about_dlg.set_skip_taskbar_hint (true);
+			about_dlg.set_skip_pager_hint (true);
+			about_dlg.set_keep_above (true);
+			about_dlg.set_focus_on_map (true);
 			
-			about_dlg.set_program_name (exec_name);
+			about_dlg.set_program_name (program_name);
 			about_dlg.set_version ("%s\n%s".printf (build_version, build_version_info));
 			try {
 				var logo_buf = new Gdk.Pixbuf.from_resource_at_scale (
@@ -488,7 +498,7 @@ namespace Plank
 			about_dlg.set_license_type (about_license_type);
 			
 			about_dlg.response.connect (() => {
-				about_dlg.hide ();
+				about_dlg.destroy ();
 			});
 			
 			about_dlg.hide.connect (() => {
@@ -504,15 +514,15 @@ namespace Plank
 				is_about_open = false;
 			});
 			
-			raise_and_focus_window (about_dlg);
+			raise_and_focus_window (about_dlg, click_time);
 		}
 		
-		void raise_and_focus_window (Gtk.Window window)
+		void raise_and_focus_window (Gtk.Window window, uint32 event_time = 0)
 		{
 			window.show_all ();
 			window.deiconify ();
 			window.set_keep_above (true);
-			uint32 time = Gtk.get_current_event_time ();
+			uint32 time = event_time != 0 ? event_time : Gtk.get_current_event_time ();
 			if (time != 0) {
 				window.present_with_time (time);
 			} else {
@@ -524,6 +534,24 @@ namespace Plank
 				gdk_win.focus (time != 0 ? time : Gdk.CURRENT_TIME);
 			}
 			window.grab_focus ();
+
+			if (!window.get_mapped ()) {
+				ulong map_handler = 0;
+				map_handler = window.map.connect (() => {
+					if (window.get_visible ()) {
+						uint32 t = event_time != 0 ? event_time : Gtk.get_current_event_time ();
+						if (t != 0)
+							window.present_with_time (t);
+						else
+							window.present ();
+						window.grab_focus ();
+					}
+					if (map_handler != 0) {
+						GLib.SignalHandler.disconnect (window, map_handler);
+						map_handler = 0;
+					}
+				});
+			}
 		}
 
 		/**
@@ -533,11 +561,12 @@ namespace Plank
 		 */
 		void show_preferences (DockController controller, string? page_name = null)
 		{
+			uint32 click_time = Gtk.get_current_event_time ();
 			if (preferences_dlg != null) {
 				preferences_dlg.controller = controller;
 				if (page_name != null)
 					preferences_dlg.show_page (page_name);
-				raise_and_focus_window (preferences_dlg);
+				raise_and_focus_window (preferences_dlg, click_time);
 				return;
 			}
 			
@@ -560,13 +589,14 @@ namespace Plank
 					primary_dock.check_collapse_after_interaction (old);
 			});
 			
-			raise_and_focus_window (preferences_dlg);
+			raise_and_focus_window (preferences_dlg, click_time);
 		}
 
 		void show_help ()
 		{
+			uint32 click_time = Gtk.get_current_event_time ();
 			if (help_dlg != null) {
-				raise_and_focus_window (help_dlg);
+				raise_and_focus_window (help_dlg, click_time);
 				return;
 			}
 
@@ -587,7 +617,7 @@ namespace Plank
 					primary_dock.check_collapse_after_interaction (old);
 			});
 
-			raise_and_focus_window (help_dlg);
+			raise_and_focus_window (help_dlg, click_time);
 		}
 
 		void show_guide ()

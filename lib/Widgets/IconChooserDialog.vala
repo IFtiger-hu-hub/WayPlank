@@ -46,11 +46,17 @@ namespace Plank
 		{
 			GLib.Object (
 				title: _("Change Icon - %s").printf (item_name),
-				transient_for: parent,
-				modal: true,
-				destroy_with_parent: true,
 				window_position: Gtk.WindowPosition.CENTER
 			);
+
+			set_role ("help");
+			set_type_hint (Gdk.WindowTypeHint.DIALOG);
+			set_position (Gtk.WindowPosition.CENTER);
+			window_position = Gtk.WindowPosition.CENTER;
+			gravity = Gdk.Gravity.CENTER;
+			set_keep_above (true);
+			set_skip_taskbar_hint (true);
+			set_skip_pager_hint (true);
 
 			is_open = true;
 			this.show.connect (() => { is_open = true; });

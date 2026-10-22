@@ -53,7 +53,7 @@ namespace Plank
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (button == PopupButton.LEFT) {
-				SessionWindow.toggle_window ();
+				SessionWindow.toggle_window (event_time);
 				return AnimationType.BOUNCE;
 			}
 
@@ -97,7 +97,7 @@ namespace Plank
 			items.add (new Gtk.SeparatorMenuItem ());
 
 			var session_win_item = create_menu_item (_("Session _Dialog..."), "system-shutdown-symbolic", true);
-			session_win_item.activate.connect (() => { SessionWindow.toggle_window (); });
+			session_win_item.activate.connect (() => { SessionWindow.toggle_window (Gtk.get_current_event_time ()); });
 			items.add (session_win_item);
 
 			items.add (new Gtk.SeparatorMenuItem ());
@@ -460,7 +460,10 @@ namespace Plank
 				"%s", message
 			);
 			dialog.title = title;
+			dialog.set_role ("help");
 			dialog.window_position = Gtk.WindowPosition.CENTER;
+			dialog.gravity = Gdk.Gravity.CENTER;
+			dialog.set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			dialog.skip_taskbar_hint = true;
 			dialog.set_keep_above (true);
 

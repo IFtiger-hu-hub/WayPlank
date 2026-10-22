@@ -138,7 +138,8 @@ namespace Plank
 
 		public void open_location_dialog (Gtk.Window? parent = null)
 		{
-			var dlg = new WeatherCityDialog (this, parent);
+			Gtk.Window? dlg_parent = parent != null ? parent : WeatherWindow.active_instance;
+			var dlg = new WeatherCityDialog (this, dlg_parent);
 			string initial_city = weather_prefs.City.strip ();
 			if (initial_city.length == 0 && city_name.length > 0 && city_name != _("Offline") && city_name != _("Checking weather...")) {
 				initial_city = (country_name.length > 0) ? "%s, %s".printf (city_name, country_name) : city_name;
@@ -442,7 +443,7 @@ namespace Plank
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (button == PopupButton.LEFT) {
-				WeatherWindow.toggle_window (this);
+				WeatherWindow.toggle_window (this, event_time);
 				return AnimationType.BOUNCE;
 			}
 

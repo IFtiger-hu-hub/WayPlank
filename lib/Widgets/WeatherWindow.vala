@@ -28,18 +28,59 @@ namespace Plank
 			return (active_instance != null && active_instance.get_visible ());
 		}
 
-		public static void toggle_window (WeatherDockItem item)
+		public static void toggle_window (WeatherDockItem item, uint32 event_time = 0)
 		{
+			uint32 click_time = event_time != 0 ? event_time : Gtk.get_current_event_time ();
 			if (active_instance != null) {
-				active_instance.destroy ();
-				active_instance = null;
+				if (active_instance.is_active || active_instance.has_toplevel_focus) {
+					active_instance.destroy ();
+					active_instance = null;
+					return;
+				}
+				raise_and_focus_instance (active_instance, click_time);
 				return;
 			}
 
 			var win = new WeatherWindow (item);
 			active_instance = win;
-			win.show_all ();
-			win.present ();
+			raise_and_focus_instance (win, click_time);
+		}
+
+		static void raise_and_focus_instance (Gtk.Window window, uint32 event_time = 0)
+		{
+			window.show_all ();
+			window.deiconify ();
+			window.set_keep_above (true);
+			uint32 time = event_time != 0 ? event_time : Gtk.get_current_event_time ();
+			if (time != 0) {
+				window.present_with_time (time);
+			} else {
+				window.present ();
+			}
+			var gdk_win = window.get_window ();
+			if (gdk_win != null) {
+				gdk_win.raise ();
+				gdk_win.focus (time != 0 ? time : Gdk.CURRENT_TIME);
+			}
+			window.grab_focus ();
+
+			if (!window.get_mapped ()) {
+				ulong map_handler = 0;
+				map_handler = window.map.connect (() => {
+					if (window.get_visible ()) {
+						uint32 t = event_time != 0 ? event_time : Gtk.get_current_event_time ();
+						if (t != 0)
+							window.present_with_time (t);
+						else
+							window.present ();
+						window.grab_focus ();
+					}
+					if (map_handler != 0) {
+						GLib.SignalHandler.disconnect (window, map_handler);
+						map_handler = 0;
+					}
+				});
+			}
 		}
 
 		public static void update_if_open ()
@@ -67,14 +108,18 @@ namespace Plank
 		construct
 		{
 			title = _("Weather Forecast");
-			set_role ("weather-dialog");
+			set_role ("help");
 			set_decorated (true);
-			set_destroy_with_parent (true);
+			set_destroy_with_parent (false);
 			set_position (Gtk.WindowPosition.CENTER);
+			window_position = Gtk.WindowPosition.CENTER;
+			gravity = Gdk.Gravity.CENTER;
 			set_default_size (480, 430);
 			resizable = false;
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
+			set_skip_taskbar_hint (true);
+			set_skip_pager_hint (true);
 
 			key_press_event.connect ((w, e) => {
 				if (e.keyval == Gdk.Key.Escape) {
