@@ -18,6 +18,18 @@
 > - **Currently on GitHub**: **v0.6.2.3 (Round 3)** is now officially live on GitHub!
 > - **Week 45 (Monday, November 2, 2026)**: The milestone **WayPlank Public Beta (v0.7.0)** will officially launch on GitHub, allowing downstream collaborators and community testers full runway throughout Week 44.
 
+> [!TIP]
+> ### 🌍 Call for Translators — Help Localize WayPlank for Public Beta (v0.7.0)!
+> In preparation for the Public Beta, all translations are maintained in a clean, self-contained Python generator script: [`po/generate_translations.py`](po/generate_translations.py).
+> Complete string coverage already exists for **Simplified Chinese (`zh_CN`)**, **Italian (`it`)**, **Spanish (`es`)**, **French (`fr`)**, and **Catalan (`ca`)**.
+>
+> **Want to add your language (e.g. German, Portuguese, Polish, Japanese, etc.) or refine existing translations?**
+> 1. Open [`po/generate_translations.py`](po/generate_translations.py), where all 312 strings are stored in a simple, structured Python dictionary.
+> 2. Add or update your language entries directly in the dictionary (much cleaner and easier to manage than raw `.po` files!).
+> 3. Submit your updated `generate_translations.py` by opening a [GitHub Issue](https://github.com/sergiomelas/WayPlank/issues)!
+>
+> ⏰ **Submission Window**: All languages received via GitHub Issues before the end of next week (**Sunday, November 1, 2026 — Week 44**) will be officially integrated into the Public Beta (v0.7.0) release!
+
 ---
 
 ## 📢 Current Status
