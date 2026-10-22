@@ -48,7 +48,7 @@ Wayplank **V0.6.2 series** marks a landmark milestone in the project's evolution
   - **Running Dots & Drawer UX Parity**: Pinned folder dock items render illuminated running dots (and dual dots for 2+ active apps); drawer rows render running indicators with stabilized geometry; complete application contract parity (Ctrl/Middle click launch instance, wheel window cycling, row context menu guard).
   - **Native Window Stacking & Crash Elimination**: Completely excised asynchronous presentation timers eliminating Mutter `meta_window_unmanage` assertion crashes; decoupled peer dialogs for natural bidirectional stacking; reconnected native CSD HeaderBar on Mutter; KWin D-Bus service watcher for automatic bridge script recovery.
   - **Full Multi-Compositor Qualification**: 335 tests executed, 333 passed (324 baseline + 9 squashed), 2 NA, 0 open defects (100% PASS rate across GNOME Shell, KDE Plasma 6, and Labwc).
-  - **Release Schedule**: v0.6.2.3 (Round 3) is officially released and live on GitHub! The official WayPlank Public Beta (v0.7.0) will launch next Monday, October 26, 2026!
+  - **Release Schedule**: v0.6.2.3 (Round 3) is officially released and live on GitHub! The official WayPlank Public Beta (v0.7.0) will launch in Week 45 (Monday, November 2, 2026), providing full community and downstream testing runway during Week 44.
 
 ---
 
@@ -285,5 +285,5 @@ This milestone exemplifies collaborative open-source synergy:
     - Distribution packages available:
       - `build/wayplank_0.6.2.3_amd64.deb`
       - `build/wayplank-0.6.2.3-1.x86_64.rpm`
-    - **Next Monday, October 26, 2026**: **Official GitHub Launch of WayPlank Public Beta (v0.7.0)**!
+    - **Week 45 (Monday, November 2, 2026)**: **Official GitHub Launch of WayPlank Public Beta (v0.7.0)**!
 

@@ -239,9 +239,10 @@ The unification of upstream WayPlank with the community fork of **IFtiger-hu (�
 - **Round 3 (v0.6.2.3)**: Universal multi-window preview cards, live thumbnails, dynamic theme swapping, stock themes, recent files, folder running dots, drawer parity, native stacking. *(100% FAT passed, in 4-day smoketest)*.
 
 ### 📅 Staged Release & Public Beta Timeline:
-1. **October 22, 2026**: **Official GitHub Release of v0.6.2.3 (Round 3)** — 100% FAT qualified!
-2. **Next Monday, October 26, 2026**: **Official Launch of WayPlank Public Beta (v0.7.0) on GitHub!**
-3. **Following Beta Launch**: Broad community testing and feedback on v0.7.0 leading directly to Version 1.0 Stable.
+1. **October 22, 2026 (Week 43)**: **Official GitHub Release of v0.6.2.3 (Round 3)** — 100% FAT qualified!
+2. **Week 44 (Oct 26 – Nov 1, 2026)**: Community feedback and downstream collaborator synchronization window.
+3. **Week 45 (Monday, November 2, 2026)**: **Official Launch of WayPlank Public Beta (v0.7.0) on GitHub!**
+4. **Following Beta Launch**: Broad community testing and feedback on v0.7.0 leading directly to Version 1.0 Stable.
 
 ---
 *WayPlank Project Documentation • Maintained by Sergio Melas & Contributors*

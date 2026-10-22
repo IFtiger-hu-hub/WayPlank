@@ -6,7 +6,7 @@
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 > [![Current Live Release: v0.6.2.3 (Round 3)](https://img.shields.io/badge/Live_on_GitHub-v0.6.2.3_(Round_3)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
-> [![Next Release: Public Beta v0.7.0 (Monday Oct 26)](https://img.shields.io/badge/Next_Release-Public_Beta_v0.7.0_(Monday_Oct_26)-orange.svg)](README.md)
+> [![Next Release: Public Beta v0.7.0 (Week 45 - Nov 2, 2026)](https://img.shields.io/badge/Next_Release-Public_Beta_v0.7.0_(Week_45)-orange.svg)](README.md)
 > [![FAT: 100% Passed (335/335)](https://img.shields.io/badge/FAT_Status-100%25_PASS_(335%2F335)-success.svg)](FAT/2026-10-21%20FAT%200.6.2.3.txt)
 
 ![Wayplank Release Banner](Release%20Pic.png)
@@ -16,7 +16,7 @@
 > [!IMPORTANT]
 > ### 📅 Release Schedule & Roadmap to Public Beta (v0.7.0)
 > - **Currently on GitHub**: **v0.6.2.3 (Round 3)** is now officially live on GitHub!
-> - **Next Monday, October 26, 2026**: The milestone **WayPlank Public Beta (v0.7.0)** will officially launch on GitHub!
+> - **Week 45 (Monday, November 2, 2026)**: The milestone **WayPlank Public Beta (v0.7.0)** will officially launch on GitHub, allowing downstream collaborators and community testers full runway throughout Week 44.
 
 ---
 
@@ -308,7 +308,8 @@ wayplank -d
   - [x] Official GitHub Release of v0.6.2.3 (Round 3).
 
 - [ ] Phase 7 (Upcoming) WayPlank Public Beta (v0.7.0) & Road to Stable Release
-  - [ ] **Monday, October 26, 2026: Official Launch of Public Beta (v0.7.0) on GitHub!**
+  - [ ] **Week 45 (Monday, November 2, 2026): Official Launch of Public Beta (v0.7.0) on GitHub!**
+  - [ ] Downstream collaborator synchronization & community testing buffer throughout Week 44.
   - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
   - [ ] Publish Version 1.0 first stable with a clear list of supported compositors.
   - [ ] After release, focus on community bug fixes and compatibility updates.
@@ -319,7 +320,7 @@ wayplank -d
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
 * 🚀 **v0.6.2.3 (Round 3, Pre-Beta) — Current Live GitHub Release (2026-10-22) [100% FAT PASSED]**:  
-  Universal Cairo multi-window preview cards across all Wayland compositors (live D-Bus thumbnails on KWin and GNOME Mutter, clean blank card fallback on Labwc), dynamic real-time light/dark theme switching across KDE and GNOME, recent files jump list in context menus (`RecentFilesService`), packaged stock theme suite (Dark, Light, Arian Dark/Light, IFtiger Dark/Light), folder running indicator dots (single/dual on dock, row indicators in drawer), complete folder drawer application contract parity (middle/ctrl-click new instance, mouse wheel window cycling, row context menu guard), elimination of Mutter async timer crashes via deterministic map activation, KWin D-Bus bridge self-healing, native peer dialog stacking, and 0 open defects across 335 FAT test points. Directly paves the way for the **Public Beta (v0.7.0)** launching Monday, October 26!
+  Universal Cairo multi-window preview cards across all Wayland compositors (live D-Bus thumbnails on KWin and GNOME Mutter, clean blank card fallback on Labwc), dynamic real-time light/dark theme switching across KDE and GNOME, recent files jump list in context menus (`RecentFilesService`), packaged stock theme suite (Dark, Light, Arian Dark/Light, IFtiger Dark/Light), folder running indicator dots (single/dual on dock, row indicators in drawer), complete folder drawer application contract parity (middle/ctrl-click new instance, mouse wheel window cycling, row context menu guard), elimination of Mutter async timer crashes via deterministic map activation, KWin D-Bus bridge self-healing, native peer dialog stacking, and 0 open defects across 335 FAT test points. Directly paves the way for the **Public Beta (v0.7.0)** launching in Week 45 (Monday, November 2, 2026)!
 * 🌟 **v0.6.2.2 (Round 2, Pre-Beta) — Current Live GitHub Release (2026-10-21) [COMPLETED / 100% FAT PASSED]**:  
   Remote web URL & browser shortcut DND delivery (`DesktopAppInfo.launch_uris`), hover-to-raise target window activation,  
   real-time dark/light portal color-scheme synchronization (`org.freedesktop.portal.Settings`), interactive Theme Manager  
