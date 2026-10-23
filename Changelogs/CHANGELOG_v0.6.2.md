@@ -280,10 +280,14 @@ This milestone exemplifies collaborative open-source synergy:
       - **Session 3 (Labwc / wlroots)**: 111 tests | 109 [ok] | 2 [NA] (wlroots protocol limitations) | 100% PASS
     - **Scoreboard**: 324 Passed Baseline `[ok]`, 9 Squashed `[ko->ok]`, 2 Not Applicable `[NA]`, 0 Pending `[ ]`, 0 Open Defects (100% PASS rate across all Tier-1 compositors).
 
-11. **📦 Release Finalization & Public Beta (v0.7.0) Roadmap**:
+11. **📦 Release Finalization & Master Milestone Roadmap**:
     - **Current Live GitHub Release**: **v0.6.2.3 (Round 3)** is officially released on GitHub with 100% FAT qualification.
-    - Distribution packages available:
+    - **Distribution packages available**:
       - `build/wayplank_0.6.2.3_amd64.deb`
       - `build/wayplank-0.6.2.3-1.x86_64.rpm`
-    - **Week 45 (Monday, November 2, 2026)**: **Official GitHub Launch of WayPlank Public Beta (v0.7.0)**!
+    - **Master Release Trajectory**:
+      - **v0.7.x (Public Beta — Week 45: Monday, November 2, 2026)**: Official GitHub Launch of Public Beta, embedding monolithic in-memory gettext catalogs (`GResource`) and community testing buffer throughout Week 44.
+      - **v0.8.x (Release Candidate Series)**: Strict feature freeze, memory leak profiling (Valgrind), and packaging standardization.
+      - **v0.9.x (Long-Term Production Stabilization)**: The battle-tested production milestone and daily driver release for the Linux desktop community.
+      - **v1.0.0 (Grand Milestone Horizon — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
 

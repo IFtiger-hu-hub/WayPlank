@@ -1095,11 +1095,13 @@ With **WayPlank v0.6.2.3**, the transition from legacy X11 Plank to a native, mo
 - **Comprehensive Distribution Independence:** Native automated packaging for Debian/Ubuntu (`.deb`), openSUSE/Fedora/RHEL (`.rpm`), and Arch Linux/generic distros (`BuildBin.sh`).
 - **Exhaustive ISA-88 Qualification:** 335 formal test points executed across 3 compositors with a **100% Qualification Pass Rate (333 Passed, 2 NA, 0 Pending, 0 Open Defects)**.
 - **Enterprise-Grade Stability:** 0.0% idle CPU, zero hardcoding, zero memory leaks, and sub-10ms event reaction times.
-- **Release & Beta Roadmap:**
+- **Release & Master Trajectory:**
   - **Current Live GitHub Release**: `v0.6.2.3 (Round 3)` (Released Thursday, October 22, 2026, ISO Week 43).
   - **Downstream Collaborator Runway & Sync**: Week 44 (Monday, October 26 – Sunday, November 1, 2026).
-  - **Public Beta (v0.7.0)**: **Official GitHub Launch in Week 45 (Monday, November 2, 2026)**!
-  - **Post-Beta Trajectory**: Broad community testing and compositor validation leading directly to Version 1.0 Stable.
+  - **Public Beta (v0.7.0)**: **Official GitHub Launch in Week 45 (Monday, November 2, 2026)** with monolithic in-memory localization.
+  - **Release Candidate Series (v0.8.x)**: Strict feature freeze, memory leak profiling, and packaging hardening.
+  - **Long-Term Production Stabilization (v0.9.x)**: The battle-tested production milestone for daily driving across all Linux distros.
+  - **Grand Milestone Horizon (v1.0.0 — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
 
 
 

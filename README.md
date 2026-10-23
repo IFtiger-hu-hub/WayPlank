@@ -14,9 +14,12 @@
 ---
 
 > [!IMPORTANT]
-> ### 📅 Release Schedule & Roadmap to Public Beta (v0.7.0)
-> - **Currently on GitHub**: **v0.6.2.3 (Round 3)** is now officially live on GitHub!
-> - **Week 45 (Monday, November 2, 2026)**: The milestone **WayPlank Public Beta (v0.7.0)** will officially launch on GitHub, allowing downstream collaborators and community testers full runway throughout Week 44.
+> ### 📅 Master Release Roadmap & Milestone Schedule
+> - **v0.6.2.3 (Current Live Pre-Beta)**: Officially live on GitHub with 100% FAT qualification (335/335 tests passing).
+> - **v0.7.x (Public Beta — Week 45: Monday, Nov 2, 2026)**: Monolithic embedded localization engine (in-memory GResource), community testing, and bug squashing.
+> - **v0.8.x (Release Candidate — RC Series)**: Strict feature freeze, memory leak profiling, and distribution packaging hardening (.deb, .rpm, AUR).
+> - **v0.9.x (Long-Term Production Stabilization)**: The official battle-tested production milestone for daily driving across all Linux distros.
+> - **v1.0.0 (The Grand Milestone — ~2-Year Horizon)**: The long-term landmark celebrating proven stability and next-gen Wayland protocol standards.
 
 > [!TIP]
 > ### 🌍 Call for Translators — Help Localize WayPlank for Public Beta (v0.7.0)!
@@ -319,12 +322,20 @@ wayplank -d
   - [x] Finish documentation, packaging, and configuration migration.
   - [x] Official GitHub Release of v0.6.2.3 (Round 3).
 
-- [ ] Phase 7 (Upcoming) WayPlank Public Beta (v0.7.0) & Road to Stable Release
+- [ ] Phase 7 (Upcoming) WayPlank Public Beta (v0.7.x)
   - [ ] **Week 45 (Monday, November 2, 2026): Official Launch of Public Beta (v0.7.0) on GitHub!**
+  - [ ] Monolithic embedded gettext localization engine (`GResource`) with 100% in-memory string resolution.
   - [ ] Downstream collaborator synchronization & community testing buffer throughout Week 44.
   - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
-  - [ ] Publish Version 1.0 first stable with a clear list of supported compositors.
-  - [ ] After release, focus on community bug fixes and compatibility updates.
+- [ ] Phase 8 (Planned) WayPlank Release Candidate (v0.8.x)
+  - [ ] Strict Feature Freeze — no new architectural features, focusing purely on stability and hardening.
+  - [ ] Systematic memory leak profiling (Valgrind / AddressSanitizer) and CPU efficiency audits.
+  - [ ] Distribution packaging parity: official Debian (.deb), Fedora/openSUSE (.rpm), and Arch Linux AUR PKGBUILD.
+- [ ] Phase 9 (Planned) WayPlank Long-Term Production Stabilization (v0.9.x)
+  - [ ] The official daily driver production milestone, rock-solid across all major compositors (KWin, Mutter, Labwc).
+  - [ ] Production maintenance releases (`v0.9.1`, `v0.9.2`, etc.) as Wayland protocols and driver stacks evolve.
+- [ ] Phase 10 (Long-Term Horizon ~2 Years) WayPlank 1.0.0 Grand Milestone
+  - [ ] The definitive landmark celebration after 2 years of proven daily production stability and mature protocol integration.
 ---
 
 # 📝 Release Highlights & Changelog
