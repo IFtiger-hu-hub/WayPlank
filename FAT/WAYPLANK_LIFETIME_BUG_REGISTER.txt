@@ -51,10 +51,11 @@ v0.6.1     | 2026-10-13   | 0-byte MIME, Badges & Gtk+ Engine | 7 (82x3) | 0
 v0.6.2.1   | 2026-10-17   | Fork Integration & Gold Standard  | 16 (94x3)| 0
 v0.6.2.2   | 2026-10-20   | Round 2 Ergonomics, DND & Themes  | 5 (102x3)| 0
 v0.6.2.3   | 2026-10-22   | Round 3 Previews, Drawers & Stacks| 11(112x3)| 0
+v0.7.0     | 2026-10-23   | Public Beta (Monolithic I18N)     | In Progress| 0
 -----------+--------------+-----------------------------------+----------+------
-ERA 2 SUB  | Formal FAT   | 9 Multi-Compositor Protocols      | 77 verif | 0
+ERA 2 SUB  | Formal FAT   | 10 Multi-Compositor Protocols     | 77 verif | 0
 -----------+--------------+-----------------------------------+----------+------
-TOTAL      | All Releases | 15 WayPlank Milestone Releases    | 90 Unique| 0
+TOTAL      | All Releases | 16 WayPlank Milestone Releases    | 90 Unique| 0
 ================================================================================
 *Note on v0.5.0: The 7 [ko] defects discovered were formally remediated and
 verified in v0.5.1 under standard ISA-88 qualification protocol.
