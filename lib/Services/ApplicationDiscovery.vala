@@ -141,6 +141,15 @@ namespace Plank
 				|| is_ignored_app (window.DesktopFileName))
 				return null;
 
+			if (window.DesktopFileName != "") {
+				var canonical_file = desktop_file_for_id (window.DesktopFileName);
+				if (canonical_file != null) {
+					var cid = canonical_file.get_basename ();
+					if (identities.has_key (cid) && identities.get (cid).match_score (window) > 0)
+						return canonical_file;
+				}
+			}
+
 			var best_score = 0;
 			string? best_id = null;
 			foreach (var entry in identities.entries) {
@@ -173,6 +182,18 @@ namespace Plank
 					|| is_ignored_app (window.ResourceName)
 					|| is_ignored_app (window.DesktopFileName))
 					continue;
+
+				if (window.DesktopFileName != "") {
+					var canonical_file = desktop_file_for_id (window.DesktopFileName);
+					if (canonical_file != null) {
+						var cid = canonical_file.get_basename ();
+						if (identities.has_key (cid) && identities.get (cid).match_score (window) > 0) {
+							best_by_window.set (window.Id, cid);
+							score_by_window.set (window.Id, 100);
+							continue;
+						}
+					}
+				}
 
 				var best_score = 0;
 				string? best_id = null;

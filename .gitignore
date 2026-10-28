@@ -10,3 +10,4 @@ lib/resources.c
 *DOWNSTREAM FORK BUGS & SOLUTIONS*
 AI_RULES.md
 AI_private/
+.idea/
