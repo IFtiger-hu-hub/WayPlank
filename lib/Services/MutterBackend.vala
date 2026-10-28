@@ -67,7 +67,7 @@ namespace Plank
   "uuid": "wayplank-bridge@wayplank.org",
   "shell-version": ["45", "46", "47", "48", "49", "50"],
   "url": "https://github.com/wayplank",
-  "version": 12
+  "version": 14
 }
 """;
 
@@ -313,8 +313,8 @@ export default class WayplankBridgeExtension extends Extension {
             return 'poof';
 
         // 1. Tooltip / Hover / Folder Window (ensure poof is not mistaken for hover)
-        if (lowerTitle === 'hover' || lowerTitle.includes('folder') || lowerTitle.includes('cards') ||
-            (role === 'tooltip' && lowerTitle === 'hover') ||
+        if (lowerTitle.includes('hover') || lowerTitle.includes('folder') || lowerTitle.includes('cards') ||
+            role === 'tooltip' ||
             (role === 'popup-menu' && (lowerTitle.includes('folder') || lowerTitle.includes('cards'))))
             return 'hover';
 
@@ -650,7 +650,8 @@ export default class WayplankBridgeExtension extends Extension {
             this._notifyWindowsChanged();
         }));
         sigs.push(win.connect('position-changed', () => {
-            this._notifyWindowsChanged();
+            if (this._classifyWindow(win) === 'other')
+                this._notifyWindowsChanged();
         }));
         sigs.push(win.connect('size-changed', () => {
             const currentKind = this._classifyWindow(win);
@@ -660,11 +661,13 @@ export default class WayplankBridgeExtension extends Extension {
                 const { x, y, width, height } = this._lastDockGeo;
                 this._applyDockPosition(win, x, y, width, height);
             }
-            this._notifyWindowsChanged();
+            if (currentKind === 'other')
+                this._notifyWindowsChanged();
         }));
         sigs.push(win.connect('notify::title', () => {
             applyRole(win);
-            this._notifyWindowsChanged();
+            if (this._classifyWindow(win) === 'other')
+                this._notifyWindowsChanged();
         }));
 
         this._windowSignals.set(win, sigs);
@@ -791,6 +794,7 @@ export default class WayplankBridgeExtension extends Extension {
 
             result.push({
                 uuid: id,
+                pid: (win.get_pid ? win.get_pid() : 0),
                 desktopFileName: desktopFileName || '',
                 resourceClass: wmClass || '',
                 resourceName: gtkAppId || '',
@@ -1133,8 +1137,8 @@ export default class WayplankBridgeExtension extends Extension {
 				FileUtils.set_contents (js_file, EXTENSION_JS);
 
 				if (code_changed && current_js != null) {
-					// Upgrade / code updated: cycle disable -> enable to ensure GNOME Shell reloads JS
-					Process.spawn_command_line_async ("gnome-extensions disable " + EXTENSION_UUID);
+					// Upgrade / code updated: reset error latch and cycle disable -> enable to ensure GNOME Shell reloads JS
+					Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " && gnome-extensions disable " + EXTENSION_UUID + "'");
 					GLib.Timeout.add (300, () => {
 						try {
 							Process.spawn_command_line_async ("gnome-extensions enable " + EXTENSION_UUID);
@@ -1142,7 +1146,7 @@ export default class WayplankBridgeExtension extends Extension {
 						return false;
 					});
 				} else {
-					Process.spawn_command_line_async ("gnome-extensions enable " + EXTENSION_UUID);
+					Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " && gnome-extensions enable " + EXTENSION_UUID + "'");
 				}
 			} catch (Error e) {
 				warning ("MutterBackend: failed to deploy extension: %s", e.message);
@@ -1230,6 +1234,17 @@ export default class WayplankBridgeExtension extends Extension {
 						continue;
 					var info = new WindowInfo ();
 					info.Id = json.get_string_member ("uuid");
+
+					if (json.has_member ("pid")) {
+						info.Pid = (int) json.get_int_member ("pid");
+						if (info.Pid > 0) {
+							info.Cmdline = ApplicationDiscovery.get_process_cmdline (info.Pid);
+							string comm = "";
+							if (GLib.FileUtils.get_contents ("/proc/%d/comm".printf (info.Pid), out comm)) {
+								info.Executable = comm.strip ();
+							}
+						}
+					}
 
 					var desktop_val = (json.has_member ("desktopFileName") && !json.get_null_member ("desktopFileName")) ? json.get_string_member ("desktopFileName") : "";
 					var class_val = (json.has_member ("resourceClass") && !json.get_null_member ("resourceClass")) ? json.get_string_member ("resourceClass") : "";

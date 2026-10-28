@@ -26,14 +26,18 @@ namespace Plank
 	public class ApplicationIdentity : GLib.Object
 	{
 		Gee.HashSet<string> tokens = new Gee.HashSet<string> ();
+		Gee.HashSet<string> primary_tokens = new Gee.HashSet<string> ();
 		Gee.HashSet<string> word_tokens = new Gee.HashSet<string> ();
 		Gee.HashSet<string> executable_tokens = new Gee.HashSet<string> ();
 		Gee.ArrayList<string> argument_tokens = new Gee.ArrayList<string> ();
 		string app_name = "";
+		string base_id = "";
 		
 		public ApplicationIdentity (File desktop_file)
 		{
-			add_token (desktop_file.get_basename ());
+			base_id = normalize (desktop_file.get_basename ());
+			add_token (base_id);
+			primary_tokens.add (base_id);
 			var path = desktop_file.get_path ();
 			if (path == null)
 				return;
@@ -44,11 +48,26 @@ namespace Plank
 					var swmc = key_file.get_string (KeyFileDesktop.GROUP, "StartupWMClass");
 					add_token (swmc);
 					add_token_variants (swmc);
+					var norm_swmc = normalize (swmc);
+					if (norm_swmc != "") {
+						primary_tokens.add (norm_swmc);
+						if (norm_swmc.has_prefix ("crx_")) {
+							var crx_id = norm_swmc.substring (4);
+							if (crx_id.length >= 3) {
+								add_token (crx_id);
+								primary_tokens.add (crx_id);
+								argument_tokens.add (crx_id);
+							}
+						}
+					}
 				}
 				if (key_file.has_key (KeyFileDesktop.GROUP, "X-GNOME-WMClass")) {
 					var gmc = key_file.get_string (KeyFileDesktop.GROUP, "X-GNOME-WMClass");
 					add_token (gmc);
 					add_token_variants (gmc);
+					var norm_gmc = normalize (gmc);
+					if (norm_gmc != "")
+						primary_tokens.add (norm_gmc);
 				}
 				if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME)) {
 					var raw_name = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME).strip ();
@@ -100,7 +119,7 @@ namespace Plank
 				if (part == "" || part.has_prefix ("%"))
 					continue;
 
-				// Parameter option with value like --profile-directory="Profile 14"
+				// Parameter option with value like --profile-directory="Profile 14", --app-id=..., or --app=...
 				if (part.contains ("=")) {
 					var eq = part.index_of_char ('=');
 					var opt_key = part.substring (0, eq).down ();
@@ -108,17 +127,42 @@ namespace Plank
 						var val = part.substring (eq + 1).strip ().replace ("\"", "").replace ("'", "").down ();
 						if (val != "" && val.length >= 3) {
 							argument_tokens.add (val);
+							if (val.has_prefix ("http://") || val.has_prefix ("https://")) {
+								var slash_idx = val.index_of ("://");
+								var host_part = val.substring (slash_idx + 3);
+								var end_host = host_part.index_of_char ('/');
+								if (end_host > 0)
+									host_part = host_part.substring (0, end_host);
+								var at_idx = host_part.last_index_of_char ('@');
+								if (at_idx >= 0)
+									host_part = host_part.substring (at_idx + 1);
+								var port_idx = host_part.index_of_char (':');
+								if (port_idx > 0)
+									host_part = host_part.substring (0, port_idx);
+								if (host_part != "") {
+									argument_tokens.add (host_part);
+									var host_dot = host_part.last_index_of_char ('.');
+									if (host_dot > 0) {
+										var sld = host_part.substring (0, host_dot);
+										var first_dot = sld.last_index_of_char ('.');
+										if (first_dot >= 0)
+											sld = sld.substring (first_dot + 1);
+										if (sld.length >= 3 && !is_common_stopword (sld))
+											argument_tokens.add (sld);
+									}
+								}
+							}
 						}
 					}
 				}
 
 				var target_name = File.new_for_path (part).get_basename ().down ();
-				if (target_name != "" && target_name != "." && !target_name.has_prefix ("-") && !is_common_path_stopword (target_name)) {
+				if (target_name != "" && target_name != "." && !target_name.has_prefix ("-") && !is_generic_argument_stopword (target_name)) {
 					argument_tokens.add (target_name);
 					var dot = target_name.last_index_of_char ('.');
 					if (dot > 0) {
 						var sub_name = target_name.substring (0, dot);
-						if (!is_common_path_stopword (sub_name))
+						if (!is_generic_argument_stopword (sub_name))
 							argument_tokens.add (sub_name);
 					}
 				}
@@ -258,6 +302,16 @@ namespace Plank
 			executable_tokens.add (norm);
 			tokens.add (norm);
 
+			// Prefix match for dashed binaries (e.g. qemu-system-x86_64 -> qemu)
+			var first_dash = norm.index_of_char ('-');
+			if (first_dash > 0) {
+				var prefix = norm.substring (0, first_dash);
+				if (prefix.length >= 3 && !is_common_stopword (prefix)) {
+					executable_tokens.add (prefix);
+					tokens.add (prefix);
+				}
+			}
+
 			// Auto-register binary aliases (-bin variant, google-chrome vs chrome, etc.)
 			if (norm.has_suffix ("-bin")) {
 				var base_name = norm.substring (0, norm.length - 4);
@@ -314,6 +368,21 @@ namespace Plank
 			} else if (norm == "chrome") {
 				executable_tokens.add ("google-chrome");
 				tokens.add ("google-chrome");
+			} else if (norm == "chromium" || norm == "chromium-browser") {
+				executable_tokens.add ("chromium");
+				executable_tokens.add ("chromium-browser");
+				tokens.add ("chromium");
+				tokens.add ("chromium-browser");
+			} else if (norm == "brave" || norm == "brave-browser") {
+				executable_tokens.add ("brave");
+				executable_tokens.add ("brave-browser");
+				tokens.add ("brave");
+				tokens.add ("brave-browser");
+			} else if (norm == "microsoft-edge" || norm == "msedge" || norm == "microsoft-edge-stable") {
+				executable_tokens.add ("msedge");
+				executable_tokens.add ("microsoft-edge");
+				tokens.add ("msedge");
+				tokens.add ("microsoft-edge");
 			} else if (norm == "code" || norm == "visual-studio-code") {
 				executable_tokens.add ("code");
 				tokens.add ("com.microsoft.vscode");
@@ -333,14 +402,55 @@ namespace Plank
 			}
 		}
 
-		private static bool is_common_stopword (string word)
+		public static bool is_common_stopword (string word)
 		{
 			return word == "the" || word == "for" || word == "and" || word == "app" ||
 			       word == "application" || word == "desktop" || word == "edition" ||
 			       word == "version" || word == "pro" || word == "community" ||
 			       word == "professional" || word == "release" || word == "tool" ||
 			       word == "tools" || word == "viewer" || word == "editor" ||
-			       word == "manager" || word == "client";
+			       word == "manager" || word == "client" || word == "web" ||
+			       word == "open" || word == "new" || word == "home" ||
+			       word == "page" || word == "tab" || word == "window" ||
+			       word == "document" || word == "untitled" || word == "welcome" ||
+			       word == "view" || word == "main" || word == "help";
+		}
+
+		public static bool contains_word (string text, string word)
+		{
+			if (word == "" || text == "" || word.length > text.length)
+				return false;
+
+			int start_pos = 0;
+			while (start_pos <= text.length - word.length) {
+				int idx = text.index_of (word, start_pos);
+				if (idx < 0)
+					return false;
+
+				bool left_boundary = true;
+				if (idx > 0) {
+					int prev_idx = idx - 1;
+					while (prev_idx > 0 && ((uint8) text[prev_idx] & 0xc0) == 0x80) {
+						prev_idx--;
+					}
+					unichar left_c = text.get_char (prev_idx);
+					if (left_c.isalnum ())
+						left_boundary = false;
+				}
+
+				bool right_boundary = true;
+				if (idx + word.length < text.length) {
+					unichar right_c = text.get_char (idx + word.length);
+					if (right_c.isalnum ())
+						right_boundary = false;
+				}
+
+				if (left_boundary && right_boundary)
+					return true;
+
+				start_pos = idx + 1;
+			}
+			return false;
 		}
 
 		private static bool is_common_path_stopword (string word)
@@ -349,6 +459,29 @@ namespace Plank
 			       word == "usr" || word == "etc" || word == "var" || word == "opt" ||
 			       word == "desktop" || word == "main" || word == "index" || word == "default" ||
 			       word == "run" || word == "user" || word == "local" || word == "share";
+		}
+
+		private static bool is_generic_argument_stopword (string word)
+		{
+			if (is_common_path_stopword (word) || is_common_stopword (word))
+				return true;
+			if (word == "kvm" || word == "tcg" || word == "xen" || word == "hax" ||
+			    word == "whpx" || word == "hvf" || word == "qemu" || word == "snapshot" ||
+			    word == "qcow2" || word == "vmdk" || word == "vdi" || word == "raw" ||
+			    word == "none" || word == "off" || word == "on" || word == "auto" ||
+			    word == "true" || word == "false")
+				return true;
+			bool all_digits_or_unit = true;
+			for (int i = 0; i < word.length; i++) {
+				unichar c = word.get_char (word.index_of_nth_char (i));
+				if (!c.isdigit () && c != 'm' && c != 'g' && c != 'k' && c != 'b') {
+					all_digits_or_unit = false;
+					break;
+				}
+			}
+			if (all_digits_or_unit)
+				return true;
+			return false;
 		}
 		
 		void add_token (string? value)
@@ -378,20 +511,34 @@ namespace Plank
 
 		public int match_score (WindowInfo window)
 		{
-			// If this launcher has specialized target arguments (e.g. Profile 14, specific VM/file),
+			// Check if the window directly matches this desktop entry's primary identity
+			// (DesktopFileName, ApplicationId, or ResourceClass matching desktop basename or StartupWMClass)
+			bool primary_identity_matched = false;
+			var primary_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass };
+			foreach (var val in primary_values) {
+				if (val != null && val != "") {
+					var norm = normalize (val);
+					if (norm != "" && primary_tokens.contains (norm)) {
+						primary_identity_matched = true;
+						break;
+					}
+				}
+			}
+
+			// If this launcher has specialized target arguments (e.g. Profile 14, specific VM/file, PWA app-id),
 			// check if the window matches those arguments.
 			bool specialized = (argument_tokens.size > 0);
 			bool args_matched = false;
 
 			// Guard 1: Argument matching can ONLY apply if the window's underlying application or binary
 			// matches this launcher. Unrelated applications (e.g. Dolphin) must never match Chrome web apps or Steam shortcuts.
-			if (specialized) {
+			if (specialized && !primary_identity_matched) {
 				bool base_app_matches = false;
 				var base_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
 				foreach (var val in base_values) {
 					if (val != null && val != "") {
 						var norm = normalize (val);
-						if (tokens.contains (norm) || executable_tokens.contains (norm)) {
+						if (tokens.contains (norm) || executable_tokens.contains (norm) || word_tokens.contains (norm)) {
 							base_app_matches = true;
 							break;
 						}
@@ -416,10 +563,25 @@ namespace Plank
 				}
 			}
 
+			// Check window identifiers for PWA hash / argument matches
+			// (e.g. crx_mpkgflik... or chrome-mpkgflik... matching argument token mpkgflik...)
+			if (specialized && !args_matched) {
+				foreach (var arg in argument_tokens) {
+					if (arg.length >= 5) {
+						if ((window.ApplicationId != "" && window.ApplicationId.down ().contains (arg)) ||
+						    (window.DesktopFileName != "" && window.DesktopFileName.down ().contains (arg)) ||
+						    (window.ResourceClass != "" && window.ResourceClass.down ().contains (arg))) {
+							args_matched = true;
+							break;
+						}
+					}
+				}
+			}
+
 			if (specialized && !args_matched && window.Caption != "") {
 				var caption_down = window.Caption.down ();
 				foreach (var arg in argument_tokens) {
-					if (arg.length >= 3 && caption_down.contains (arg)) {
+					if (arg.length >= 3 && contains_word (caption_down, arg)) {
 						args_matched = true;
 						break;
 					}
@@ -427,14 +589,40 @@ namespace Plank
 			}
 
 			// If this launcher requires specific arguments that were NOT found in the window,
-			// it must NEVER hijack generic instances of the application.
-			if (specialized && !args_matched) {
+			// it must NEVER hijack generic instances or different instances of the application
+			// (unless the window specifically identified itself via exact desktop file id).
+			bool exact_desktop_id_matched = false;
+			var desktop_id_values = new string?[] { window.DesktopFileName, window.ApplicationId };
+			foreach (var val in desktop_id_values) {
+				if (val != null && val != "") {
+					var norm = normalize (val);
+					if (norm != "" && (norm == base_id || (base_id != "" && norm.has_prefix (base_id)))) {
+						exact_desktop_id_matched = true;
+						break;
+					}
+				}
+			}
+
+			if (specialized && !args_matched && !exact_desktop_id_matched) {
 				return 0;
+			}
+
+			// Guard: Synthetic launchers (wayplank-app-*) are strictly bound to their unique sanitized instance name.
+			// A synthetic launcher for VM-Alpha must NEVER hijack VM-Beta or other instances.
+			if (base_id.has_prefix ("wayplank-app-")) {
+				var synth_key = base_id.substring ("wayplank-app-".length);
+				var win_app_name = window.Caption != "" ? window.Caption : (window.ResourceName != "" ? window.ResourceName : window.ResourceClass);
+				var win_clean_name = ApplicationDiscovery.sanitize_name_for_app (win_app_name, normalize (window.ResourceClass));
+				if (win_clean_name != synth_key) {
+					return 0;
+				}
 			}
 
 			var values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
 			var scores = new int[] { 100, 95, 85, 80 };
-			var best = args_matched ? 110 : 0;
+			var best = (args_matched && !primary_identity_matched) ? 110 : (primary_identity_matched ? 100 : 0);
+			if (specialized && !args_matched && !exact_desktop_id_matched)
+				best = 0;
 			for (var i = 0; i < values.length; i++) {
 				var value = values[i];
 				if (value == null || value == "")
@@ -443,7 +631,9 @@ namespace Plank
 				if (normalized == "")
 					continue;
 				// Primary exact token match (exact .desktop basename, exact StartupWMClass, unwrapped binary)
-				if (tokens.contains (normalized))
+				if (primary_tokens.contains (normalized))
+					best = int.max (best, scores[i]);
+				else if (tokens.contains (normalized))
 					best = int.max (best, scores[i]);
 				else if (tokens.contains (normalized.replace ("-", " ")) || tokens.contains (normalized.replace (" ", "-")) || tokens.contains (normalized.replace ("_", " ")))
 					best = int.max (best, scores[i]);
@@ -457,14 +647,14 @@ namespace Plank
 					var sep_idx = normalized.last_index_of (sep);
 					if (sep_idx >= 0) {
 						var suffix = normalized.substring (sep_idx + 1);
-						if (suffix.length >= 3) {
+						if (suffix.length >= 3 && !is_common_stopword (suffix) && !is_common_path_stopword (suffix)) {
 							if (tokens.contains (suffix))
 								best = int.max (best, scores[i] - 15);
 							else if (word_tokens.contains (suffix))
 								best = int.max (best, scores[i] - 30);
 						}
 						var prefix = normalized.substring (0, sep_idx);
-						if (prefix.length >= 3) {
+						if (prefix.length >= 3 && !is_common_stopword (prefix) && !is_common_path_stopword (prefix)) {
 							if (tokens.contains (prefix))
 								best = int.max (best, scores[i] - 20);
 							else if (word_tokens.contains (prefix))
@@ -472,34 +662,64 @@ namespace Plank
 						}
 					}
 				}
+
+				// Prefix match for dashed binaries (e.g. qemu-system-x86_64 matching qemu)
+				var first_dash = normalized.index_of_char ('-');
+				if (first_dash > 0) {
+					var first_part = normalized.substring (0, first_dash);
+					if (primary_tokens.contains (first_part) || tokens.contains (first_part)) {
+						best = int.max (best, scores[i] - 10);
+					}
+				}
 			}
 
-			// Check window.Cmdline against executables
+			// Check window.Cmdline against executables (strictly matching the invoked binary in argv[0])
 			if (window.Cmdline != "") {
-				var cmdline_down = window.Cmdline.down ();
-				if (executable_tokens.size > 0) {
-					foreach (var exe in executable_tokens) {
-						if (exe.length >= 3 && cmdline_down.contains (exe)) {
+				var cmdline = window.Cmdline.strip ();
+				string first_arg = "";
+				if (cmdline.has_prefix ("\"")) {
+					var close_quote = cmdline.index_of_char ('"', 1);
+					if (close_quote > 1)
+						first_arg = cmdline.substring (1, close_quote - 1);
+					else
+						first_arg = cmdline.substring (1);
+				} else {
+					var first_space = cmdline.index_of_char (' ');
+					if (first_space > 0)
+						first_arg = cmdline.substring (0, first_space);
+					else
+						first_arg = cmdline;
+				}
+				if (first_arg != "") {
+					var bin_name = File.new_for_path (first_arg).get_basename ().down ();
+					if (bin_name != "") {
+						if (executable_tokens.contains (bin_name)) {
 							best = int.max (best, 85);
-							break;
+						} else {
+							var first_dash = bin_name.index_of_char ('-');
+							if (first_dash > 0) {
+								var prefix = bin_name.substring (0, first_dash);
+								if (executable_tokens.contains (prefix))
+									best = int.max (best, 80);
+							}
 						}
 					}
 				}
 			}
 
-			// Match window Caption (Title) against desktop Name or tokens
+			// Match window Caption (Title) against desktop Name or tokens with strict word-boundary matching
 			if (window.Caption != "") {
 				var caption_down = window.Caption.down ();
-				if (app_name != "" && app_name.length >= 3 && caption_down.contains (app_name)) {
+				if (app_name != "" && app_name.length >= 3 && !is_common_stopword (app_name) && contains_word (caption_down, app_name)) {
 					if (window.Executable != "" && executable_tokens.contains (normalize (window.Executable)))
 						best = int.max (best, 90);
 					else if (executable_tokens.size == 0)
-						best = int.max (best, 75);
-					else
 						best = int.max (best, 70);
+					else
+						best = int.max (best, 60);
 				}
-				foreach (var tok in tokens) {
-					if (tok.length >= 4 && caption_down.contains (tok)) {
+				foreach (var tok in primary_tokens) {
+					if (tok.length >= 3 && !is_common_stopword (tok) && !is_common_path_stopword (tok) && contains_word (caption_down, tok)) {
 						best = int.max (best, 70);
 						break;
 					}

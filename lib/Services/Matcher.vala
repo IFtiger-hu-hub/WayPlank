@@ -65,7 +65,7 @@ namespace Plank
 			// Only scan /proc if no compositor window-control is providing live state
 			if (!WindowControl.has_state ()) {
 				scan_running_applications ();
-				scan_timer_id = GLib.Timeout.add_seconds (1, () => {
+				scan_timer_id = GLib.Timeout.add_seconds (5, () => {
 					if (!WindowControl.has_state ())
 						scan_running_applications ();
 					return true;
@@ -82,7 +82,7 @@ namespace Plank
 				scan_timer_id = 0U;
 			} else if (!WindowControl.has_state () && scan_timer_id == 0U) {
 				scan_running_applications ();
-				scan_timer_id = GLib.Timeout.add_seconds (1, () => {
+				scan_timer_id = GLib.Timeout.add_seconds (5, () => {
 					if (!WindowControl.has_state ())
 						scan_running_applications ();
 					return true;
@@ -118,23 +118,25 @@ namespace Plank
 						continue;
 
 					current_pids.add (pid);
-					string comm_path = "/proc/%s/comm".printf (name);
-					string comm = "";
-					if (GLib.FileUtils.get_contents (comm_path, out comm)) {
-						comm = comm.strip ();
-						if (comm != "" && comm != "wayplank") {
-							// Check common desktop file ID patterns generically
-							string[] possible_ids = {
-								comm + ".desktop",
-								"org.kde." + comm + ".desktop",
-								"org.gnome." + comm + ".desktop",
-								comm.down () + ".desktop"
-							};
+					if (!initial_scan_done || !known_pids.contains (pid)) {
+						string comm_path = "/proc/%s/comm".printf (name);
+						string comm = "";
+						if (GLib.FileUtils.get_contents (comm_path, out comm)) {
+							comm = comm.strip ();
+							if (comm != "" && comm != "wayplank") {
+								// Check common desktop file ID patterns generically
+								string[] possible_ids = {
+									comm + ".desktop",
+									"org.kde." + comm + ".desktop",
+									"org.gnome." + comm + ".desktop",
+									comm.down () + ".desktop"
+								};
 
-							foreach (var id in possible_ids) {
-								if (desktop_file_exists_in_system (id)) {
-									register_process_for_app (id, pid);
-									break;
+								foreach (var id in possible_ids) {
+									if (desktop_file_exists_in_system (id)) {
+										register_process_for_app (id, pid);
+										break;
+									}
 								}
 							}
 						}

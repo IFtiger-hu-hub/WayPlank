@@ -254,6 +254,25 @@ namespace Plank
 		/**
 		 * {@inheritDoc}
 		 */
+		public bool has_executable_launcher ()
+		{
+			if (Launcher == "")
+				return false;
+			try {
+				string file_path = Launcher;
+				if (file_path.has_prefix ("file://"))
+					file_path = Filename.from_uri (file_path);
+				var kf = new KeyFile ();
+				if (System.load_keyfile_safe (kf, file_path, 0)) {
+					if (!kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC))
+						return false;
+					var exec_str = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
+					return exec_str != "";
+				}
+			} catch { }
+			return false;
+		}
+
 		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
@@ -349,14 +368,15 @@ namespace Plank
 			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
 			if (default_provider != null
 				&& !default_provider.Prefs.LockItems
-				&& !is_window ()) {
+				&& !is_window ()
+				&& has_executable_launcher ()) {
 				var item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
 				item.active = !(this is TransientDockItem);
 				item.activate.connect (() => pin_launcher ());
 				items.add (item);
 			}
 			
-			if (!is_window () && Launcher != "") {
+			if (!is_window () && Launcher != "" && has_executable_launcher ()) {
 				var icon_item = create_menu_item (_("Change _Icon..."), "preferences-desktop-theme", true);
 				icon_item.activate.connect (() => {
 					IconChooserDialog.show_for_launcher (this);

@@ -119,6 +119,15 @@ namespace Plank
 			foreach (var file in indexed_desktop_files)
 				if (ApplicationIdentity.normalize (file.get_basename ()) == normalized)
 					return file;
+
+			// Prefix fallback: e.g. qemu-system-x86_64 matches qemu.desktop
+			var first_dash = normalized.index_of_char ('-');
+			if (first_dash > 0) {
+				var prefix = normalized.substring (0, first_dash);
+				foreach (var file in indexed_desktop_files)
+					if (ApplicationIdentity.normalize (file.get_basename ()) == prefix)
+						return file;
+			}
 			return null;
 		}
 
@@ -130,7 +139,63 @@ namespace Plank
 			var lower = app_id.down ();
 			return lower.contains ("xwaylandvideobridge")
 				|| lower == "wayplank"
-				|| lower == "plank";
+				|| lower == "wayplank-hover"
+				|| lower == "plank"
+				|| lower.has_prefix ("wayplank-build")
+				|| lower.has_prefix ("wayplank-others")
+				|| lower.has_prefix ("wayplank-dev");
+		}
+
+		private static bool desktop_file_has_exec (File file)
+		{
+			try {
+				var path = file.get_path ();
+				if (path == null)
+					return false;
+				var kf = new KeyFile ();
+				if (kf.load_from_file (path, KeyFileFlags.NONE)) {
+					if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
+						var exec_val = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
+						return exec_val != "";
+					}
+				}
+			} catch { }
+			return false;
+		}
+
+		public static string get_process_cmdline (int pid)
+		{
+			if (pid <= 0)
+				return "";
+			try {
+				uint8[] data;
+				if (FileUtils.get_data ("/proc/%d/cmdline".printf (pid), out data)) {
+					var builder = new StringBuilder ();
+					int start = 0;
+					for (int i = 0; i < data.length; i++) {
+						if (data[i] == 0) {
+							if (i > start) {
+								char[] buf = new char[i - start + 1];
+								Memory.copy (buf, (uint8*) data + start, i - start);
+								buf[i - start] = 0;
+								string arg = (string) buf;
+								if (builder.len > 0)
+									builder.append_c (' ');
+								if (arg.contains (" ") || arg.contains ("\t")) {
+									builder.append_c ('"');
+									builder.append (arg);
+									builder.append_c ('"');
+								} else {
+									builder.append (arg);
+								}
+							}
+							start = i + 1;
+						}
+					}
+					return builder.str;
+				}
+			} catch { }
+			return "";
 		}
 
 		public File? best_desktop_file_for_window (WindowInfo window)
@@ -141,18 +206,143 @@ namespace Plank
 				|| is_ignored_app (window.DesktopFileName))
 				return null;
 
+			// Fast path: Exact desktop file or application ID match with authoritative score
+			if (window.DesktopFileName != "") {
+				var direct_file = desktop_file_for_id (window.DesktopFileName);
+				if (direct_file != null && desktop_file_has_exec (direct_file)) {
+					var id = direct_file.get_basename ();
+					if (identities.has_key (id) && identities.get (id).match_score (window) >= 95)
+						return direct_file;
+				}
+			}
+			if (window.ApplicationId != "") {
+				var direct_app_file = desktop_file_for_id (window.ApplicationId);
+				if (direct_app_file != null && desktop_file_has_exec (direct_app_file)) {
+					var id = direct_app_file.get_basename ();
+					if (identities.has_key (id) && identities.get (id).match_score (window) >= 70)
+						return direct_app_file;
+				}
+			}
+			if (window.ResourceClass != "") {
+				var direct_class_file = desktop_file_for_id (window.ResourceClass);
+				if (direct_class_file != null && desktop_file_has_exec (direct_class_file)) {
+					var id = direct_class_file.get_basename ();
+					if (identities.has_key (id) && identities.get (id).match_score (window) >= 70)
+						return direct_class_file;
+				}
+			}
+
 			var best_score = 0;
 			string? best_id = null;
 			foreach (var entry in identities.entries) {
+				var candidate_file = desktop_file_for_id (entry.key);
+				if (candidate_file == null || !desktop_file_has_exec (candidate_file))
+					continue;
 				var score = entry.value.match_score (window);
 				if (score > best_score) {
 					best_score = score;
 					best_id = entry.key;
 				}
 			}
-			if (best_id != null)
+			if (best_id != null && best_score >= 50)
 				return desktop_file_for_id (best_id);
+
+			// Fallback: If no desktop file with an Exec line matched, synthesize a dedicated launcher
+			// containing the exact process command line so the application/VM can be launched and relaunched!
+			return synthesize_fallback_desktop_file (window);
+		}
+
+		public static string sanitize_name_for_app (string raw_name, string fallback_id)
+		{
+			var safe_name = ApplicationIdentity.normalize (raw_name);
+			if (safe_name == "")
+				safe_name = fallback_id;
+
+			var sanitized = new StringBuilder ();
+			for (int i = 0; i < safe_name.length; i++) {
+				unichar c = safe_name.get_char (safe_name.index_of_nth_char (i));
+				if (c.isalnum () || c == '-' || c == '_') {
+					sanitized.append_unichar (c);
+				} else if (sanitized.len > 0 && !sanitized.str.has_suffix ("-")) {
+					sanitized.append_c ('-');
+				}
+			}
+			var clean_safe_name = sanitized.str.strip ();
+			while (clean_safe_name.has_suffix ("-"))
+				clean_safe_name = clean_safe_name.substring (0, clean_safe_name.length - 1);
+			if (clean_safe_name == "")
+				clean_safe_name = fallback_id;
+			return clean_safe_name;
+		}
+
+		private File? synthesize_fallback_desktop_file (WindowInfo window)
+		{
+			var app_name = window.Caption != "" ? window.Caption : (window.ResourceName != "" ? window.ResourceName : window.ResourceClass);
+			if (app_name == "")
+				return null;
+
+			var raw_id = window.ResourceClass != "" ? window.ResourceClass : (window.ApplicationId != "" ? window.ApplicationId : window.ResourceName);
+			if (raw_id == "" || is_ignored_app (raw_id))
+				return null;
+
+			var norm_id = ApplicationIdentity.normalize (raw_id);
+			if (norm_id == "")
+				return null;
+
+			var clean_safe_name = sanitize_name_for_app (app_name, norm_id);
+
+			var user_app_dir = Path.build_filename (Environment.get_user_data_dir (), "applications");
+			var dir = File.new_for_path (user_app_dir);
+			try {
+				if (!dir.query_exists ())
+					dir.make_directory_with_parents ();
+			} catch { }
+
+			var file_path = Path.build_filename (user_app_dir, "wayplank-app-%s.desktop".printf (clean_safe_name));
+			var synth_file = File.new_for_path (file_path);
+
+			// Find an icon from icon theme matching norm_id or resource_name, else generic executable
+			var icon_name = resolve_fallback_icon (window, norm_id);
+
+			// Retrieve full command line from /proc/<pid>/cmdline or window.Cmdline
+			var exec_cmd = get_process_cmdline (window.Pid);
+			if (exec_cmd == "")
+				exec_cmd = window.Cmdline != "" ? window.Cmdline : (window.Executable != "" ? window.Executable : norm_id);
+
+			var content = "[Desktop Entry]\nType=Application\nName=%s\nExec=%s\nIcon=%s\nTerminal=false\nNoDisplay=true\n".printf (
+				app_name, exec_cmd, icon_name
+			);
+
+			try {
+				FileUtils.set_contents (file_path, content);
+				var id = synth_file.get_basename ();
+				if (!identities.has_key (id)) {
+					identities.set (id, new ApplicationIdentity (synth_file));
+					indexed_desktop_files.add (synth_file);
+				}
+				return synth_file;
+			} catch (Error e) {
+				debug ("Unable to create synthetic launcher: %s", e.message);
+			}
 			return null;
+		}
+
+		private string resolve_fallback_icon (WindowInfo window, string norm_id)
+		{
+			var theme = Gtk.IconTheme.get_default ();
+			if (window.ResourceClass != "" && theme.has_icon (window.ResourceClass))
+				return window.ResourceClass;
+			if (window.ResourceName != "" && theme.has_icon (window.ResourceName))
+				return window.ResourceName;
+			if (theme.has_icon (norm_id))
+				return norm_id;
+			var first_dash = norm_id.index_of_char ('-');
+			if (first_dash > 0) {
+				var prefix = norm_id.substring (0, first_dash);
+				if (theme.has_icon (prefix))
+					return prefix;
+			}
+			return "application-x-executable";
 		}
 		
 		public string[] active_launcher_ids ()
@@ -173,6 +363,33 @@ namespace Plank
 					|| is_ignored_app (window.ResourceName)
 					|| is_ignored_app (window.DesktopFileName))
 					continue;
+
+				// Fast path: Exact desktop file or application ID match with authoritative score
+				string? fast_id = null;
+				if (window.DesktopFileName != "") {
+					var norm_dfn = ApplicationIdentity.normalize (window.DesktopFileName);
+					foreach (var entry in identities.entries) {
+						if (ApplicationIdentity.normalize (entry.key) == norm_dfn && entry.value.match_score (window) >= 95) {
+							fast_id = entry.key;
+							break;
+						}
+					}
+				}
+				if (fast_id == null && window.ApplicationId != "") {
+					var norm_appid = ApplicationIdentity.normalize (window.ApplicationId);
+					foreach (var entry in identities.entries) {
+						if (ApplicationIdentity.normalize (entry.key) == norm_appid && entry.value.match_score (window) >= 95) {
+							fast_id = entry.key;
+							break;
+						}
+					}
+				}
+
+				if (fast_id != null) {
+					best_by_window.set (window.Id, fast_id);
+					score_by_window.set (window.Id, 100);
+					continue;
+				}
 
 				var best_score = 0;
 				string? best_id = null;
@@ -225,16 +442,21 @@ namespace Plank
 			var target_id = file.get_basename ();
 
 			// Guard 2: Canonical Exact Match
-			// If window's DesktopFileName matches this launcher's desktop file name exactly,
+			// If window's DesktopFileName or ApplicationId matches this launcher's desktop file name exactly,
 			// this launcher is the authoritative match for this window.
 			var norm_target = ApplicationIdentity.normalize (target_id);
-			if (window.DesktopFileName != "" && ApplicationIdentity.normalize (window.DesktopFileName) == norm_target) {
+			if ((window.DesktopFileName != "" && ApplicationIdentity.normalize (window.DesktopFileName) == norm_target) ||
+			    (window.ApplicationId != "" && ApplicationIdentity.normalize (window.ApplicationId) == norm_target)) {
 				return true;
 			}
 
 			foreach (var entry in identities.entries) {
-				if (entry.key != target_id && entry.value.match_score (window) > my_score)
+				if (entry.key != target_id && entry.value.match_score (window) > my_score) {
+					var other_file = desktop_file_for_id (entry.key);
+					if (other_file != null && !desktop_file_has_exec (other_file))
+						continue;
 					return false;
+				}
 			}
 			return true;
 		}
@@ -327,9 +549,6 @@ namespace Plank
 					return false;
 				if (key_file.has_key (KeyFileDesktop.GROUP, "Hidden")
 					&& key_file.get_boolean (KeyFileDesktop.GROUP, "Hidden"))
-					return false;
-				if (key_file.has_key (KeyFileDesktop.GROUP, "NoDisplay")
-					&& key_file.get_boolean (KeyFileDesktop.GROUP, "NoDisplay"))
 					return false;
 
 				var desktop = GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "";

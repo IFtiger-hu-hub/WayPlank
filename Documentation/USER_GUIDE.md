@@ -9,48 +9,60 @@ This manual provides an in-depth reference for all features, configuration optio
 ## Table of Contents
 1. [Introduction](#1-introduction)
 2. [Quick Start & Interface Layout](#2-quick-start--interface-layout)
+   - [Multi-Window Navigation & Cairo Preview Cards](#multi-window-navigation--cairo-preview-cards)
 3. [Folder Launchers (App Drawer Menus)](#3-folder-launchers-app-drawer-menus)
    - [How Folder Launchers Work](#how-folder-launchers-work)
    - [Default First-Run Folders](#default-first-run-folders)
    - [Creating Custom Folders](#creating-custom-folders)
    - [Adding and Managing Applications](#adding-and-managing-applications)
+   - [Folder Running Dots & Wheel Window Cycling](#folder-running-dots--wheel-window-cycling)
    - [Customizing Icons (Launchers, Folders & Docklets)](#customizing-icons-launchers-folders--docklets)
 4. [Built-in Docklets & Accordion Mode](#4-built-in-docklets--accordion-mode)
-   - [Complete List of 15 Docklets](#complete-list-of-15-docklets)
+   - [Complete List of 16 Docklets](#complete-list-of-16-docklets)
    - [Accordion Mode (Space-Saving Collapsible Docklets)](#accordion-mode-space-saving-collapsible-docklets)
    - [Configuring the Weather Docklet](#configuring-the-weather-docklet)
-5. [Categorization & Dynamic Separators](#5-categorization--dynamic-separators)
+5. [Categorization, Dynamic Separators & System Menu Access](#5-categorization-dynamic-separators--system-menu-access)
    - [Categorized Layout Order](#categorized-layout-order)
    - [Permanent Trash Anchoring](#permanent-trash-anchoring)
    - [Dynamic Separators](#dynamic-separators)
-   - [Dock Overflow Smooth Scrolling & Capacity Indicator](#dock-overflow-smooth-scrolling--capacity-indicator)
+   - [4-Position System Menu Access Hierarchy](#4-position-system-menu-access-hierarchy)
+   - [Minimalist Dock Setup & Emergency Settings Access](#minimalist-dock-setup--emergency-settings-access)
+   - [Dynamic Scale Capacity Redline Teardrop & Topology Auto-Shrink](#dynamic-scale-capacity-redline-teardrop--topology-auto-shrink)
    - [Launcher Deduplication & Item Reuse](#launcher-deduplication--item-reuse)
-6. [Mouse Gestures & Shortcuts](#6-mouse-gestures--shortcuts)
+6. [CLI Virtual Machines & Multi-VM Independent Tracking](#6-cli-virtual-machines--multi-vm-independent-tracking-issue-14)
+   - [Automatic CLI QEMU Window Detection](#automatic-cli-qemu-window-detection)
+   - [Multi-Instance Isolation & Independent Dock Items](#multi-instance-isolation--independent-dock-items)
+   - [Independent Pinning & Cold Relaunch](#independent-pinning--cold-relaunch)
+   - [Chromium PWA & Web App Matching](#chromium-pwa--web-app-matching)
+7. [Mouse Gestures & Shortcuts](#7-mouse-gestures--shortcuts)
    - [Click Actions](#click-actions)
    - [Scroll Gestures](#scroll-gestures)
    - [Drag & Drop Interactions](#drag--drop-interactions)
    - [Quick Settings Access & In-App Help](#quick-settings-access--in-app-help)
-7. [Multi-Monitor Setup & Screen Ergonomics](#7-multi-monitor-setup--screen-ergonomics)
+8. [Multi-Monitor Setup & Screen Ergonomics](#8-multi-monitor-setup--screen-ergonomics)
    - [Monitor Selection & Alignment](#monitor-selection--alignment)
    - [Intelligent Hide & Edge Pressure](#intelligent-hide--edge-pressure)
    - [Multi-Monitor Topology & DPMS Wake Stability](#multi-monitor-topology--dpms-wake-stability)
+   - [Layer-Shell Input Passthrough & Transparent Window Clipping](#layer-shell-input-passthrough--transparent-window-clipping)
    - [Multi-Monitor Hardware Brightness Control (SP/PV Decoupling)](#multi-monitor-hardware-brightness-control-sppv-decoupling)
-8. [Hardware Abstraction Layer (HAL) & Compositor Architecture](#8-hardware-abstraction-layer-hal--compositor-architecture)
+9. [Hardware Abstraction Layer (HAL) & Compositor Architecture](#9-hardware-abstraction-layer-hal--compositor-architecture)
    - [The Wayland Security Model & Why WayPlank Needs an HAL](#the-wayland-security-model--why-wayplank-needs-an-hal)
    - [KDE Plasma: KWin D-Bus Scripting Bridge](#kde-plasma-kwin-d-bus-scripting-bridge)
    - [GNOME Shell: Monolithic Mutter Extension](#gnome-shell-monolithic-mutter-extension)
    - [Labwc & wlroots: Native Protocol Architecture](#labwc--wlroots-native-protocol-architecture)
    - [Runtime Auto-Detection Engine](#runtime-auto-detection-engine)
-9. [Themes & Visual Customization](#9-themes--visual-customization)
-   - [Built-in Themes](#built-in-themes)
-   - [Installing Custom Themes](#installing-custom-themes)
+10. [Themes & Visual Customization](#10-themes--visual-customization)
+   - [Built-in Themes & Classic Suite](#built-in-themes--classic-suite)
+   - [True Dynamic Real-Time Light/Dark System Theming](#true-dynamic-real-time-lightdark-system-theming)
+   - [Interactive Theme Manager (One-Click Archive Install & Removal)](#interactive-theme-manager-one-click-archive-install--removal)
    - [Dock Size & Zoom Level](#dock-size--zoom-level)
-10. [Command Line Usage, Packaging & Configuration Files](#10-command-line-usage-packaging--configuration-files)
+11. [Command Line Usage, Localization & Packaging](#11-command-line-usage-localization--packaging)
    - [CLI Commands](#cli-commands)
+   - [Multi-Language Translation Catalogs (Public Beta v0.7.0 Preparation)](#multi-language-translation-catalogs-public-beta-v070-preparation)
    - [Automated Packaging (Debian/Ubuntu & openSUSE/Fedora/RHEL)](#automated-packaging-debianubuntu--opensusefedorarhel)
    - [Configuration File Paths](#configuration-file-paths)
    - [GSettings Database Keys](#gsettings-database-keys)
-11. [Troubleshooting & FAQ](#11-troubleshooting--faq)
+12. [Troubleshooting & FAQ](#12-troubleshooting--faq)
 
 ---
 
@@ -133,6 +145,11 @@ To add applications to your folder drawer:
 - **Via File Manager:** Navigate to `/usr/share/applications/` or `~/.local/share/applications/`, copy the `.desktop` files you want, and paste them (or symlink them) into your folder directory (`~/.config/wayplank/folders/<FolderName>/`).
 - **Via Drag & Drop:** Drag an application `.desktop` file into the folder directory.
 
+### Folder Running Dots & Wheel Window Cycling
+Starting in **v0.6.2.3**, Folder Drawers are fully integrated with WayPlank's native window manager:
+- **Running Indicator Dots**: When one or more applications contained inside a folder drawer are currently running on your desktop, an active running indicator dot automatically appears under that folder's dock icon.
+- **Mouse Wheel Window Focus Cycling**: You do not even need to open the folder drawer to switch between running documents! Scrolling your mouse wheel while hovering over the folder drawer icon dynamically cycles focus through all open window instances of applications stored inside that folder.
+
 ### Customizing Icons (Launchers, Folders & Docklets)
 WayPlank provides an integrated, one-click icon personalization system directly from the dock:
 1. **Right-click** on any application launcher, folder drawer, or docklet (`Preferences`, `Show Desktop`, `Session`, `Screenshot`, `Ejector`).
@@ -151,15 +168,16 @@ WayPlank provides an integrated, one-click icon personalization system directly 
 
 ## 4. Built-in Docklets & Accordion Mode
 
-WayPlank includes 15 built-in docklets that provide live system controls and status indicators.
+WayPlank includes 16 built-in docklets that provide live system controls and status indicators.
 
-### Complete List of 15 Docklets
+### Complete List of 16 Docklets
 
 | Docklet URI | Description |
 | :--- | :--- |
 | `docklet://trash` | Trash can indicator with fill status, empty action, and drag-to-delete. |
 | `docklet://desktop` | Show/Hide Desktop toggle (minimizes or unminimizes all windows). |
 | `docklet://preferences` | One-click access to WayPlank Preferences dialog. |
+| `docklet://donotdisturb` | One-click toggle for desktop notification silencing (Do Not Disturb) with FreeDesktop portal integration and dynamic active/silenced bell icon indicators. |
 | `docklet://network` | Live network connectivity monitor (Wi-Fi / Ethernet), signal strength, IP address inspection, and quick launch to network settings. |
 | `docklet://volume` | Audio volume level with scroll-to-adjust and mute toggle. |
 | `docklet://brightness` | Screen brightness control with scroll-to-adjust. |
@@ -176,9 +194,12 @@ WayPlank includes 15 built-in docklets that provide live system controls and sta
 ### Accordion Mode (Space-Saving Collapsible Docklets)
 When **Accordion Mode** is enabled (`accordion-docklets = true`), multiple docklets are collapsed into a single compact master slot on the dock.
 - **Hover Expansion**: In standard mode, hovering over or dragging across the docklet section smoothly expands all active docklets. Moving the pointer away collapses them back into a single icon after the configured delay.
-- **Click to Expand Mode**: In Preferences -> Appearance, enable **Click to Expand**. In this mode, hovering does not expand the docklets; instead, a single click on the master Preferences anchor toggles expansion, and a second click opens the Preferences dialog.
+- **Click to Expand Mode**: In Preferences -> Appearance, enable **Click to Expand**. In this mode, hovering does not expand the docklets; instead, a single click on the master anchor toggles expansion, and a second click opens its action.
+- **Dynamic Master Anchor Fallback**: When the Preferences gear icon is hidden from the dock (via System Menu Access modes), the first available docklet automatically assumes the role of the Master Accordion Anchor with zero disruption to expansion behavior.
+- **Single Docklet Safety Guard**: If only a single docklet is active on the dock, accordion collapsing is automatically suppressed, preventing redundant expand/collapse cycles for a single item.
+- **Drag-and-Drop Auto-Expansion**: Hovering any dragged item (e.g. a file, URL, or application launcher) over the accordion anchor automatically expands all collapsed docklets on hover—even if 'Click to Expand' is enabled—allowing effortless drag-to-docklet operations (such as dropping files directly onto the Trash or media docklet).
 - **Configurable Collapse Delay**: Adjust the collapse countdown timer (0.5s to 20.0s) using the slider in Preferences -> Appearance.
-- **Directional Indicators**: The Preferences anchor tooltip dynamically shows directional arrows (`▸` / `◂`) indicating whether the accordion is collapsed or expanded.
+- **Directional Indicators**: The anchor tooltip dynamically shows directional arrows (`▸` / `◂`) indicating whether the accordion is collapsed or expanded.
 - **Intelligent Retention**: If the dock autohides or dodges while the accordion is expanded, returning within the delay window preserves the expanded state.
 - **Modal Interaction Invalidation**: The accordion collapse timer is automatically paused while any dialog (Preferences, Shortcuts & Gestures, Icon Chooser, Weather) or popup menu is active.
 
@@ -224,11 +245,33 @@ WayPlank automatically inserts subtle vertical separator lines between adjacent,
 - When an unpinned application opens, a separator appears before it: `[Apps] | [Active App] | [Trash]`.
 - When the application closes, the separator cleanly vanishes without animation stutter.
 
-### Dock Overflow Smooth Scrolling & Capacity Indicator
-When pinning a high number of applications or operating on smaller displays (such as 1366×768 or 1080p laptop panels), dock items may exceed the monitor's physical boundaries:
-- **Boundary Clamping**: WayPlank automatically clamps its background rendering strictly to the monitor's visible dimensions (`int.min(monitor_geo.width, background_width)`), guaranteeing the dock never extends off-screen or clips awkwardly.
-- **Smooth Mouse Wheel Panning**: With the `Scroll on Overflow` toggle enabled (**Preferences $\rightarrow$ Behaviour**), rotating your mouse wheel over the dock surface shifts items smoothly with interpolated motion (`scroll_offset += (target_scroll_offset - scroll_offset) * 0.35`). Scrolling specifically over the Volume docklet continues to adjust audio volume without triggering overflow dock pan.
-- **Tachometer Redline Capacity Indicator**: In the Preferences dialog (**Appearance $\rightarrow$ Icon Size**), a real-time capacity meter visually monitors total dock width against available screen pixels. When item dimensions approach screen capacity, the slider transitions into the redline zone and surfaces an explanatory tooltip detailing total pixel utilization.
+### 4-Position System Menu Access Hierarchy
+Starting in **v0.6.2.3**, WayPlank introduces an ergonomic **System Menu Access** hierarchy (**Preferences $\rightarrow$ Behaviour**), allowing complete control over where WayPlank system options (*Preferences*, *About*, *Shortcuts & Gestures*, *Quit*) appear:
+1. **Mode 1: Docklets Only**:
+   - The dedicated Preferences gear icon is completely hidden from the dock.
+   - Right-clicking on any docklet displays the full WayPlank system menu.
+   - Right-clicking on application icons displays **strictly application-native actions** (zero WayPlank system items appended), keeping application menus clean and uncluttered.
+2. **Mode 2: Docklets Only (with fallback)** *(Recommended Default for Minimalist Docks)*:
+   - The dedicated Preferences gear icon is hidden from the dock.
+   - Right-clicking on docklets opens the full system menu.
+   - If no docklets are active on the dock, right-clicking on any application icon automatically serves as a fallback to ensure settings access is never lost.
+3. **Mode 3: All Icons (integrated)**:
+   - The dedicated Preferences gear icon is hidden.
+   - Right-clicking on **any** icon (application, folder drawer, or docklet) integrates the full WayPlank system menu at the bottom of the context menu.
+4. **Mode 4: Dedicated Icon (on dock)**:
+   - The classic dedicated Preferences gear icon is anchored directly to the dock surface.
+
+### Minimalist Dock Setup & Emergency Settings Access
+- **One-Click Preferences Removal**: In Mode 4, simply right-click the Preferences gear icon and select **Remove from Dock**. The icon is removed immediately with a cartoon poof animation, and WayPlank automatically transitions to **Mode 2** (or **Mode 3** in Free Mode) so you are never locked out of settings.
+- **Universal Emergency Access**: If you ever hide all docklets or need immediate access to settings, **`Ctrl + Right Click`** on **any** icon or dock surface unconditionally opens the complete WayPlank system menu at all times.
+- **Free Mode (Uncategorized) Protection**: When **Categorize Items** is toggled off (Free Mode), docklet-only options are dynamically hidden from Preferences, and WayPlank automatically migrates to **Mode 3 (All Icons)**.
+
+### Dynamic Scale Capacity Redline Teardrop & Topology Auto-Shrink
+When pinning a high number of applications or operating on compact displays, dock items may approach or exceed the monitor's physical boundary:
+- **Dynamic CSS Redline Gradient**: In the Preferences dialog (**Appearance $\rightarrow$ Icon Size**), if the selected icon size exceeds the screen's maximum physical capacity, the slider track dynamically illuminates with a warning CSS redline gradient for all values beyond safe capacity.
+- **Vector Teardrop Badge & Dual-Color Split**: Dragging the slider into the exceeded zone displays a red warning teardrop indicator badge and splits the track highlight (blue in the safe zone, red in the exceeded zone) with a clear notification: `"⚠️ Limited to XXpx by screen space (auto-shrunk)"`.
+- **Display Topology Real-Time Auto-Shrink**: When switching between displays or reconfiguring monitor layouts, WayPlank recalculates physical screen limits in real time and automatically scales down icon sizes to guarantee that the dock always fits within the active screen geometry without clipping.
+- **Boundary Clamping & Smooth Mouse Wheel Panning**: WayPlank automatically clamps its background rendering strictly to the monitor's visible dimensions (`int.min(monitor_geo.width, background_width)`). With **Scroll on Overflow** enabled (**Preferences $\rightarrow$ Behaviour**), rotating your mouse wheel over the dock surface shifts items smoothly with interpolated motion (`scroll_offset += (target_scroll_offset - scroll_offset) * 0.35`). Scrolling specifically over the Volume docklet continues to adjust audio volume without triggering overflow dock pan.
 
 ### Launcher Deduplication & Item Reuse
 To maintain a clean and reliable configuration:
@@ -238,18 +281,47 @@ To maintain a clean and reliable configuration:
 
 ---
 
-## 6. Mouse Gestures & Shortcuts
+## 6. CLI Virtual Machines & Multi-VM Independent Tracking (Issue #14)
+
+Starting in **v0.6.2.3**, WayPlank provides full first-class support for command-line spawned virtual machines (e.g. QEMU `qemu-system-x86_64`), complex terminal applications, and Chromium Progressive Web Apps (PWAs).
+
+### Automatic CLI QEMU Window Detection
+CLI-launched virtual machines typically lack desktop launcher entries (`.desktop` files) or specify `NoDisplay=true` with no `Exec=` key (such as `/usr/share/applications/qemu.desktop`). Previously, this caused CLI-spawned VM windows to appear without an icon or fail to spawn a dock item.
+- **NoDisplay Desktop Indexing**: WayPlank indexes all installed application entries—including those with `NoDisplay=true`—allowing it to match running window processes to canonical application metadata, icons, and display titles.
+- **Dedicated Synthetic Launcher Synthesis**: When a CLI application window opens, WayPlank extracts the exact process command line from `/proc/<pid>/cmdline` and automatically synthesizes a dedicated, executable `.desktop` launcher under `~/.local/share/applications/` (e.g. `wayplank-app-qemu-vm-alpha.desktop`).
+
+### Multi-Instance Isolation & Independent Dock Items
+When running multiple distinct virtual machines simultaneously (for example, `VM-Alpha` and `VM-Beta`):
+- **Independent Dock Items**: Each VM window is tracked as its own independent dock item with its dedicated title (`QEMU (VM-Alpha)`, `QEMU (VM-Beta)`), active running dot, and window controls.
+- **Hypervisor Argument Stopword Filtering**: WayPlank's argument parser automatically filters out generic runtime flags (`-accel kvm`, `-m 512M`, `-enable-kvm`), preventing common hypervisor options from causing distinct VM instances to collapse onto a single dock icon.
+- **Instance Isolation Guard**: Synthetic launchers are strictly matched against the window's sanitized instance name, ensuring `VM-Beta` can never be hijacked by `VM-Alpha`'s dock item.
+
+### Independent Pinning & Cold Relaunch
+- **Keep in Dock**: Right-click any running VM dock item and select **"Keep in Dock"**.
+- **Cold Relaunch**: When the VM is shut down, its pinned dock item remains in place. Clicking the pinned icon cold-relaunches that exact VM with all its original command-line parameters (kernel image, memory allocation, drive images, and network flags) exactly as originally invoked!
+
+### Chromium PWA & Web App Matching
+WayPlank accurately discriminates between standalone Progressive Web Apps (PWAs) launched via Chromium, Chrome, Brave, or Edge (using `--app=...` or `--app-id=...`) and regular browser windows:
+- **Strict Identity Scoping**: PWAs are assigned their dedicated dock icons and never collapse into the main browser window item.
+- **Word-Boundary Token Matching**: Application titles are parsed using strict word-boundary matching rather than substring searches, preventing unrelated applications from being misidentified.
+
+---
+
+## 7. Mouse Gestures & Shortcuts
 
 WayPlank offers an extensive set of mouse gestures and keyboard shortcuts designed for maximum productivity:
 
 ### Click Actions
 - **Left Click**: Launch an application, or bring its existing window(s) to the foreground.
 - **Middle Click** (or **Ctrl + Left Click**): Force launch a **NEW** instance of the application.
-- **Right Click**: Open the application's context menu (displaying Desktop Actions / Quicklists, and "Keep in Dock").
+- **Middle Click on Window Preview Card**: Directly close that specific window instance.
+- **Right Click**: Open the application's context menu (displaying Desktop Actions / Quicklists, Recent Documents, and "Keep in Dock").
+- **Ctrl + Right Click (Any Icon or Dock Surface)**: Unconditionally opens the full WayPlank System Menu at all times, guaranteeing instant access to *Preferences*, *Shortcuts & Gestures*, *About*, and *Quit*.
 - **Shift + Left Click**: Cycle focus to the next open window of that specific application.
 
 ### Scroll Gestures
 - **Mouse Scroll on App Icon**: Smoothly cycle through all open windows of that application.
+- **Mouse Scroll on Folder Drawer**: Smoothly cycle focus through all open windows of applications stored inside that folder.
 - **Mouse Scroll on Dock Surface (Overflow Mode)**: When dock items exceed available display boundaries and overflow scrolling is active, smoothly pan the dock items left/right or up/down.
 - **Mouse Scroll on Volume Docklet**: Directly raise or lower the master system volume.
 - **Mouse Scroll on Screen Brightness Docklet**: Adjust backlight intensity up or down in discrete 5% steps.
@@ -278,7 +350,7 @@ WayPlank offers an extensive set of mouse gestures and keyboard shortcuts design
 
 ---
 
-## 7. Multi-Monitor Setup & Screen Ergonomics
+## 8. Multi-Monitor Setup & Screen Ergonomics
 
 WayPlank is architected from the ground up for modern multi-monitor Wayland workstations, whether utilizing homogeneous 4K displays or heterogeneous multi-output setups with mixed fractional scaling.
 
@@ -301,6 +373,11 @@ In complex multi-monitor environments, dynamic display changes—such as hotplug
 - **Persistent Output Mapping**: Monitor connector identifiers are tracked across sleep and resume cycles, ensuring the dock never jumps unexpectedly between displays when external docks or monitors re-enumerate.
 - **Heterogeneous DPI & Fractional Scaling**: Layer-shell geometry and Cairo surface buffers automatically adjust scaling factors when moved across displays with differing device pixel ratios (HiDPI / LoDPI).
 
+### Layer-Shell Input Passthrough & Transparent Window Clipping
+On Wayland compositors supporting `gtk-layer-shell` (KDE Plasma, Labwc):
+- **Zero Desktop Panel Displacement**: When Hide Mode is set to `None` (dock permanently visible), WayPlank maintains `exclusive_zone` at 0. This guarantees the dock never collides with or displaces system panels (such as KDE Plasma top/bottom panels or Labwc bars).
+- **Cairo Input Shape Pass-Through**: WayPlank dynamically clips its Cairo input region (`window.input_shape_combine_region`) strictly to the visible dock pill during realization and mapping. Transparent areas outside the dock items pass mouse clicks directly through to underlying desktop windows and icons via `wl_surface.set_input_region`, eliminating the classic Wayland issue where transparent layer-shell window margins block clicks.
+
 ### Multi-Monitor Hardware Brightness Control (SP/PV Decoupling)
 WayPlank's integrated Screen Brightness docklet features per-monitor hardware backlight and DDC/CI level synchronization:
 - **KWin DRM Integration**: On KDE Plasma, WayPlank synchronizes brightness levels through KWin's DRM `kscreen-doctor` bridge and kernel interfaces, allowing fluid backlight adjustments across all connected displays without requiring root permissions or external background daemons.
@@ -310,7 +387,7 @@ WayPlank's integrated Screen Brightness docklet features per-monitor hardware ba
 
 ---
 
-## 8. Hardware Abstraction Layer (HAL) & Compositor Architecture
+## 9. Hardware Abstraction Layer (HAL) & Compositor Architecture
 
 Unlike legacy X11—where any unprivileged client could globally poll window hierarchies, coordinates, and input focus via the root window—the **Wayland security model** intentionally isolates applications from one another. By design, a pure Wayland client cannot query other applications' windows or control desktop focus without explicit compositor cooperation.
 
@@ -360,12 +437,17 @@ flowchart TD
 On KDE Plasma (Plasma 5 & Plasma 6), WayPlank communicates with KWin via its native D-Bus scripting interface (`org.kde.KWin /Scripting`):
 - **Dynamic ECMAScript Bridge**: WayPlank registers a high-performance helper script inside KWin's JavaScript runtime, providing bi-directional, event-driven notifications for window creation, destruction, focus shifts, minimization, and geometry changes.
 - **Zero Polling Overhead**: Window geometry and state changes are delivered via D-Bus signal emissions, eliminating CPU-intensive polling loops.
+- **Dynamic Top Floating Panel Tracking**: Starting in **v0.6.2.3**, WayPlank actively synchronizes with KDE Plasma 6 floating top panels, adjusting dock dodge offsets and seamlessly tracking when windows maximize to 0-gap edge struts.
+- **Auto-Healing Service Watcher**: If KWin crashes or is manually replaced (`kwin_wayland --replace`), WayPlank's D-Bus service watcher automatically detects the compositor restoration, re-registers the bridge script, and re-engages live tracking with zero manual intervention.
 - **Hardware-Level Display Sync**: Leverages `kscreen-doctor` for atomic multi-monitor brightness and output state synchronization.
 - **Validated 100% FAT Stability**: Fully compliant with the WayPlank Factory Acceptance Test (FAT) matrix on KDE Plasma 6.
 
 ### GNOME Shell: Monolithic Mutter Extension
 Because GNOME Shell (Mutter) does not implement the `zwlr_foreign_toplevel_manager_v1` protocol and restricts foreign window inspection, WayPlank features a self-deploying GNOME Shell extension:
 - **Instantaneous 0.74s Startup**: Asynchronous initialization with zero synchronous evaluation freezes, achieving sub-second cold starts.
+- **Extension Error-Latch Auto-Recovery**: Starting in **v0.6.2.3**, MutterBackend automatically executes `gnome-extensions reset` prior to reloading the bridge. This clears GNOME Shell's internal `ExtensionState.ERROR` flag from memory, enabling seamless instant bridge updates and hot-reloads **without requiring desktop session logout or reboot**.
+- **Unpositioned Dock Concealment Guard**: Suppresses window visibility on GNOME Wayland until backend D-Bus positioning coordinates are negotiated, eliminating flashes of unanchored dock windows in the center of the display.
+- **Recursive Position Loop Filtering**: Restricts window signal broadcasts (`position-changed`, `size-changed`, `notify::title`) strictly to external client windows, completely preventing recursive D-Bus repositioning loops and maintaining dock idle CPU usage at $\le 0.1\%$.
 - **Clutter Stage Probing**: Multi-monitor boundaries and dock reveal triggers are probed directly through Clutter stage coordinates, guaranteeing responsive mouse unhide even on secondary screens located at bottom or lateral coordinates.
 - **Window Geometry & Intellihide**: Provides real-time window boundary data over session D-Bus (`/org/gnome/Shell/Extensions/WayPlank`), powering intelligent dodge and hide calculations on GNOME Wayland sessions.
 - **Non-Intrusive Desktop Integration**: Dialogs are centered automatically, and desktop notifications are delivered cleanly without intrusive banner overlays.
@@ -383,9 +465,9 @@ WayPlank requires zero user configuration or environment toggles to select the c
 
 ---
 
-## 9. Themes & Visual Customization
+## 10. Themes & Visual Customization
 
-### Built-in Themes
+### Built-in Themes & Classic Suite
 WayPlank ships with a curated selection of built-in themes and an adaptive dynamic GTK theme engine:
 1. **Default**: Modern adaptive GTK engine with translucent glass styling and desktop accent color wiring.
 2. **Arian Theme Dark**: Modern dark translucent glass with subtle border illumination.
@@ -423,7 +505,7 @@ They will instantly appear in the **Preferences $\rightarrow$ Theme** dropdown m
 
 ---
 
-## 10. Command Line Usage, Packaging & Configuration Files
+## 11. Command Line Usage, Localization & Packaging
 
 ### CLI Commands
 ```bash
@@ -439,6 +521,20 @@ wayplank -d
 # Show current version and build information
 wayplank --version
 ```
+
+### Multi-Language Translation Catalogs (Public Beta v0.7.0 Preparation)
+In preparation for the upcoming **Public Beta (v0.7.0)**, WayPlank has introduced complete multi-language translation catalogs and an automated translation framework via `po/generate_translations.py`:
+- **Complete String Catalogs Ready**: All 322 user-facing strings, tooltips, settings labels, and docklet strings have been fully translated across **7 community languages**:
+  1. **Simplified Chinese (`zh_CN`)** — Community contribution by 史有虎 (IFtiger-hu).
+  2. **Italian (`it`)**
+  3. **Spanish (`es`)**
+  4. **French (`fr`)**
+  5. **Catalan (`ca`)**
+  6. **German (`de`)**
+  7. **Ukrainian (`uk`)**
+- **Public Beta Runtime Engine Roadmap**: While the translation catalogs and PO infrastructure are established and maintained in the repository, the monolithic in-memory embedded localization engine (compiled into the binary via GResource / gettext) is scheduled for activation in the **Public Beta v0.7.0** release (Week 45 — Nov 2026), which will dynamically render the dock UI in the user's desktop language based on `LANG` / `LC_MESSAGES`.
+- **Balanced 560×480 Preferences Geometry**: Ahead of runtime engine activation, the Preferences window layout has already been engineered with compact 560×480 constraints to guarantee that all localized strings fit cleanly with zero horizontal label truncation.
+- **Call for Translators**: Contributors can easily add new languages or refine existing strings directly in `po/generate_translations.py`.
 
 ### Automated Packaging (Debian/Ubuntu & openSUSE/Fedora/RHEL)
 WayPlank provides native, standalone packaging scripts requiring zero manual Makefile manipulation:
@@ -485,14 +581,23 @@ gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1
 
 # Change dock theme
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ theme 'Arian Theme Light'
+
+# Set system menu access mode (1 = Docklets Only, 2 = Docklets Fallback, 3 = All Icons, 4 = Dedicated Icon)
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ system-menu-access 2
 ```
 
 ---
 
-## 11. Troubleshooting & FAQ
+## 12. Troubleshooting & FAQ
 
 #### Q: How do I open Preferences if the preferences icon is missing?
-**A:** Hold the **`Ctrl`** key and **Right-Click** anywhere on the dock, or run `wayplank --preferences` in a terminal.
+**A:** Press **`Ctrl + Right-Click`** on **any** application icon, folder drawer, docklet, or empty dock surface to open the WayPlank System Menu unconditionally. You can also run `wayplank --preferences` in a terminal.
+
+#### Q: Why do my virtual machines (QEMU) get distinct dock icons?
+**A:** WayPlank features an advanced hypervisor instance isolation engine (Issue #14). When running multiple VMs (e.g. `VM-Alpha` and `VM-Beta`), WayPlank analyzes `/proc/<pid>/cmdline`, ignores generic flags (`-accel kvm`, `-m 512M`), and synthesizes dedicated launchers for each VM. You can pin each VM separately, and clicking a pinned VM icon cold-relaunches that specific machine with its original disk image and flags.
+
+#### Q: Do I need to reboot or log out of GNOME Shell after an update or extension crash?
+**A:** **No.** WayPlank's MutterBackend incorporates self-healing logic that executes `gnome-extensions reset` prior to reloading the bridge. This automatically clears GNOME Shell's internal `ExtensionState.ERROR` flag from memory, reloading the extension dynamically without needing a session restart or reboot.
 
 #### Q: How do I add an application that is not in the default folders?
 **A:** Open your Application Menu (KDE Kickoff, GNOME Dash, Labwc menu) or your file manager (Dolphin, Nautilus, Thunar) at `/usr/share/applications/`, and simply drag the `.desktop` file onto WayPlank.
