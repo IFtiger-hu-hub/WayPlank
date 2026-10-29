@@ -208,11 +208,11 @@ namespace Plank
 
 			// Fast path: Exact desktop file or application ID match with authoritative score
 			if (window.DesktopFileName != "") {
-				var direct_file = desktop_file_for_id (window.DesktopFileName);
-				if (direct_file != null && desktop_file_has_exec (direct_file)) {
-					var id = direct_file.get_basename ();
-					if (identities.has_key (id) && identities.get (id).match_score (window) >= 95)
-						return direct_file;
+				var canonical_file = desktop_file_for_id (window.DesktopFileName);
+				if (canonical_file != null && desktop_file_has_exec (canonical_file)) {
+					var cid = canonical_file.get_basename ();
+					if (identities.has_key (cid) && identities.get (cid).match_score (window) > 0)
+						return canonical_file;
 				}
 			}
 			if (window.ApplicationId != "") {
@@ -365,6 +365,18 @@ namespace Plank
 					continue;
 
 				// Fast path: Exact desktop file or application ID match with authoritative score
+				if (window.DesktopFileName != "") {
+					var canonical_file = desktop_file_for_id (window.DesktopFileName);
+					if (canonical_file != null && desktop_file_has_exec (canonical_file)) {
+						var cid = canonical_file.get_basename ();
+						if (identities.has_key (cid) && identities.get (cid).match_score (window) > 0) {
+							best_by_window.set (window.Id, cid);
+							score_by_window.set (window.Id, 100);
+							continue;
+						}
+					}
+				}
+
 				string? fast_id = null;
 				if (window.DesktopFileName != "") {
 					var norm_dfn = ApplicationIdentity.normalize (window.DesktopFileName);

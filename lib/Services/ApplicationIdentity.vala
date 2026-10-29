@@ -116,7 +116,7 @@ namespace Plank
 
 			for (int i = 1; i < unwrap_tokens.size; i++) {
 				var part = unwrap_tokens.get (i).strip ().replace ("\"", "").replace ("'", "");
-				if (part == "" || part.has_prefix ("%"))
+				if (part == "" || part.has_prefix ("%") || part.has_prefix ("@"))
 					continue;
 
 				// Parameter option with value like --profile-directory="Profile 14", --app-id=..., or --app=...
@@ -157,7 +157,7 @@ namespace Plank
 				}
 
 				var target_name = File.new_for_path (part).get_basename ().down ();
-				if (target_name != "" && target_name != "." && !target_name.has_prefix ("-") && !is_generic_argument_stopword (target_name)) {
+				if (target_name != "" && target_name != "." && !target_name.has_prefix ("-") && !target_name.has_prefix ("@") && !is_generic_argument_stopword (target_name)) {
 					argument_tokens.add (target_name);
 					var dot = target_name.last_index_of_char ('.');
 					if (dot > 0) {
@@ -277,6 +277,12 @@ namespace Plank
 					if (idx < parts.length && parts[idx] == "run")
 						idx++;
 					while (idx < parts.length && parts[idx].has_prefix ("-")) {
+						if (parts[idx].has_prefix ("--command=")) {
+							var cmd_target = parts[idx].substring ("--command=".length).strip ().replace ("\"", "").replace ("'", "");
+							if (cmd_target != "") {
+								add_executable_token (cmd_target);
+							}
+						}
 						idx++;
 					}
 					continue;
@@ -673,7 +679,7 @@ namespace Plank
 				}
 			}
 
-			// Check window.Cmdline against executables (strictly matching the invoked binary in argv[0])
+			// Check window.Cmdline against executables (strictly matching the invoked binary in argv[0] and non-switch tokens)
 			if (window.Cmdline != "") {
 				var cmdline = window.Cmdline.strip ();
 				string first_arg = "";
@@ -701,6 +707,27 @@ namespace Plank
 								var prefix = bin_name.substring (0, first_dash);
 								if (executable_tokens.contains (prefix))
 									best = int.max (best, 80);
+							}
+						}
+					}
+				}
+				if (executable_tokens.size > 0 && best < 85) {
+					var cmdline_down = cmdline.down ();
+					string[] cmd_tokens = cmdline_down.split (" ");
+					foreach (var token in cmd_tokens) {
+						var tok = token.strip ().replace ("\"", "").replace ("'", "");
+						if (tok == "" || tok.has_prefix ("-"))
+							continue;
+						var base_exe = File.new_for_path (tok).get_basename ();
+						if (executable_tokens.contains (base_exe)) {
+							best = int.max (best, 85);
+							break;
+						}
+						if (base_exe.has_suffix ("-bin")) {
+							var stripped = base_exe.substring (0, base_exe.length - 4);
+							if (executable_tokens.contains (stripped)) {
+								best = int.max (best, 85);
+								break;
 							}
 						}
 					}
