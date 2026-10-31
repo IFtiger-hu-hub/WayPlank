@@ -374,7 +374,7 @@ namespace Plank
 						forecast_box.pack_start (event_box, true, true, 0);
 					}
 				} else {
-					var lbl_no_data = new Gtk.Label (_("No forecast data available"));
+					var lbl_no_data = new Gtk.Label ("暂无天气预报数据");
 					lbl_no_data.get_style_context ().add_class ("dim-label");
 					forecast_box.pack_start (lbl_no_data, true, true, 0);
 				}

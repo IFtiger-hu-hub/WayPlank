@@ -44,7 +44,7 @@ namespace Plank
 
 		construct
 		{
-			Text = _("Network");
+			Text = "网络";
 			Icon = "network-wireless-signal-good;;network-wired;;network-idle";
 			Button = PopupButton.RIGHT;
 
@@ -290,7 +290,7 @@ namespace Plank
 				if (netmon != null && netmon.get_network_available ()) {
 					is_connected = true;
 					connection_type = "ethernet";
-					connection_name = _("Wired Connection");
+					connection_name = "有线连接";
 				} else {
 					is_connected = false;
 					connection_type = "none";
@@ -305,9 +305,9 @@ namespace Plank
 			if (is_connected) {
 				if (connection_type == "wifi") {
 					if (ip_address != "")
-						Text = _("Wi-Fi: %s (%d%%) - %s").printf (connection_name, wifi_strength, ip_address);
+						Text = "Wi-Fi: %s (%d%%) - %s".printf (connection_name, wifi_strength, ip_address);
 					else
-						Text = _("Wi-Fi: %s (%d%%)").printf (connection_name, wifi_strength);
+						Text = "Wi-Fi: %s (%d%%)".printf (connection_name, wifi_strength);
 
 					if (wifi_strength >= 80)
 						Icon = "network-wireless-signal-excellent;;network-wireless-signal-excellent-symbolic;;network-wireless-connected-100";
@@ -325,16 +325,16 @@ namespace Plank
 					CountVisible = true;
 				} else {
 					if (ip_address != "")
-						Text = _("Ethernet: %s - %s").printf (connection_name != "" ? connection_name : _("Connected"), ip_address);
+						Text = "以太网: %s - %s".printf (connection_name != "" ? connection_name : "已连接", ip_address);
 					else
-						Text = _("Ethernet: %s").printf (connection_name != "" ? connection_name : _("Connected"));
+						Text = "以太网: %s".printf (connection_name != "" ? connection_name : "已连接");
 
 					Icon = "network-wired-activated;;network-wired;;network-workgroup";
 					BadgeText = null;
 					CountVisible = false;
 				}
 			} else {
-				Text = _("Network: Disconnected");
+				Text = "网络: 已断开";
 				Icon = "network-offline;;network-idle;;network-error;;network-wired-disconnected";
 				BadgeText = null;
 				CountVisible = false;
@@ -346,16 +346,13 @@ namespace Plank
 			string[] cmds = {
 				"kcmshell6 kcm_networkmanagement",
 				"kcmshell5 kcm_networkmanagement",
-				"gnome-control-center wifi",
-				"gnome-control-center network",
+				"systemsettings5 kcm_networkmanagement",
 				"nm-connection-editor"
 			};
 
 			foreach (var cmd in cmds) {
-				try {
-					AppInfo.create_from_commandline (cmd, null, AppInfoCreateFlags.NONE).launch (null, null);
-					return;
-				} catch { }
+				System.get_default ().launch_command (cmd);
+				return;
 			}
 		}
 
@@ -391,11 +388,11 @@ namespace Plank
 			string header_label;
 			if (is_connected) {
 				if (connection_type == "wifi")
-					header_label = _("Wi-Fi: %s (%d%%)").printf (connection_name, wifi_strength);
+					header_label = "Wi-Fi: %s (%d%%)".printf (connection_name, wifi_strength);
 				else
-					header_label = _("Ethernet: %s").printf (connection_name != "" ? connection_name : _("Connected"));
+					header_label = "以太网: %s".printf (connection_name != "" ? connection_name : "已连接");
 			} else {
-				header_label = _("Network: Disconnected");
+				header_label = "网络: 已断开";
 			}
 
 			var header_item = new Gtk.MenuItem.with_label (header_label);
@@ -403,13 +400,13 @@ namespace Plank
 			items.add (header_item);
 
 			if (ip_address != "") {
-				var ip_item = new Gtk.MenuItem.with_label (_("IP: %s").printf (ip_address));
+				var ip_item = new Gtk.MenuItem.with_label ("IP: %s".printf (ip_address));
 				ip_item.sensitive = false;
 				items.add (ip_item);
 			}
 
 			if (gateway != "") {
-				var gw_item = new Gtk.MenuItem.with_label (_("Gateway: %s").printf (gateway));
+				var gw_item = new Gtk.MenuItem.with_label ("网关: %s".printf (gateway));
 				gw_item.sensitive = false;
 				items.add (gw_item);
 			}
@@ -417,18 +414,18 @@ namespace Plank
 			items.add (new Gtk.SeparatorMenuItem ());
 
 			if (ip_address != "") {
-				var copy_item = create_menu_item (_("Copy _IP Address"), "edit-copy", true);
+				var copy_item = create_menu_item ("复制 IP 地址(_I)", "edit-copy", true);
 				copy_item.activate.connect (copy_ip_to_clipboard);
 				items.add (copy_item);
 			}
 
-			var settings_item = create_menu_item (_("_Network Settings..."), "preferences-system-network", true);
+			var settings_item = create_menu_item ("网络设置(_N)...", "preferences-system-network", true);
 			settings_item.activate.connect (open_network_settings);
 			items.add (settings_item);
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

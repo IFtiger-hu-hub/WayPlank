@@ -34,8 +34,14 @@ namespace Plank
 		[Description(nick = "current-workspace-only", blurb = "Whether to show only windows of the current workspace.")]
 		public bool CurrentWorkspaceOnly { get; set; }
 
-		[Description(nick = "window-click-behavior", blurb = "How clicking a running application selects its windows: 0 smart, 1 focus, 2 cycle.")]
+		[Description(nick = "window-click-behavior", blurb = "How clicking a running application selects its windows: 0 smart, 1 focus, 2 cycle, 3 grid, 4 present.")]
 		public int WindowClickBehavior { get; set; }
+
+		[Description(nick = "multi-window-behavior", blurb = "How clicking a multi-window application selects its windows: 0 present, 1 grid, 2 cards, 3 cycle, 4 focus.")]
+		public int MultiWindowBehavior { get; set; }
+
+		[Description(nick = "show-minimized-previews", blurb = "Whether to keep preview icons for minimized windows in a dedicated category next to trash.")]
+		public bool ShowMinimizedPreviews { get; set; }
 
 		[Description(nick = "show-window-cards", blurb = "Whether to show floating visual preview cards for applications with multiple windows.")]
 		public bool ShowWindowCards { get; set; }

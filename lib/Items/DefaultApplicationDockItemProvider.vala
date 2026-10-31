@@ -48,6 +48,7 @@ namespace Plank
 			Prefs.notify["CategorizeItems"].connect (handle_categorize_items_changed);
 			Prefs.notify["AccordionDocklets"].connect (handle_accordion_docklets_changed);
 			Prefs.notify["SystemMenuAccess"].connect (handle_system_menu_access_changed);
+			Prefs.notify["ShowMinimizedPreviews"].connect (handle_show_minimized_previews_changed);
 		}
 
 		public void ensure_preferences_dockitem ()
@@ -120,6 +121,13 @@ namespace Plank
 			Prefs.notify["CategorizeItems"].disconnect (handle_categorize_items_changed);
 			Prefs.notify["AccordionDocklets"].disconnect (handle_accordion_docklets_changed);
 			Prefs.notify["SystemMenuAccess"].disconnect (handle_system_menu_access_changed);
+			Prefs.notify["ShowMinimizedPreviews"].disconnect (handle_show_minimized_previews_changed);
+		}
+
+		void handle_show_minimized_previews_changed ()
+		{
+			sync_compositor_windows ();
+			update_visible_elements ();
 		}
 
 		void handle_accordion_docklets_changed ()
@@ -493,6 +501,12 @@ namespace Plank
 		protected override void update_visible_elements ()
 		{
 			foreach (var item in internal_elements) {
+				if (item is MinimizedWindowDockItem) {
+					item.IsAttached = Prefs.ShowMinimizedPreviews;
+					if (item.IsAttached)
+						item.RemoveTime = 0;
+					continue;
+				}
 				item.IsAttached = !(Prefs.PinnedOnly && item is TransientDockItem);
 				if (item.IsAttached)
 					item.RemoveTime = 0;
@@ -547,6 +561,10 @@ namespace Plank
 			}
 
 			base.update_visible_elements ();
+
+			if (dock != null) {
+				dock.refresh_visible_elements ();
+			}
 		}
 
 		public void refresh_separators ()
@@ -615,12 +633,15 @@ namespace Plank
 				DockElement? preferences_docklet = null;
 				var other_docklets = new Gee.ArrayList<DockElement> ();
 				var transients = new Gee.ArrayList<DockElement> ();
+				var minimized_items = new Gee.ArrayList<DockElement> ();
 
 				for (int i = 0; i < internal_elements.size; i++) {
 					var el = internal_elements.get (i);
 					if (el is TrashDockItem || el is SeparatorDockItem)
 						continue;
-					if (el is TransientDockItem) {
+					if (el is MinimizedWindowDockItem) {
+						minimized_items.add (el);
+					} else if (el is TransientDockItem) {
 						var trans = (TransientDockItem) el;
 						var win_count = WindowManager.get_default ().window_count_for_app (trans.Launcher);
 						if (win_count <= 0 && !trans.is_running ()) {
@@ -676,6 +697,9 @@ namespace Plank
 				if (transients.size > 0)
 					groups.add (transients);
 
+				if (minimized_items.size > 0)
+					groups.add (minimized_items);
+
 				if (trash_item != null) {
 					var trash_group = new Gee.ArrayList<DockElement> ();
 					trash_group.add (trash_item);
@@ -718,13 +742,16 @@ namespace Plank
 			DockElement? preferences_item = null;
 			var pinned = new Gee.ArrayList<DockElement> ();
 			var transients = new Gee.ArrayList<DockElement> ();
+			var minimized_items = new Gee.ArrayList<DockElement> ();
 			var orphan_transients = new Gee.ArrayList<TransientDockItem> ();
 
 			for (int i = 0; i < internal_elements.size; i++) {
 				var el = internal_elements.get (i);
 				if (el is SeparatorDockItem || el is TrashDockItem)
 					continue;
-				if (el is TransientDockItem) {
+				if (el is MinimizedWindowDockItem) {
+					minimized_items.add (el);
+				} else if (el is TransientDockItem) {
 					var trans = (TransientDockItem) el;
 					var win_count = WindowManager.get_default ().window_count_for_app (trans.Launcher);
 					if (win_count <= 0 && !trans.is_running () && dragging_item == null) {
@@ -803,8 +830,28 @@ namespace Plank
 			foreach (var t in transients)
 				internal_elements.add (t);
 
+			// 5b. Core separator between running apps and minimized window previews
+			if (minimized_items.size > 0 && (pinned.size > 0 || transients.size > 0 || preferences_item != null)) {
+				SeparatorDockItem sep;
+				if (sep_pool_idx < existing_separators.size) {
+					sep = existing_separators.get (sep_pool_idx++);
+				} else {
+					sep = new SeparatorDockItem ();
+					sep.Container = this;
+					connect_element (sep);
+				}
+				sep.AddTime = 0;
+				sep.RemoveTime = 0;
+				sep.IsAttached = true;
+				internal_elements.add (sep);
+			}
+
+			// Add minimized window previews
+			foreach (var m in minimized_items)
+				internal_elements.add (m);
+
 			// 6. Core separator before Trash
-			if (trash_item != null && (pinned.size > 0 || transients.size > 0 || preferences_item != null)) {
+			if (trash_item != null && (pinned.size > 0 || transients.size > 0 || preferences_item != null || minimized_items.size > 0)) {
 				SeparatorDockItem sep;
 				if (sep_pool_idx < existing_separators.size) {
 					sep = existing_separators.get (sep_pool_idx++);
@@ -881,6 +928,112 @@ namespace Plank
 					return desktop_file;
 			}
 			return null;
+		}
+
+		public override void sync_compositor_windows ()
+		{
+			base.sync_compositor_windows ();
+
+			var windows = WindowControl.get_windows ();
+			var discovery = ApplicationDiscovery.get_default ();
+			var my_pid = Posix.getpid ();
+
+			/* Show ALL minimized windows as dock items. Memory is controlled by
+			 * lazy/on-demand ScreenShot2 (hover + small LRU live-thumb cache in
+			 * KWinThumbnailService), NOT by hiding icons. WindowCards remains
+			 * the full-size preview UI. */
+			var active_minimized_uuids = new Gee.HashSet<string> ();
+
+			if (Prefs.ShowMinimizedPreviews) {
+				DockElement? trash_target = null;
+				foreach (var element in internal_elements) {
+					if (element is TrashDockItem) {
+						trash_target = element;
+						break;
+					}
+				}
+
+				var minimized_windows = new Gee.ArrayList<WindowInfo> ();
+				foreach (var window in windows) {
+					if (window.Pid > 0 && window.Pid == my_pid)
+						continue;
+
+					var app_id = window.ApplicationId.down ();
+					var res_class = window.ResourceClass.down ();
+					var res_name = window.ResourceName.down ();
+					var desk_name = window.DesktopFileName.down ();
+					var caption = window.Caption.down ();
+					if (app_id == "wayplank" || app_id == "plank" ||
+					    res_class == "wayplank" || res_class == "plank" ||
+					    res_name == "wayplank" || res_name == "plank" ||
+					    desk_name == "wayplank.desktop" || desk_name == "plank.desktop" || desk_name == "wayplank" || desk_name == "plank" ||
+					    caption == "wayplank" || caption == "wayplank-hover")
+						continue;
+
+					if (window.Minimized)
+						minimized_windows.add (window);
+				}
+
+				// Newest minimize first (higher MinimizedSequence)
+				minimized_windows.sort ((a, b) => {
+					if (a.MinimizedSequence < b.MinimizedSequence)
+						return 1;
+					if (a.MinimizedSequence > b.MinimizedSequence)
+						return -1;
+					return a.Id.collate (b.Id);
+				});
+
+				foreach (var window in minimized_windows) {
+					active_minimized_uuids.add (window.Id);
+
+					MinimizedWindowDockItem? existing_min = null;
+					foreach (var element in internal_elements) {
+						if (element is MinimizedWindowDockItem && ((MinimizedWindowDockItem) element).WindowId == window.Id) {
+							existing_min = (MinimizedWindowDockItem) element;
+							break;
+						}
+					}
+
+					if (existing_min != null) {
+						existing_min.update_caption (window.Caption);
+					} else {
+						var desktop_file = discovery.best_desktop_file_for_window (window);
+						string icon_name = "";
+						string launcher_uri = "";
+						if (desktop_file != null) {
+							launcher_uri = desktop_file.get_uri ();
+							try {
+								var kf = new KeyFile ();
+								kf.load_from_file (desktop_file.get_path (), KeyFileFlags.NONE);
+								if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON))
+									icon_name = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON);
+							} catch (Error e) { }
+						}
+						if (icon_name == "") {
+							icon_name = window.ResourceClass.length > 0 ? window.ResourceClass.down () : "application-default-icon";
+						}
+
+						var min_item = new MinimizedWindowDockItem (window.Id, window.Caption, icon_name, launcher_uri);
+						add (min_item, trash_target);
+					}
+				}
+			}
+
+			foreach (var element in internal_elements.to_array ()) {
+				if (element is MinimizedWindowDockItem) {
+					var min_item = (MinimizedWindowDockItem) element;
+					if (!active_minimized_uuids.contains (min_item.WindowId)) {
+						KWinThumbnailService.get_default ().remove_cached (min_item.WindowId);
+						min_item.reset_buffers ();
+						remove (min_item);
+					}
+				}
+			}
+
+			unowned DockController? dock = get_dock ();
+			if (dock != null) {
+				dock.sync_minimized_geometries ();
+			}
 		}
 
 		void handle_setting_changed ()

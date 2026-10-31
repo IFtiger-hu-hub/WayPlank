@@ -76,11 +76,11 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 			
-			var item = create_menu_item (_("Report a _Bug Online..."), "tools-report-bug");
+			var item = create_menu_item ("在线反馈问题(_B)...", "tools-report-bug");
 			item.activate.connect (() => Application.get_default ().activate_action ("help", null));
 			items.add (item);
 
-			item = create_menu_item (_("_Shortcuts & Gestures..."), "help-browser");
+			item = create_menu_item ("快捷键与鼠标手势(_S)...", "help-browser");
 			item.activate.connect (() => Application.get_default ().activate_action ("shortcuts", null));
 			items.add (item);
 
@@ -90,24 +90,24 @@ namespace Plank
 			if (controller != null) {
 				unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
 				if (default_provider != null) {
-					var docklets_item = create_menu_item (_("_Docklets"), "system-run", true);
+					var docklets_item = create_menu_item ("小组件(_D)", "system-run", true);
 					var docklets_menu = new Gtk.Menu ();
 					DockletMenuEntry[] docklets = {
-						{ _("_Trash"), "docklet://trash" },
-						{ _("_Analog Clock"), "docklet://clock" },
-						{ _("_Digital Clock"), "docklet://digital-clock" },
-						{ _("_Battery"), "docklet://battery" },
-						{ _("_CPU / RAM Monitor"), "docklet://cpu" },
-						{ _("_Show Desktop"), "docklet://desktop" },
-						{ _("_Media Player"), "docklet://mpris" },
-						{ _("_Volume Control"), "docklet://volume" },
-						{ _("_Screenshot"), "docklet://screenshot" },
-						{ _("_Session / Power"), "docklet://session" },
-						{ _("_Screen Brightness"), "docklet://brightness" },
-						{ _("_Removable Drives"), "docklet://ejector" },
-						{ _("_Weather Forecast"), "docklet://weather" },
-						{ _("_Network / Wi-Fi"), "docklet://network" },
-						{ _("_Do Not Disturb"), "docklet://dnd" }
+						{ "废纸篓(_T)", "docklet://trash" },
+						{ "指针时钟(_A)", "docklet://clock" },
+						{ "数字时钟(_D)", "docklet://digital-clock" },
+						{ "电池(_B)", "docklet://battery" },
+						{ "CPU / 内存监视器(_C)", "docklet://cpu" },
+						{ "显示桌面(_S)", "docklet://desktop" },
+						{ "媒体播放器(_M)", "docklet://mpris" },
+						{ "音量控制(_V)", "docklet://volume" },
+						{ "截图工具(_S)", "docklet://screenshot" },
+						{ "会话与电源(_S)", "docklet://session" },
+						{ "屏幕亮度(_S)", "docklet://brightness" },
+						{ "可移动磁盘(_R)", "docklet://ejector" },
+						{ "天气预报(_W)", "docklet://weather" },
+						{ "网络 / Wi-Fi(_N)", "docklet://network" },
+						{ "勿扰模式(_D)", "docklet://dnd" }
 					};
 					foreach (var d in docklets) {
 						var d_uri = d.uri;
@@ -137,11 +137,11 @@ namespace Plank
 			item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));
 			items.add (item);
 
-			item = create_menu_item (_("User Guide..."), "help-browser", true);
+			item = create_menu_item ("使用指南...", "help-browser", true);
 			item.activate.connect (() => Application.get_default ().activate_action ("guide", null));
 			items.add (item);
 			
-			item = create_menu_item (_("_About"), "help-about", true);
+			item = create_menu_item ("关于(_A)", "help-about", true);
 			item.activate.connect (() => Application.get_default ().activate_action ("about", null));
 			items.add (item);
 			
@@ -149,7 +149,7 @@ namespace Plank
 			if (!environment_is_session_desktop (XdgSessionDesktop.PANTHEON)) {
 				items.add (new Gtk.SeparatorMenuItem ());
 			
-				item = create_menu_item (_("_Quit"), "application-exit", true);
+				item = create_menu_item ("退出(_Q)", "application-exit", true);
 				item.activate.connect (() => Application.get_default ().activate_action ("quit", null));
 				items.add (item);
 			}

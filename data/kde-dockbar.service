@@ -1,0 +1,22 @@
+[Unit]
+Description=KDE Dockbar (Wayland)
+Documentation=https://github.com/IFtiger-hu-hub/WayPlank/blob/kde-plasma/README.md
+PartOf=graphical-session.target
+After=graphical-session.target
+StartLimitIntervalSec=30
+StartLimitBurst=8
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/kde-dockbar
+# Scheme A: retry wl_display_flush on EAGAIN so GDK does not _exit on transient back-pressure.
+# Only affects this unit. See lib/flush-retry/README.md.
+Environment=LD_PRELOAD=%h/.local/lib/kde-dockbar/libwl_flush_retry.so
+Environment=KDE_DOCKBAR_FLUSH_RETRY_MS=400
+Restart=on-failure
+RestartSec=2
+KillMode=process
+TimeoutStopSec=5
+
+[Install]
+WantedBy=graphical-session.target

@@ -375,7 +375,7 @@ namespace Plank
 				items_box.remove (w);
 
 			if (current_dir == null || !current_dir.query_exists ()) {
-				var empty_lbl = new Gtk.Label (_("Empty Folder"));
+				var empty_lbl = new Gtk.Label ("空文件夹");
 				empty_lbl.get_style_context ().add_class ("folder-menu-header");
 				items_box.pack_start (empty_lbl, false, false, 8);
 				items_box.show_all ();
@@ -408,7 +408,7 @@ namespace Plank
 
 				var back_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
 				var back_icon = new Gtk.Image.from_icon_name ("go-previous-symbolic", Gtk.IconSize.MENU);
-				var back_lbl = new Gtk.Label (_("Back"));
+				var back_lbl = new Gtk.Label ("返回");
 				back_lbl.get_style_context ().add_class ("folder-menu-label");
 				back_lbl.set_xalign (0.0f);
 				back_box.pack_start (back_icon, false, false, 0);
@@ -597,7 +597,7 @@ namespace Plank
 			}
 
 			if (item_count == 0) {
-				var empty_lbl = new Gtk.Label (_("Empty Folder"));
+				var empty_lbl = new Gtk.Label ("空文件夹");
 				empty_lbl.get_style_context ().add_class ("folder-menu-header");
 				items_box.pack_start (empty_lbl, false, false, 8);
 			}
@@ -704,7 +704,7 @@ namespace Plank
 					}
 					return false;
 				});
-				dot_da.set_tooltip_text (_("Application is running (%d windows)").printf (win_count));
+				dot_da.set_tooltip_text ("应用程序正在运行 (%d 个窗口)".printf (win_count));
 				box.pack_start (dot_da, false, false, 4);
 			}
 
@@ -742,7 +742,7 @@ namespace Plank
 						menu.append (w_item);
 					}
 					menu.append (new Gtk.SeparatorMenuItem ());
-					var close_all_item = DockElement.create_menu_item (_("Close _All"), "window-close", true);
+					var close_all_item = DockElement.create_menu_item ("关闭所有(_A)", "window-close", true);
 					close_all_item.activate.connect (() => {
 						foreach (var w in windows) {
 							WindowControl.queue_command (w.Id, "close");
@@ -752,7 +752,7 @@ namespace Plank
 					menu.append (close_all_item);
 				} else if (windows.size == 1) {
 					var target_uuid = windows[0].Id;
-					var close_item = DockElement.create_menu_item (_("_Close"), "window-close", true);
+					var close_item = DockElement.create_menu_item ("关闭(_C)", "window-close", true);
 					close_item.activate.connect (() => {
 						WindowControl.queue_command (target_uuid, "close");
 						close_menu (true);
@@ -786,16 +786,14 @@ namespace Plank
 							if (path != null) {
 								var desktop_info = new DesktopAppInfo.from_filename (path);
 								if (desktop_info != null) {
-									desktop_info.launch_action (action_id, System.get_default ().context);
+									System.get_default ().launch_action (path, action_id, desktop_info);
 									close_menu (true);
 									return;
 								}
 							}
 						}
 						if (values.length > 0 && values[0] != "") {
-							try {
-								AppInfo.create_from_commandline (values[0], null, AppInfoCreateFlags.NONE).launch (null, null);
-							} catch { }
+							System.get_default ().launch_command (values[0]);
 						}
 						close_menu (true);
 					});
@@ -806,14 +804,14 @@ namespace Plank
 					menu.append (new Gtk.SeparatorMenuItem ());
 
 				if (win_count > 0) {
-					var new_win_item = DockElement.create_menu_item (_("_New Window"), "window-new", true);
+					var new_win_item = DockElement.create_menu_item ("新建窗口(_N)", "window-new", true);
 					new_win_item.activate.connect (() => {
 						System.get_default ().launch (child);
 						close_menu (true);
 					});
 					menu.append (new_win_item);
 				} else {
-					var open_item = DockElement.create_menu_item (_("_Open"), "document-open", true);
+					var open_item = DockElement.create_menu_item ("打开(_O)", "document-open", true);
 					open_item.activate.connect (() => {
 						System.get_default ().launch (child);
 						close_menu (true);

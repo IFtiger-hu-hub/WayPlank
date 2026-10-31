@@ -40,7 +40,7 @@ namespace Plank
 		
 		construct
 		{
-			Text = _("Media Player");
+			Text = "媒体播放器";
 			Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
 			Button = PopupButton.RIGHT;
 			
@@ -248,7 +248,7 @@ namespace Plank
 						else
 							Text = "%s (%s)".printf (track_title, playback_status);
 					} else {
-						Text = _("Media Player (%s)").printf (playback_status);
+						Text = "媒体播放器 (%s)".printf (playback_status);
 					}
 					
 					if (playback_status == "Playing")
@@ -261,12 +261,12 @@ namespace Plank
 					playback_status = "Stopped";
 					track_title = "";
 					track_artist = "";
-					Text = _("Media Player (Inactive)");
+					Text = "媒体播放器 (未激活)";
 					Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
 				}
 			} catch (Error e) {
 				playback_status = "Stopped";
-				Text = _("Media Player");
+				Text = "媒体播放器";
 				Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
 			}
 		}
@@ -324,21 +324,21 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var play_item = create_menu_item (_("Play / _Pause"), "media-playback-start", true);
+			var play_item = create_menu_item ("播放 / 暂停(_P)", "media-playback-start", true);
 			play_item.activate.connect (() => call_player_method ("PlayPause"));
 			items.add (play_item);
 			
-			var next_item = create_menu_item (_("_Next Track"), "media-skip-forward", true);
+			var next_item = create_menu_item ("下一首(_N)", "media-skip-forward", true);
 			next_item.activate.connect (() => call_player_method ("Next"));
 			items.add (next_item);
 			
-			var prev_item = create_menu_item (_("P_revious Track"), "media-skip-backward", true);
+			var prev_item = create_menu_item ("上一首(_R)", "media-skip-backward", true);
 			prev_item.activate.connect (() => call_player_method ("Previous"));
 			items.add (prev_item);
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

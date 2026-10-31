@@ -448,7 +448,7 @@ namespace Plank
 			about_dlg = new Gtk.AboutDialog ();
 			is_about_open = true;
 			about_dlg.set_role ("help");
-			about_dlg.set_title (_("About WayPlank"));
+			about_dlg.set_title ("关于 KDE Dockbar");
 			about_dlg.set_decorated (true);
 			about_dlg.set_destroy_with_parent (false);
 			about_dlg.set_position (Gtk.WindowPosition.CENTER);
@@ -474,12 +474,12 @@ namespace Plank
 			
 			var fully_supported_compositors = WindowCapabilities.fully_supported_compositors ();
 			var fully_supported = (fully_supported_compositors == ""
-				? _("Fully supported compositors: none")
-				: _("Fully supported compositors: %s").printf (fully_supported_compositors));
+				? "完全支持的合成器: 无"
+				: "完全支持的合成器: %s".printf (fully_supported_compositors));
 			var partially_supported_compositors = WindowCapabilities.partially_supported_compositors ();
 			var partially_supported = (partially_supported_compositors == ""
-				? _("Partially supported compositors: none")
-				: _("Partially supported compositors: %s").printf (partially_supported_compositors));
+				? "部分支持的合成器: 无"
+				: "部分支持的合成器: %s".printf (partially_supported_compositors));
 			about_dlg.set_comments ("%s. %s\n%s\n%s".printf (program_name, build_release_name, fully_supported, partially_supported));
 			about_dlg.set_copyright ("Copyright © %s %s Developers".printf (app_copyright, program_name));
 			about_dlg.set_website (main_url);
@@ -494,7 +494,7 @@ namespace Plank
 			if (about_translators != null && about_translators != "")
 				about_dlg.set_translator_credits (about_translators);
 			else
-				about_dlg.set_translator_credits (_("translator-credits"));
+				about_dlg.set_translator_credits ("史有虎 (IFtiger-hu)");
 			about_dlg.set_license_type (about_license_type);
 			
 			about_dlg.response.connect (() => {
@@ -622,325 +622,10 @@ namespace Plank
 
 		void show_guide ()
 		{
-			string guide_b64 = "";
-			try {
-				var bytes = GLib.resources_lookup_data ("/net/launchpad/plank/doc/guide.md", GLib.ResourceLookupFlags.NONE);
-				if (bytes != null) {
-					unowned uint8[] data = bytes.get_data ();
-					guide_b64 = GLib.Base64.encode (data);
-				}
-			} catch (GLib.Error e) {
-				warning ("Failed to load guide resource: %s", e.message);
-				return;
-			}
-
-			if (guide_b64 == "")
-				return;
-
-			string banner_b64 = "";
-			try {
-				var b_bytes = GLib.resources_lookup_data ("/net/launchpad/plank/doc/banner.png", GLib.ResourceLookupFlags.NONE);
-				if (b_bytes != null) {
-					unowned uint8[] b_data = b_bytes.get_data ();
-					banner_b64 = GLib.Base64.encode (b_data);
-				}
-			} catch (GLib.Error e) { }
-
-			string cache_dir = Path.build_filename (Environment.get_user_cache_dir (), "wayplank");
-			DirUtils.create_with_parents (cache_dir, 0755);
-			string html_path = Path.build_filename (cache_dir, "wayplank_user_guide.html");
-
-			var builder = new StringBuilder ();
-			builder.append ("""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>WayPlank - User Guide & Reference Manual</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css">
-  <style>
-    body {
-      box-sizing: border-box;
-      min-width: 200px;
-      max-width: 1060px;
-      margin: 0 auto;
-      padding: 40px 24px;
-      background-color: #0d1117;
-      color: #c9d1d9;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-      scroll-behavior: smooth;
-    }
-    @media (prefers-color-scheme: light) {
-      body { background-color: #ffffff; color: #24292f; }
-    }
-    .markdown-body {
-      background-color: transparent !important;
-    }
-    .mermaid {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-      margin: 24px 0;
-      overflow-x: auto;
-    }
-    h1, h2, h3, h4, h5, h6 {
-      scroll-margin-top: 24px;
-    }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-</head>
-<body class="markdown-body">
-  <div id="content">Loading user guide...</div>
-  <script>
-    const b64 = '""");
-			builder.append (guide_b64);
-			builder.append ("""';
-    const bannerB64 = '""");
-			builder.append (banner_b64);
-			builder.append ("""';
-    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const md = new TextDecoder().decode(bytes);
-
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    function slugify(text) {
-      return text.toLowerCase()
-        .replace(/<[^>]*>/g, '')
-        .replace(/[^\w\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-');
-    }
-
-    try {
-      if (typeof marked !== 'undefined') {
-        const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (typeof mermaid !== 'undefined') {
-          mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
-        }
-
-        const renderer = new marked.Renderer();
-        const origCode = renderer.code.bind(renderer);
-        renderer.code = function(token, lang, escaped) {
-          let codeText = typeof token === 'object' && token !== null ? token.text : token;
-          let codeLang = typeof token === 'object' && token !== null ? token.lang : lang;
-          if (codeLang === 'mermaid') {
-            return '<pre class="mermaid">' + codeText + '</pre>';
-          }
-          return origCode(token, lang, escaped);
-        };
-
-        marked.setOptions({ renderer: renderer });
-        const contentDiv = document.getElementById('content');
-        contentDiv.innerHTML = marked.parse(md);
-
-        // Ensure every heading has matching slug IDs for navigation
-        document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
-          const raw = h.textContent.trim();
-          const slug = slugify(raw);
-          if (!h.id) {
-            h.id = slug;
-          }
-          const altSlug = slug.replace(/^[0-9]+-/, '');
-          if (altSlug && altSlug !== slug) {
-            const anchor = document.createElement('a');
-            anchor.id = altSlug;
-            h.parentNode.insertBefore(anchor, h);
-          }
-        });
-
-        // Add banner image right under the main title if available
-        if (bannerB64) {
-          const bannerDiv = document.createElement('div');
-          bannerDiv.style.textAlign = 'center';
-          bannerDiv.style.margin = '20px 0 35px 0';
-          bannerDiv.innerHTML = '<img src="data:image/png;base64,' + bannerB64 + '" alt="WayPlank Release Banner" style="max-width:100%; height:auto; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.15);">';
-          const firstH1 = contentDiv.querySelector('h1');
-          if (firstH1 && firstH1.nextSibling) {
-            firstH1.parentNode.insertBefore(bannerDiv, firstH1.nextSibling);
-          } else {
-            contentDiv.insertBefore(bannerDiv, contentDiv.firstChild);
-          }
-        }
-
-        // Intercept TOC link clicks and perform robust navigation in Chrome/Firefox
-        document.addEventListener('click', function(e) {
-          const link = e.target.closest('a[href^="#"]');
-          if (!link) return;
-
-          const href = link.getAttribute('href');
-          if (!href || href === '#') return;
-
-          const targetId = href.substring(1);
-          let target = document.getElementById(targetId);
-
-          if (!target) {
-            const normTarget = targetId.toLowerCase().replace(/[^a-z0-9]/g, '');
-            for (const h of document.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
-              const normH = h.textContent.toLowerCase().replace(/[^a-z0-9]/g, '');
-              if (normH.includes(normTarget) || normTarget.includes(normH)) {
-                target = h;
-                break;
-              }
-            }
-          }
-
-          if (target) {
-            e.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            history.pushState(null, null, href);
-          }
-        });
-
-        if (typeof mermaid !== 'undefined') {
-          mermaid.run({ querySelector: '.mermaid' });
-        }
-      } else {
-        document.getElementById('content').innerHTML = '<div style="padding:15px; background:rgba(255,165,0,0.1); border:1px solid orange; border-radius:6px; margin-bottom:20px;"><strong>Notice:</strong> Offline mode active (CDN unreachable). Displaying raw documentation below.</div><pre style="white-space: pre-wrap; font-family: monospace;">' + escapeHtml(md) + '</pre>';
-      }
-    } catch (e) {
-      document.getElementById('content').innerHTML = '<div style="color:red; padding:20px;">Error rendering guide: ' + e.message + '</div><pre style="white-space: pre-wrap; font-family: monospace;">' + escapeHtml(md) + '</pre>';
-    }
-  </script>
-</body>
-</html>
-""");
-
-			try {
-				FileUtils.set_contents (html_path, builder.str);
-				string uri = "file://" + html_path;
-				try {
-					AppInfo.launch_default_for_uri (uri, null);
-				} catch (GLib.Error err) {
-					System.get_default ().open_uri (uri);
-				}
-			} catch (GLib.Error e) {
-				warning ("Failed to save/open guide HTML: %s", e.message);
-			}
 		}
 
 		void show_report ()
 		{
-			string report_b64 = "";
-			try {
-				var bytes = GLib.resources_lookup_data ("/net/launchpad/plank/doc/report.md", GLib.ResourceLookupFlags.NONE);
-				if (bytes != null) {
-					unowned uint8[] data = bytes.get_data ();
-					report_b64 = GLib.Base64.encode (data);
-				}
-			} catch (GLib.Error e) {
-				warning ("Failed to load report resource: %s", e.message);
-				return;
-			}
-
-			if (report_b64 == "")
-				return;
-
-			string cache_dir = Path.build_filename (Environment.get_user_cache_dir (), "wayplank");
-			DirUtils.create_with_parents (cache_dir, 0755);
-			string html_path = Path.build_filename (cache_dir, "wayplank_migration_report.html");
-
-			var builder = new StringBuilder ();
-			builder.append ("""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>WayPlank - Wayland Migration & Architecture Report</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css">
-  <style>
-    body {
-      box-sizing: border-box;
-      min-width: 200px;
-      max-width: 1060px;
-      margin: 0 auto;
-      padding: 40px 24px;
-      background-color: #0d1117;
-      color: #c9d1d9;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-    }
-    @media (prefers-color-scheme: light) {
-      body { background-color: #ffffff; color: #24292f; }
-    }
-    .markdown-body {
-      background-color: transparent !important;
-    }
-    .mermaid {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-      margin: 24px 0;
-      overflow-x: auto;
-    }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-</head>
-<body class="markdown-body">
-  <div id="content">Loading documentation report...</div>
-  <script>
-    const b64 = '""");
-			builder.append (report_b64);
-			builder.append ("""';
-    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const md = new TextDecoder().decode(bytes);
-
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    try {
-      if (typeof marked !== 'undefined') {
-        const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (typeof mermaid !== 'undefined') {
-          mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
-        }
-
-        const renderer = new marked.Renderer();
-        const origCode = renderer.code.bind(renderer);
-        renderer.code = function(token, lang, escaped) {
-          let codeText = typeof token === 'object' && token !== null ? token.text : token;
-          let codeLang = typeof token === 'object' && token !== null ? token.lang : lang;
-          if (codeLang === 'mermaid') {
-            return '<pre class="mermaid">' + codeText + '</pre>';
-          }
-          return origCode(token, lang, escaped);
-        };
-
-        marked.setOptions({ renderer: renderer });
-        document.getElementById('content').innerHTML = marked.parse(md);
-
-        if (typeof mermaid !== 'undefined') {
-          mermaid.run({ querySelector: '.mermaid' });
-        }
-      } else {
-        document.getElementById('content').innerHTML = '<div style="padding:15px; background:rgba(255,165,0,0.1); border:1px solid orange; border-radius:6px; margin-bottom:20px;"><strong>Notice:</strong> Offline mode active (CDN unreachable). Displaying raw documentation below.</div><pre style="white-space: pre-wrap; font-family: monospace;">' + escapeHtml(md) + '</pre>';
-      }
-    } catch (e) {
-      document.getElementById('content').innerHTML = '<div style="color:red; padding:20px;">Error rendering report: ' + e.message + '</div><pre style="white-space: pre-wrap; font-family: monospace;">' + escapeHtml(md) + '</pre>';
-    }
-  </script>
-</body>
-</html>
-""");
-
-			try {
-				FileUtils.set_contents (html_path, builder.str);
-				string uri = "file://" + html_path;
-				try {
-					AppInfo.launch_default_for_uri (uri, null);
-				} catch (GLib.Error err) {
-					System.get_default ().open_uri (uri);
-				}
-			} catch (GLib.Error e) {
-				warning ("Failed to save/open report HTML: %s", e.message);
-			}
 		}
 
 		uint resume_timer_id = 0U;

@@ -76,7 +76,9 @@ namespace Plank
 				return;
 
 			var raw_exe = unwrap_tokens.get (0);
-			var exe_name = File.new_for_path (raw_exe).get_basename ();
+			if (raw_exe == null || raw_exe == "")
+				return;
+			var exe_name = Path.get_basename (raw_exe);
 			if (exe_name != "") {
 				add_executable_token (exe_name);
 			}
@@ -112,7 +114,7 @@ namespace Plank
 					}
 				}
 
-				var target_name = File.new_for_path (part).get_basename ().down ();
+				var target_name = Path.get_basename (part).down ();
 				if (target_name != "" && target_name != "." && !target_name.has_prefix ("-") && !target_name.has_prefix ("@") && !is_common_path_stopword (target_name)) {
 					argument_tokens.add (target_name);
 					var dot = target_name.last_index_of_char ('.');
@@ -155,7 +157,8 @@ namespace Plank
 
 					var script_tokens = unwrap_command_string (line);
 					if (script_tokens.size > 0) {
-						var inner_exe = File.new_for_path (script_tokens.get (0)).get_basename ();
+						var inner_raw = script_tokens.get (0);
+						var inner_exe = (inner_raw != null && inner_raw != "") ? Path.get_basename (inner_raw) : "";
 						if (inner_exe != "" && inner_exe != "sh" && inner_exe != "bash") {
 							add_executable_token (inner_exe);
 						}
@@ -192,7 +195,11 @@ namespace Plank
 			int idx = 0;
 			while (idx < parts.length) {
 				var p = parts[idx].strip ().replace ("\"", "").replace ("'", "");
-				var base_p = File.new_for_path (p).get_basename ().down ();
+				if (p == null || p == "") {
+					idx++;
+					continue;
+				}
+				var base_p = Path.get_basename (p).down ();
 
 				// 1. Recursive unwrap for sh -c "..." or bash -c "..."
 				if (base_p == "sh" || base_p == "bash") {
@@ -489,7 +496,7 @@ namespace Plank
 						var tok = token.strip ().replace ("\"", "").replace ("'", "");
 						if (tok == "" || tok.has_prefix ("-"))
 							continue;
-						var base_exe = File.new_for_path (tok).get_basename ();
+						var base_exe = Path.get_basename (tok);
 						if (executable_tokens.contains (base_exe)) {
 							best = int.max (best, 85);
 							break;

@@ -1,27 +1,18 @@
 #!/usr/bin/env bash
 #
-#  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
-#  Copyright (C) 2026 Sergio Melas
+#  Copyright (C) 2026 史有虎 (IFtiger-hu)
 #
-#  This file is part of WayPlank.
+#  This file is part of kde-dockbar.
 #
-#  WayPlank is free software: you can redistribute it and/or modify
+#  kde-dockbar is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  WayPlank is distributed in the hope that it will be useful,
-#  WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 set -euo pipefail
 
 # --- Dolphin Auto-Spawn GUI Terminal ---
-if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
+if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${DOCKBAR_NO_PROMPT:-}" ]; then
     if command -v konsole >/dev/null 2>&1; then
         exec konsole -e bash "$0" "$@"
     elif command -v x-terminal-emulator >/dev/null 2>&1; then
@@ -32,7 +23,7 @@ fi
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT_DIR="${BASE_DIR}/build"
 mkdir -p "$OUT_DIR"
-rm -f "${OUT_DIR}/wayplank"
+rm -f "${OUT_DIR}/kde-dockbar"
 
 echo "⚙️ Compiling GLib schemas & resources..."
 if command -v glib-compile-schemas >/dev/null 2>&1; then
@@ -44,18 +35,35 @@ glib-compile-resources \
     --generate-source \
     "${BASE_DIR}/data/plank.gresource.xml"
 
-echo "🏗️ Compiling Vala & C sources to native binary..."
+if [ -f "${BASE_DIR}/data/protocols/plasma-window-management.xml" ]; then
+    if [ ! -f "${BASE_DIR}/lib/plasma-window-management-client.h" ] || [ ! -f "${BASE_DIR}/lib/plasma-window-management-protocol.c" ]; then
+        echo "⚙️ Generating Wayland plasma-window-management protocol bindings..."
+        wayland-scanner client-header "${BASE_DIR}/data/protocols/plasma-window-management.xml" "${BASE_DIR}/lib/plasma-window-management-client.h"
+        wayland-scanner private-code "${BASE_DIR}/data/protocols/plasma-window-management.xml" "${BASE_DIR}/lib/plasma-window-management-protocol.c"
+    fi
+fi
+
+echo "🛡️  Building wl_flush_retry LD_PRELOAD (scheme A)..."
+gcc -shared -fPIC -O2 -Wall \
+    -o "${OUT_DIR}/libwl_flush_retry.so" \
+    "${BASE_DIR}/lib/flush-retry/wl_flush_retry.c" -ldl
+mkdir -p "${HOME}/.local/lib/kde-dockbar"
+install -m755 "${OUT_DIR}/libwl_flush_retry.so" \
+    "${HOME}/.local/lib/kde-dockbar/libwl_flush_retry.so"
+echo "✅ Preload ready: ${HOME}/.local/lib/kde-dockbar/libwl_flush_retry.so"
+
+echo "🏗️ Compiling Vala & C sources to native binary (KDE Plasma Native)..."
 mapfile -t VALA_FILES < <(find "${BASE_DIR}/lib" "${BASE_DIR}/src" -name "*.vala")
 
 C_SOURCES=("${BASE_DIR}/lib/resources.c")
 if [ -f "${BASE_DIR}/lib/gtk-compat.c" ]; then
     C_SOURCES+=("${BASE_DIR}/lib/gtk-compat.c")
 fi
-if [ -f "${BASE_DIR}/lib/Protocols/wlr-foreign-toplevel-management-protocol.c" ]; then
-    C_SOURCES+=("${BASE_DIR}/lib/Protocols/wlr-foreign-toplevel-management-protocol.c")
+if [ -f "${BASE_DIR}/lib/plasma-window-management-protocol.c" ]; then
+    C_SOURCES+=("${BASE_DIR}/lib/plasma-window-management-protocol.c")
 fi
-if [ -f "${BASE_DIR}/lib/Services/wlr-toplevel-bridge.c" ]; then
-    C_SOURCES+=("${BASE_DIR}/lib/Services/wlr-toplevel-bridge.c")
+if [ -f "${BASE_DIR}/lib/Services/KWinPlasmaWindow.c" ]; then
+    C_SOURCES+=("${BASE_DIR}/lib/Services/KWinPlasmaWindow.c")
 fi
 
 if valac -g \
@@ -70,12 +78,10 @@ if valac -g \
     --pkg gee-0.8 \
     --pkg compat \
     --pkg config \
-    --pkg wlr-bridge \
     -X -D_GNU_SOURCE \
     -X "-Dsetproctitle(x)=" \
-    -X -DGETTEXT_PACKAGE=\"wayplank\" \
+    -X -DGETTEXT_PACKAGE=\"kde-dockbar\" \
     -X -I"${BASE_DIR}/lib" \
-    -X -I"${BASE_DIR}/lib/Protocols" \
     -X -I"${BASE_DIR}/lib/Services" \
     -X -I"${BASE_DIR}/include" \
     -X -w \
@@ -83,17 +89,17 @@ if valac -g \
     -X -lwayland-client \
     "${VALA_FILES[@]}" \
     "${C_SOURCES[@]}" \
-    -o "${OUT_DIR}/wayplank"; then
+    -o "${OUT_DIR}/kde-dockbar"; then
     rm -f "${BASE_DIR}/lib/resources.c"
-    echo "✅ Binary ready: ${OUT_DIR}/wayplank"
-    if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
+    echo "✅ Binary ready: ${OUT_DIR}/kde-dockbar"
+    if [ -t 0 ] && [ -z "${DOCKBAR_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
 else
     rm -f "${BASE_DIR}/lib/resources.c"
     echo ""
     echo "❌ Error: Compilation failed!"
-    if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
+    if [ -t 0 ] && [ -z "${DOCKBAR_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1

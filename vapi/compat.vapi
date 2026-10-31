@@ -48,9 +48,36 @@ namespace Plank
 [CCode (cheader_filename = "gtk-compat.h")]
 namespace PlankCompat
 {
+	[CCode (cname = "plank_compat_malloc_trim")]
+	public void malloc_trim ();
+	[CCode (cname = "plank_compat_optimize_memory")]
+	public void optimize_memory ();
 	// Conditional compat-layer for Gtk+ 3.19.1+
 	public void gtk_widget_class_set_css_name (GLib.ObjectClass widget_class, string name);
 	public void gtk_widget_path_iter_set_object_name (Gtk.WidgetPath path, int pos, string? name);
 }
+
+[CCode (cheader_filename = "kwin-plasma-window.h")]
+namespace KWinPlasmaWindow
+{
+	[CCode (cname = "kwin_dock_init_plasma_window_management")]
+	public void init (Gtk.Widget dock_window);
+
+	[CCode (cname = "kwin_dock_cleanup_plasma_window_management")]
+	public void cleanup ();
+
+	[CCode (cname = "kwin_dock_set_window_minimized_geometry")]
+	public void set_window_minimized_geometry (string uuid, int x, int y, int width, int height);
+
+	[CCode (cname = "kwin_dock_unset_window_minimized_geometry")]
+	public void unset_window_minimized_geometry (string uuid);
+
+	[CCode (cname = "kwin_dock_prune_window_proxies")]
+	public void prune_window_proxies ([CCode (array_length_pos = 1)] string[] active_uuids);
+
+	[CCode (cname = "kwin_dock_invalidate_surface")]
+	public void invalidate_surface ();
+}
+
 
 

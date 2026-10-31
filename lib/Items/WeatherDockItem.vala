@@ -95,8 +95,11 @@ namespace Plank
 
 			refresh_weather ();
 
-			// Refresh every 20 minutes (1200 seconds)
+			// Refresh every 20 minutes (1200 seconds); skip while dock is hidden
 			timer_id = GLib.Timeout.add_seconds (1200, () => {
+				unowned DockController? dock = get_dock ();
+				if (dock != null && dock.hide_manager.Hidden)
+					return true;
 				refresh_weather ();
 				return true;
 			});
@@ -476,7 +479,7 @@ namespace Plank
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

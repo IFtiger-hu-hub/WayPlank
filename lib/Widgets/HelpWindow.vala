@@ -78,11 +78,11 @@ namespace Plank
 			// Page 1: Mouse Actions
 			var grid_mouse = create_shortcuts_grid ();
 			int r_m = 0;
-			add_shortcut_row (grid_mouse, r_m++, _("Left Click"), _("Launch app; if running, raises or opens Multi-Window Cards"));
-			add_shortcut_row (grid_mouse, r_m++, _("Left Click (2+ windows)"), _("Display floating Cairo preview cards with live window thumbnails"));
-			add_shortcut_row (grid_mouse, r_m++, _("Middle Click (or Ctrl + Left)"), _("Force launch a NEW instance of the application"));
+			add_shortcut_row (grid_mouse, r_m++, "鼠标左键单击", "启动应用；若已在运行，置顶或显示多窗口卡片");
+			add_shortcut_row (grid_mouse, r_m++, "左键单击（2个及以上窗口）", _("Display floating Cairo preview cards with live window thumbnails"));
+			add_shortcut_row (grid_mouse, r_m++, _("Middle Click (or Ctrl + Left)"), "强制启动该应用程序的新实例");
 			add_shortcut_row (grid_mouse, r_m++, _("Right Click on Any Item"), _("Open context menu (Recent Documents, Quicklists, Keep in Dock, Change Icon, Shortcuts & Gestures, Preferences)"));
-			add_shortcut_row (grid_mouse, r_m++, _("Mouse Scroll on App"), _("Cycle between all open windows of this application"));
+			add_shortcut_row (grid_mouse, r_m++, "在应用图标上滚动滚轮", "依次轮巡切换该应用的所有已打开窗口");
 			add_shortcut_row (grid_mouse, r_m++, _("Shift + Left Click"), _("Focus the next open window of this application"));
 			add_shortcut_row (grid_mouse, r_m++, _("Left Click on Folder Drawer"), _("Open dark-themed categorized smart application menu"));
 			add_shortcut_row (grid_mouse, r_m++, _("Preferences Icon (Accordion)"), _("Hover or click to toggle docklet drawer; directional indicators (▸ / ◂ / ▾ / ▴) show state"));
@@ -98,27 +98,27 @@ namespace Plank
 			int r_d = 0;
 			add_shortcut_row (grid_drag, r_d++, _("Drag icon along dock (Free Mode)"), _("Freely reorder launchers, docklets, and folders anywhere on the dock"));
 			add_shortcut_row (grid_drag, r_d++, _("Drag icon along dock (Categorized)"), _("Reorder strictly within category bounds; Preferences anchor stays locked"));
-			add_shortcut_row (grid_drag, r_d++, _("Drag icon off dock"), _("Unpin / remove launcher from dock (with poof animation)"));
-			add_shortcut_row (grid_drag, r_d++, _("Drop file on app icon"), _("Open the dropped file directly with that application"));
-			add_shortcut_row (grid_drag, r_d++, _("Drop web URL on browser"), _("Drop http:// or https:// URL onto browser icon to open in new tab"));
-			add_shortcut_row (grid_drag, r_d++, _("Hover over icon during DND"), _("Spring-loaded hover (500ms) brings target window to foreground"));
-			add_shortcut_row (grid_drag, r_d++, _("Drop .desktop or folder"), _("Pin a new application or folder drawer to the dock"));
+			add_shortcut_row (grid_drag, r_d++, "将图标拖离 Dock 栏", "从 Dock 栏取消固定/移除（触发烟雾消散动画）");
+			add_shortcut_row (grid_drag, r_d++, "将文件拖放到应用图标上", "使用该应用程序直接打开拖入的文件");
+			add_shortcut_row (grid_drag, r_d++, "将网页 URL 拖放到浏览器图标", _("Drop http:// or https:// URL onto browser icon to open in new tab"));
+			add_shortcut_row (grid_drag, r_d++, "拖拽文件时悬停在应用图标上", _("Spring-loaded hover (500ms) brings target window to foreground"));
+			add_shortcut_row (grid_drag, r_d++, _("Drop .desktop or folder"), "将新应用程序或文件夹抽屉固定到 Dock 栏");
 			add_shortcut_row (grid_drag, r_d++, _("Align by Type (Preferences)"), _("One-shot sort in Free mode: [Plank] -> [Folders] -> [Docklets] -> [Apps] -> [Trash]"));
 			stack.add_titled (create_page (_("Organizing, pinning, reordering and interacting with dock items"), grid_drag), "drag", _("Drag & Drop"));
 
 			// Page 3: Shortcuts & Tools
 			var grid_tools = create_shortcuts_grid ();
 			int r_t = 0;
-			add_shortcut_row (grid_tools, r_t++, _("Mouse Scroll on Dock Body"), _("Smoothly scroll overflowing dock items when capacity is reached"));
-			add_shortcut_row (grid_tools, r_t++, _("Ctrl + Mouse Scroll Up"), _("Increase dock icon size dynamically in real-time"));
-			add_shortcut_row (grid_tools, r_t++, _("Ctrl + Mouse Scroll Down"), _("Decrease dock icon size dynamically in real-time"));
-			add_shortcut_row (grid_tools, r_t++, _("Ctrl + Right Click"), _("Open dock preferences menu directly, even over an icon"));
+			add_shortcut_row (grid_tools, r_t++, "在 Dock 空白处滚动滚轮", "当容量超出屏幕宽度时平滑滚动 Dock 图标");
+			add_shortcut_row (grid_tools, r_t++, "Ctrl + 鼠标滚轮向上", "实时无级放大 Dock 图标尺寸");
+			add_shortcut_row (grid_tools, r_t++, "Ctrl + 鼠标滚轮向下", "实时无级缩小 Dock 图标尺寸");
+			add_shortcut_row (grid_tools, r_t++, "Ctrl + 右键单击", "即使光标在应用图标上也可直接唤出 Dock 首选项菜单");
 			add_shortcut_row (grid_tools, r_t++, _("Right Click on space / separator"), _("Open dock preferences menu from any empty dock area or separator"));
 			add_shortcut_row (grid_tools, r_t++, _("Right Click -> Change Icon..."), _("Choose system icon or custom image for any launcher or folder drawer"));
 			add_shortcut_row (grid_tools, r_t++, _("Right Click -> Shortcuts & Gestures"), _("Open this interactive guide directly from any item context menu"));
-			add_shortcut_row (grid_tools, r_t++, _("Preferences -> Theme Manager"), _("Install theme archives (.zip, .tar.gz) and manage custom dock themes"));
-			add_shortcut_row (grid_tools, r_t++, _("Dynamic Counterpart Swapping"), _("Real-time automatic Light/Dark mode switching on KDE and GNOME"));
-			add_shortcut_row (grid_tools, r_t++, _("Ctrl + Alt + Shift + Right Click"), _("Open Developer Tools submenu (inspect launcher, config, theme)"));
+			add_shortcut_row (grid_tools, r_t++, "首选项 -> 主题管理器", _("Install theme archives (.zip, .tar.gz) and manage custom dock themes"));
+			add_shortcut_row (grid_tools, r_t++, "动态深浅主题自动匹配", "KDE Plasma 切换深色/浅色时自动无缝匹配 Dock 栏主题");
+			add_shortcut_row (grid_tools, r_t++, _("Ctrl + Alt + Shift + Right Click"), "打开开发者工具子菜单（检查启动项、配置与主题信息）");
 			stack.add_titled (create_page (_("Dynamic zoom, overflow scrolling, theme management and developer tools"), grid_tools), "tools", _("Shortcuts & Tools"));
 
 			// HeaderBar with StackSwitcher spanning full width

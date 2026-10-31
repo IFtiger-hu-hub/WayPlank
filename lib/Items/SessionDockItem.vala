@@ -35,7 +35,7 @@ namespace Plank
 
 		construct
 		{
-			Text = _("Session / Power");
+			Text = "会话与电源";
 			Icon = ICON_NAMES;
 			Button = PopupButton.RIGHT;
 		}
@@ -70,27 +70,27 @@ namespace Plank
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var lock_item = create_menu_item (_("_Lock Screen"), "system-lock-screen", true);
+			var lock_item = create_menu_item ("锁定屏幕(_L)", "system-lock-screen", true);
 			lock_item.activate.connect (() => { lock_screen (); });
 			items.add (lock_item);
 
-			var switch_item = create_menu_item (_("_Switch User..."), "system-users", true);
+			var switch_item = create_menu_item ("切换用户(_S)...", "system-users", true);
 			switch_item.activate.connect (() => { switch_user (); });
 			items.add (switch_item);
 
-			var logout_item = create_menu_item (_("Log _Out..."), "system-log-out", true);
+			var logout_item = create_menu_item ("注销(_O)...", "system-log-out", true);
 			logout_item.activate.connect (() => { logout (true); });
 			items.add (logout_item);
 
-			var suspend_item = create_menu_item (_("_Suspend"), "system-suspend", true);
+			var suspend_item = create_menu_item ("睡眠(_S)", "system-suspend", true);
 			suspend_item.activate.connect (() => { suspend (); });
 			items.add (suspend_item);
 
-			var reboot_item = create_menu_item (_("_Restart..."), "system-reboot", true);
+			var reboot_item = create_menu_item ("重启(_R)...", "system-reboot", true);
 			reboot_item.activate.connect (() => { restart (true); });
 			items.add (reboot_item);
 
-			var shutdown_item = create_menu_item (_("_Shut Down..."), "system-shutdown", true);
+			var shutdown_item = create_menu_item ("关机(_S)...", "system-shutdown", true);
 			shutdown_item.activate.connect (() => { shutdown (true); });
 			items.add (shutdown_item);
 
@@ -102,7 +102,7 @@ namespace Plank
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});
@@ -121,10 +121,7 @@ namespace Plank
 
 		public static bool is_gnome_session ()
 		{
-			if (WindowControl.is_mutter ())
-				return true;
-			var desktop = GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "";
-			return desktop.down ().contains ("gnome") || desktop.down ().contains ("ubuntu");
+			return false;
 		}
 
 		public static void lock_screen ()
@@ -341,13 +338,6 @@ namespace Plank
 				} catch (Error e) { }
 			}
 
-			// 3. Labwc
-			if (WindowControl.is_labwc () || Environment.find_program_in_path ("labwc") != null) {
-				try {
-					Process.spawn_command_line_async ("labwc --exit");
-					return;
-				} catch (Error e) { }
-			}
 
 			// 4. loginctl terminate-session
 			var session_id = Environment.get_variable ("XDG_SESSION_ID");

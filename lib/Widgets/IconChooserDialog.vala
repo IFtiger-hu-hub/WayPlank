@@ -154,7 +154,7 @@ namespace Plank
 			btn_default.tooltip_text = _("Revert to the original default icon");
 			btn_default.get_style_context ().add_class ("destructive-action");
 
-			add_button (_("Cancel"), Gtk.ResponseType.CANCEL);
+			add_button ("取消", Gtk.ResponseType.CANCEL);
 
 			btn_apply = add_button (_("Apply"), Gtk.ResponseType.OK) as Gtk.Button;
 			btn_apply.get_style_context ().add_class ("suggested-action");
@@ -274,8 +274,8 @@ namespace Plank
 				_("Select Icon File"),
 				this,
 				Gtk.FileChooserAction.OPEN,
-				_("Cancel"), Gtk.ResponseType.CANCEL,
-				_("Select"), Gtk.ResponseType.ACCEPT
+				"取消", Gtk.ResponseType.CANCEL,
+				"选择", Gtk.ResponseType.ACCEPT
 			);
 
 			var filter = new Gtk.FileFilter ();
@@ -292,7 +292,7 @@ namespace Plank
 			chooser.add_filter (filter);
 
 			var all_filter = new Gtk.FileFilter ();
-			all_filter.set_name (_("All Files"));
+			all_filter.set_name ("所有文件");
 			all_filter.add_pattern ("*");
 			chooser.add_filter (all_filter);
 

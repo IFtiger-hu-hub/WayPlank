@@ -22,6 +22,8 @@ namespace Plank
 	public class DigitalClockDockItem : DockItem
 	{
 		uint timer_id = 0;
+		int last_second = -1;
+		int last_minute_key = -1;
 		
 		public DigitalClockDockItem ()
 		{
@@ -35,7 +37,7 @@ namespace Plank
 		
 		construct
 		{
-			Text = _("Digital Clock");
+			Text = "数字时钟";
 			Icon = "org.kde.plasma.digitalclock;;preferences-system-time";
 			Button = PopupButton.RIGHT;
 			
@@ -83,8 +85,23 @@ namespace Plank
 		
 		bool on_timer_tick ()
 		{
+			unowned DockController? dock = get_dock ();
+			if (dock != null && dock.hide_manager.Hidden)
+				return true;
+			
+			var now = new DateTime.now_local ();
+			int sec = now.get_second ();
+			if (sec == last_second)
+				return true;
+			last_second = sec;
+			
 			update_clock_text ();
-			reset_icon_buffer ();
+			// Icon draws HH:MM only — skip expensive redraw until minute changes
+			int minute_key = now.get_hour () * 60 + now.get_minute ();
+			if (minute_key != last_minute_key) {
+				last_minute_key = minute_key;
+				reset_icon_buffer ();
+			}
 			return true;
 		}
 		
@@ -191,7 +208,7 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var copy_item = create_menu_item (_("_Copy Time"), "edit-copy", true);
+			var copy_item = create_menu_item ("复制时间(_C)", "edit-copy", true);
 			copy_item.activate.connect (() => {
 				var clip = Gtk.Clipboard.get (Gdk.SELECTION_CLIPBOARD);
 				clip.set_text (new DateTime.now_local ().format ("%H:%M:%S"), -1);
@@ -200,7 +217,7 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

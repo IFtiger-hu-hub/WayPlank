@@ -161,7 +161,7 @@ namespace Plank
 			grid.vexpand = true;
 
 			// Col 0, Row 0: Lock Screen (direct)
-			var btn_lock = create_action_button (_("Lock Screen"), "system-lock-screen", _("Lock the current session"), () => {
+			var btn_lock = create_action_button ("锁定屏幕", "system-lock-screen", _("Lock the current session"), () => {
 				destroy ();
 				SessionDockItem.lock_screen ();
 			});
@@ -175,26 +175,26 @@ namespace Plank
 			grid.attach (btn_switch, 1, 0, 1, 1);
 
 			// Col 2, Row 0: Log Out (asks confirmation)
-			var btn_logout = create_action_button (_("Log Out"), "system-log-out", _("Log out of the current session"), () => {
+			var btn_logout = create_action_button ("注销登录", "system-log-out", _("Log out of the current session"), () => {
 				show_confirmation (ConfirmAction.LOGOUT);
 			});
 			grid.attach (btn_logout, 2, 0, 1, 1);
 
 			// Col 0, Row 1: Suspend (direct)
-			var btn_suspend = create_action_button (_("Suspend"), "system-suspend", _("Put computer into low-power sleep mode"), () => {
+			var btn_suspend = create_action_button ("睡眠", "system-suspend", _("Put computer into low-power sleep mode"), () => {
 				destroy ();
 				SessionDockItem.suspend ();
 			});
 			grid.attach (btn_suspend, 0, 1, 1, 1);
 
 			// Col 1, Row 1: Restart (asks confirmation)
-			var btn_restart = create_action_button (_("Restart"), "system-reboot", _("Reboot the operating system"), () => {
+			var btn_restart = create_action_button ("重启计算机", "system-reboot", _("Reboot the operating system"), () => {
 				show_confirmation (ConfirmAction.RESTART);
 			});
 			grid.attach (btn_restart, 1, 1, 1, 1);
 
 			// Col 2, Row 1: Shut Down (asks confirmation, Destructive styling)
-			var btn_shutdown = create_action_button (_("Shut Down"), "system-shutdown", _("Power off the computer"), () => {
+			var btn_shutdown = create_action_button ("关机", "system-shutdown", _("Power off the computer"), () => {
 				show_confirmation (ConfirmAction.SHUTDOWN);
 			}, true);
 			grid.attach (btn_shutdown, 2, 1, 1, 1);
@@ -205,7 +205,7 @@ namespace Plank
 			var bottom_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
 			bottom_box.halign = Gtk.Align.END;
 
-			actions_cancel_btn = new Gtk.Button.with_label (_("Cancel"));
+			actions_cancel_btn = new Gtk.Button.with_label ("取消");
 			actions_cancel_btn.set_can_default (true);
 			actions_cancel_btn.clicked.connect (() => {
 				destroy ();
@@ -250,7 +250,7 @@ namespace Plank
 			var confirm_btn_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 16);
 			confirm_btn_box.halign = Gtk.Align.CENTER;
 
-			confirm_cancel_btn = new Gtk.Button.with_label (_("Cancel"));
+			confirm_cancel_btn = new Gtk.Button.with_label ("取消");
 			confirm_cancel_btn.set_can_default (true);
 			confirm_cancel_btn.width_request = 110;
 			confirm_cancel_btn.clicked.connect (() => {
@@ -324,7 +324,7 @@ namespace Plank
 					confirm_icon.set_from_icon_name ("system-log-out", Gtk.IconSize.DIALOG);
 					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Log Out of Session?")));
 					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to log out of your current session?")));
-					confirm_action_btn.label = _("Log Out");
+					confirm_action_btn.label = "注销登录";
 					confirm_action_btn.get_style_context ().remove_class ("suggested-action");
 					confirm_action_btn.get_style_context ().add_class ("destructive-action");
 					break;
@@ -332,7 +332,7 @@ namespace Plank
 					confirm_icon.set_from_icon_name ("system-reboot", Gtk.IconSize.DIALOG);
 					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Restart System?")));
 					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to restart your computer? Unsaved changes will be lost.")));
-					confirm_action_btn.label = _("Restart");
+					confirm_action_btn.label = "重启计算机";
 					confirm_action_btn.get_style_context ().remove_class ("destructive-action");
 					confirm_action_btn.get_style_context ().add_class ("suggested-action");
 					break;
@@ -340,7 +340,7 @@ namespace Plank
 					confirm_icon.set_from_icon_name ("system-shutdown", Gtk.IconSize.DIALOG);
 					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Shut Down Computer?")));
 					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to turn off your computer? Unsaved changes will be lost.")));
-					confirm_action_btn.label = _("Shut Down");
+					confirm_action_btn.label = "关机";
 					confirm_action_btn.get_style_context ().remove_class ("suggested-action");
 					confirm_action_btn.get_style_context ().add_class ("destructive-action");
 					break;

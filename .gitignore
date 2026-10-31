@@ -1,4 +1,8 @@
 .vscode/
+.idea/
+build/
+build_rpm_workspace/
+*.rpm
 screenshot.png
 *~
 *.swp
@@ -10,4 +14,3 @@ lib/resources.c
 *DOWNSTREAM FORK BUGS & SOLUTIONS*
 AI_RULES.md
 AI_private/
-.idea/

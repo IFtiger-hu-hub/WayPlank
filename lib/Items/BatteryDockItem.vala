@@ -39,7 +39,7 @@ namespace Plank
 		
 		construct
 		{
-			Text = _("Battery");
+			Text = "电池";
 			Icon = "battery-full";
 			Button = PopupButton.RIGHT;
 			
@@ -135,11 +135,11 @@ namespace Plank
 			}
 
 			if (is_charging) {
-				Text = _("Battery: %d%% (Charging)").printf (percentage);
+				Text = "电池: %d%% (充电中)".printf (percentage);
 			} else if (is_full) {
-				Text = _("Battery: %d%% (Full)").printf (percentage);
+				Text = "电池: %d%% (已充满)".printf (percentage);
 			} else {
-				Text = _("Battery: %d%% (%s)").printf (percentage, status_desc);
+				Text = "电池: %d%% (%s)".printf (percentage, status_desc);
 			}
 
 			if (bat_dir_path == null) {
@@ -184,8 +184,7 @@ namespace Plank
 				string[] commands = {
 					"kcmshell6 powerdevilprofilesconfig",
 					"kcmshell5 powerdevilprofilesconfig",
-					"gnome-control-center power",
-					"xfce4-power-manager-settings"
+					"plasma-systemmonitor"
 				};
 				foreach (var cmd in commands) {
 					try {
@@ -208,7 +207,7 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var settings_item = create_menu_item (_("_Power Settings..."), "preferences-system-power", true);
+			var settings_item = create_menu_item ("电源管理设置(_P)...", "preferences-system-power", true);
 			settings_item.activate.connect (() => {
 				on_clicked (PopupButton.LEFT, 0, 0);
 			});
@@ -216,7 +215,7 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

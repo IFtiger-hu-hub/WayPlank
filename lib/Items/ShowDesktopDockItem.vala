@@ -35,7 +35,7 @@ namespace Plank
 		
 		construct
 		{
-			Text = _("Show Desktop");
+			Text = "显示桌面";
 			Icon = ICON_NAMES;
 			Button = PopupButton.RIGHT;
 		}
@@ -65,13 +65,13 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 			
-			var toggle_item = create_menu_item (_("_Show / Hide Desktop"), "user-desktop", true);
+			var toggle_item = create_menu_item ("显示 / 隐藏桌面(_S)", "user-desktop", true);
 			toggle_item.activate.connect (toggle_desktop);
 			items.add (toggle_item);
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

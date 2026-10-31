@@ -117,7 +117,9 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.ComboBoxText cb_window_click_behavior;
 		[GtkChild]
-		unowned Gtk.Switch sw_show_window_cards;
+		unowned Gtk.ComboBoxText cb_multi_window_behavior;
+		[GtkChild]
+		unowned Gtk.Switch sw_show_minimized_previews;
 		[GtkChild]
 		unowned Gtk.Switch sw_restore_minimized;
 		[GtkChild]
@@ -208,7 +210,7 @@ namespace Plank
 		construct
 		{
 			active_instance = this;
-			set_title (_("WayPlank Preferences"));
+			set_title ("KDE Dockbar 首选项");
 			set_role ("preferences");
 			configure_hide_mode_rows ();
 			set_decorated (true);
@@ -261,7 +263,7 @@ namespace Plank
 			actions.set_margin_top (8);
 			actions.set_margin_bottom (12);
 			actions.set_halign (Gtk.Align.CENTER);
-			var ok_button = new Gtk.Button.with_label (_("OK"));
+			var ok_button = new Gtk.Button.with_label ("确定");
 			ok_button.set_size_request (160, 36);
 			ok_button.get_style_context ().add_class (Gtk.STYLE_CLASS_SUGGESTED_ACTION);
 			ok_button.clicked.connect (() => hide ());
@@ -325,12 +327,6 @@ namespace Plank
 						var mode = (HideType) int.parse (id);
 						bool supported = WindowCapabilities.hide_mode_supported (mode);
 						cell.sensitive = supported;
-						if (cell is Gtk.CellRendererText && WindowControl.is_labwc () && !supported) {
-							string text = "";
-							model.get (iter, 0, out text);
-							if (!text.contains ("(Requires KWin)"))
-								((Gtk.CellRendererText) cell).text = text + " (Requires KWin)";
-						}
 					}
 				});
 			}
@@ -443,11 +439,14 @@ namespace Plank
 			case "WindowClickBehavior":
 				cb_window_click_behavior.active_id = prefs.WindowClickBehavior.to_string ();
 				break;
+			case "MultiWindowBehavior":
+				cb_multi_window_behavior.active_id = prefs.MultiWindowBehavior.to_string ();
+				break;
 			case "SystemMenuAccess":
 				update_system_menu_access_options ();
 				break;
-			case "ShowWindowCards":
-				sw_show_window_cards.set_active (prefs.ShowWindowCards);
+			case "ShowMinimizedPreviews":
+				sw_show_minimized_previews.set_active (prefs.ShowMinimizedPreviews);
 				break;
 			case "RestoreMinimizedWindows":
 				sw_restore_minimized.set_active (prefs.RestoreMinimizedWindows);
@@ -500,9 +499,9 @@ namespace Plank
 			bool is_user = ThemeManager.is_user_theme (current);
 			btn_del_theme.sensitive = is_user;
 			if (is_user) {
-				btn_del_theme.tooltip_text = _("Delete user theme '%s'").printf (current);
+				btn_del_theme.tooltip_text = "删除用户主题 '%s'".printf (current);
 			} else {
-				btn_del_theme.tooltip_text = _("System themes cannot be deleted");
+				btn_del_theme.tooltip_text = "系统主题无法删除";
 			}
 		}
 
@@ -512,15 +511,15 @@ namespace Plank
 			this.hide ();
 
 			var chooser = new Gtk.FileChooserNative (
-				_("Install WayPlank Theme"),
+				"安装 Dockbar 主题",
 				null,
 				Gtk.FileChooserAction.OPEN,
-				_("_Open"),
-				_("_Cancel")
+				"打开(_O)",
+				"取消(_C)"
 			);
 
 			var filter_archives = new Gtk.FileFilter ();
-			filter_archives.set_name (_("Theme Archives (*.zip, *.tar.gz, *.tar.xz, *.theme)"));
+			filter_archives.set_name ("主题压缩包 (*.zip, *.tar.gz, *.tar.xz, *.theme)");
 			filter_archives.add_pattern ("*.zip");
 			filter_archives.add_pattern ("*.ZIP");
 			filter_archives.add_pattern ("*.tar.gz");
@@ -533,7 +532,7 @@ namespace Plank
 			chooser.add_filter (filter_archives);
 
 			var filter_all = new Gtk.FileFilter ();
-			filter_all.set_name (_("All Files"));
+			filter_all.set_name ("所有文件");
 			filter_all.add_pattern ("*");
 			chooser.add_filter (filter_all);
 
@@ -559,7 +558,7 @@ namespace Plank
 					Gtk.DialogFlags.MODAL,
 					Gtk.MessageType.WARNING,
 					Gtk.ButtonsType.OK,
-					_("No valid WayPlank/Plank theme found in the selected file.\nA valid theme must contain a 'dock.theme' configuration file.")
+					"所选文件中未找到有效的 Dock 主题。\n有效的主题必须包含 'dock.theme' 配置文件。"
 				);
 				msg.run ();
 				msg.destroy ();
@@ -578,7 +577,7 @@ namespace Plank
 						Gtk.DialogFlags.MODAL,
 						Gtk.MessageType.QUESTION,
 						Gtk.ButtonsType.YES_NO,
-						_("A theme named '%s' already exists.\nDo you want to replace it?").printf (t.name)
+						"名为 '%s' 的主题已存在。\n是否要替换？".printf (t.name)
 					);
 					int res = confirm.run ();
 					confirm.destroy ();
@@ -594,16 +593,16 @@ namespace Plank
 			} else {
 				// Multiple themes found in archive: show selection dialog
 				var select_dialog = new Gtk.Dialog.with_buttons (
-					_("Install Themes"),
+					"安装主题",
 					this,
 					Gtk.DialogFlags.MODAL,
-					_("_Cancel"), Gtk.ResponseType.CANCEL,
-					_("_Install"), Gtk.ResponseType.ACCEPT
+					"取消(_C)", Gtk.ResponseType.CANCEL,
+					"安装(_I)", Gtk.ResponseType.ACCEPT
 				);
 				select_dialog.set_default_size (360, 260);
 
 				var content_area = select_dialog.get_content_area ();
-				var label = new Gtk.Label (_("The archive contains multiple themes. Select which ones to install:"));
+				var label = new Gtk.Label ("压缩包中包含多个主题，请选择要安装的主题：");
 				label.set_halign (Gtk.Align.START);
 				label.margin = 12;
 				content_area.pack_start (label, false, false, 0);
@@ -661,7 +660,7 @@ namespace Plank
 				Gtk.DialogFlags.MODAL,
 				Gtk.MessageType.QUESTION,
 				Gtk.ButtonsType.YES_NO,
-				_("Are you sure you want to delete the theme '%s'?\nThis will remove it from ~/.local/share/wayplank/themes/.").printf (current_theme)
+				"确定要删除主题 '%s' 吗？\n此操作将从主题目录中将其删除。".printf (current_theme)
 			);
 
 			int res = confirm.run ();
@@ -872,9 +871,14 @@ namespace Plank
 			prefs.WindowClickBehavior = int.parse (widget.get_active_id ());
 		}
 
-		void show_window_cards_toggled (GLib.Object widget, ParamSpec param)
+		void multi_window_behavior_changed (Gtk.ComboBox widget)
 		{
-			prefs.ShowWindowCards = ((Gtk.Switch) widget).get_active ();
+			prefs.MultiWindowBehavior = int.parse (widget.get_active_id ());
+		}
+
+		void show_minimized_previews_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.ShowMinimizedPreviews = ((Gtk.Switch) widget).get_active ();
 		}
 
 		void restore_minimized_toggled (GLib.Object widget, ParamSpec param)
@@ -930,11 +934,11 @@ namespace Plank
 
 			cb_system_menu_access.remove_all ();
 			if (prefs.CategorizeItems) {
-				cb_system_menu_access.append ("1", _("Docklets Only"));
-				cb_system_menu_access.append ("2", _("Docklets Only (with fallback)"));
+				cb_system_menu_access.append ("1", "仅小组件");
+				cb_system_menu_access.append ("2", "仅小组件（带回退）");
 			}
-			cb_system_menu_access.append ("3", _("All Icons (integrated)"));
-			cb_system_menu_access.append ("4", _("Dedicated Icon (on dock)"));
+			cb_system_menu_access.append ("3", "所有图标（内置）");
+			cb_system_menu_access.append ("4", "独立图标（在 Dock 上）");
 
 			cb_system_menu_access.active_id = prefs.SystemMenuAccess.clamp (1, 4).to_string ();
 			cb_system_menu_access.changed.connect (system_menu_access_changed);
@@ -1085,7 +1089,7 @@ namespace Plank
 				s_iconsize.get_style_context ().remove_class ("slider-exceeded");
 				if (l_iconsize_hint != null) {
 					l_iconsize_hint.set_markup ("<small><span alpha='75%'>%s</span></small>".printf (
-						_("Scroll on Overflow active: %dpx preserved").printf (current_val)));
+						"超出滚动已生效：保持 %dpx".printf (current_val)));
 				}
 
 				string tt = _("Target icon size: %dpx.\n'Scroll on Overflow' is enabled in Behaviour: icons will never shrink, and the dock smoothly scrolls with mouse wheel when items exceed screen space.").printf (current_val);
@@ -1099,7 +1103,7 @@ namespace Plank
 				if (l_iconsize_hint != null) {
 					l_iconsize_hint.set_markup (
 						"<small><span foreground='#e01b24'><b>%s</b></span></small>".printf (
-							_("⚠️ Limited to %dpx by screen space (auto-shrunk)").printf (fit_size)));
+							"⚠️ 受屏幕宽度限制缩减为 %dpx".printf (fit_size)));
 				}
 				string tt = _("⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\nIcons will auto-shrink to fit on screen.\nTo unlock larger sizes without shrinking, enable 'Scroll on Overflow' in Behaviour.").printf (current_val, fit_size);
 				s_iconsize.tooltip_text = tt;
@@ -1109,7 +1113,7 @@ namespace Plank
 				if (l_iconsize_hint != null) {
 					l_iconsize_hint.set_markup (
 						"<small><span alpha='75%'>%s</span></small>".printf (
-							_("Fits on screen without shrinking (limit: %dpx)").printf (fit_size)));
+							"完全容纳在屏幕内无需缩减（上限: %dpx）".printf (fit_size)));
 				}
 				string tt = _("Target icon size: %dpx.\nFits comfortably on screen (screen capacity limit: %dpx before auto-shrinking activates).").printf (current_val, fit_size);
 				s_iconsize.tooltip_text = tt;
@@ -1195,7 +1199,8 @@ namespace Plank
 			btn_reorder_free_items.clicked.connect (reorder_free_items_clicked);
 			sw_accordion_docklets.notify["active"].connect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].connect (accordion_click_to_expand_toggled);
-			sw_show_window_cards.notify["active"].connect (show_window_cards_toggled);
+			cb_multi_window_behavior.changed.connect (multi_window_behavior_changed);
+			sw_show_minimized_previews.notify["active"].connect (show_minimized_previews_toggled);
 			sw_restore_minimized.notify["active"].connect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].connect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].connect (show_attention_indicators_toggled);
@@ -1260,7 +1265,8 @@ namespace Plank
 			btn_reorder_free_items.clicked.disconnect (reorder_free_items_clicked);
 			sw_accordion_docklets.notify["active"].disconnect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].disconnect (accordion_click_to_expand_toggled);
-			sw_show_window_cards.notify["active"].disconnect (show_window_cards_toggled);
+			cb_multi_window_behavior.changed.disconnect (multi_window_behavior_changed);
+			sw_show_minimized_previews.notify["active"].disconnect (show_minimized_previews_toggled);
 			sw_restore_minimized.notify["active"].disconnect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].disconnect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].disconnect (show_attention_indicators_toggled);
@@ -1374,7 +1380,7 @@ namespace Plank
 			sw_primary_display.set_active (prefs.Monitor == "");
 			sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);
 			sw_workspace_only.sensitive = false;
-			sw_workspace_only.tooltip_text = _("Workspace filtering is not yet supported under Wayland");
+			sw_workspace_only.tooltip_text = "Wayland 环境下暂不支持工作区过滤";
 			sw_autostart.set_active (FileUtils.test (
 				Path.build_filename (Environment.get_user_config_dir (), "autostart", "wayplank.desktop"),
 				FileTest.IS_REGULAR));
@@ -1384,7 +1390,7 @@ namespace Plank
 			sw_lock_items.set_active (prefs.LockItems);
 			sw_pressure_reveal.set_active (prefs.PressureReveal);
 			sw_pressure_reveal.sensitive = (prefs.HideMode != HideType.NONE);
-			sw_pressure_reveal.tooltip_text = _("Requires touching the physical screen edge (1px) to reveal the dock, preventing accidental triggers; when disabled, reveals 10px before the edge for fluid unhiding");
+			sw_pressure_reveal.tooltip_text = "需要光标触碰屏幕物理边缘(1px)以唤出 Dock，防止误触；禁用时距离边缘10px即可流畅唤出";
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
 			sw_categorize_items.set_active (prefs.CategorizeItems);
 			sw_accordion_docklets.set_active (prefs.AccordionDocklets);
@@ -1401,7 +1407,8 @@ namespace Plank
 		void init_window_tab ()
 		{
 			cb_window_click_behavior.active_id = prefs.WindowClickBehavior.to_string ();
-			sw_show_window_cards.set_active (prefs.ShowWindowCards);
+			cb_multi_window_behavior.active_id = prefs.MultiWindowBehavior.to_string ();
+			sw_show_minimized_previews.set_active (prefs.ShowMinimizedPreviews);
 			sw_restore_minimized.set_active (prefs.RestoreMinimizedWindows);
 			sw_show_running_indicators.set_active (prefs.ShowRunningIndicators);
 			sw_show_attention_indicators.set_active (prefs.ShowAttentionIndicators);

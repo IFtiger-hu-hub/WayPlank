@@ -45,7 +45,7 @@ namespace Plank
 		
 		construct
 		{
-			Text = _("System Monitor");
+			Text = "系统监视器";
 			Icon = "utilities-system-monitor";
 			Button = PopupButton.RIGHT;
 			
@@ -63,7 +63,7 @@ namespace Plank
 			if (timer_id != 0)
 				return;
 			
-			timer_id = Timeout.add (1500, on_timer_tick);
+			timer_id = Timeout.add (3000, on_timer_tick);
 		}
 		
 		void stop_timer ()
@@ -197,12 +197,16 @@ namespace Plank
 			BadgeText = "%d%%".printf (system_pressure);
 			CountVisible = true;
 
-			Text = _("System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Disk: %d%%").printf (
+			Text = "系统: %d%% | CPU: %d%% | 内存: %d%% (%.1f / %.1f GB) | 磁盘: %d%%".printf (
 				system_pressure, cpu_pct, ram_pct, ram_used_gb, ram_total_gb, io_pct);
 		}
 		
 		bool on_timer_tick ()
 		{
+			unowned DockController? dock = get_dock ();
+			if (dock != null && dock.hide_manager.Hidden)
+				return true;
+			
 			update_stats ();
 			reset_icon_buffer ();
 			return true;
@@ -211,7 +215,7 @@ namespace Plank
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (button == PopupButton.LEFT) {
-				string[] monitors = { "plasma-systemmonitor", "gnome-system-monitor", "ksysguard" };
+				string[] monitors = { "plasma-systemmonitor", "ksysguard" };
 				foreach (var mon in monitors) {
 					try {
 						Process.spawn_command_line_async (mon);
@@ -233,7 +237,7 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var mon_item = create_menu_item (_("_System Monitor..."), "utilities-system-monitor", true);
+			var mon_item = create_menu_item ("打开系统监视器(_S)...", "utilities-system-monitor", true);
 			mon_item.activate.connect (() => {
 				on_clicked (PopupButton.LEFT, 0, 0);
 			});
@@ -241,7 +245,7 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

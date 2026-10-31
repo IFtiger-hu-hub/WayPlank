@@ -50,12 +50,25 @@ namespace Plank
 
 		Gee.ArrayList<WindowInfo> cached_windows;
 		Gee.HashMap<string, Gee.ArrayList<WindowInfo>> matches_cache;
+		uint refresh_timer_id = 0U;
+		bool refresh_pending = false;
 
 		void refresh_windows ()
 		{
-			cached_windows = WindowControl.get_windows ();
-			matches_cache.clear ();
-			windows_refreshed ();
+			// Coalesce compositor ticks — prevents dock-wide animated_draw storms
+			refresh_pending = true;
+			if (refresh_timer_id > 0U)
+				return;
+			refresh_timer_id = Timeout.add (100, () => {
+				refresh_timer_id = 0U;
+				if (!refresh_pending)
+					return false;
+				refresh_pending = false;
+				cached_windows = WindowControl.get_windows ();
+				matches_cache.clear ();
+				windows_refreshed ();
+				return false;
+			});
 		}
 		
 		static string normalize_id (string id)

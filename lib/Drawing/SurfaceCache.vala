@@ -73,7 +73,8 @@ namespace Plank
 	 */
 	public class SurfaceCache<G> : GLib.Object
 	{
-		const int64 MAX_CACHE_AGE = 5 * 60 * 1000 * 1000;
+		const int64 MAX_CACHE_AGE = 1 * 60 * 1000 * 1000;
+		const int MAX_ENTRIES = 8;
 		const int64 MIN_DRAWING_TIME = 10 * 1000;
 		const int64 INSANE_DRAWING_TIME = 30 * 1000;
 		const int64 ACCESS_REWARD = 500 * 1000;
@@ -138,7 +139,7 @@ namespace Plank
 			last_info = null;
 			
 			//TODO Adaptive delay depending on the access rate
-			clean_up_timer_id = Gdk.threads_add_timeout (5 * 60 * 1000, () => {
+			clean_up_timer_id = Gdk.threads_add_timeout (1 * 60 * 1000, () => {
 				clean_up ();
 				return true;
 			});
@@ -204,6 +205,8 @@ namespace Plank
 			
 			cache_map.set (current_info, surface);
 			infos.add (current_info);
+			while (cache_map.size > MAX_ENTRIES)
+				evict_oldest_unlocked ();
 			
 			cache_mutex.unlock ();
 			
@@ -297,6 +300,28 @@ namespace Plank
 			cache_mutex.unlock ();
 		}
 		
+		void evict_oldest_unlocked ()
+		{
+			if (cache_map.size == 0)
+				return;
+			
+			SurfaceInfo? oldest = null;
+			int64 oldest_time = int64.MAX;
+			foreach (var info in cache_map.keys) {
+				if (info.last_access_time < oldest_time) {
+					oldest_time = info.last_access_time;
+					oldest = info;
+				}
+			}
+			if (oldest == null)
+				return;
+			
+			if (last_info == oldest)
+				last_info = null;
+			infos.remove (oldest);
+			cache_map.unset (oldest);
+		}
+		
 		void clean_up ()
 		{
 			cache_mutex.lock ();
@@ -327,6 +352,9 @@ namespace Plank
 				cache_it.unset ();
 				size_current--;
 			}
+			
+			while (cache_map.size > MAX_ENTRIES)
+				evict_oldest_unlocked ();
 			
 			last_info = null;
 			

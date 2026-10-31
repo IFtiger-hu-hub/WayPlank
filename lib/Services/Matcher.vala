@@ -252,8 +252,8 @@ namespace Plank
 				}
 				if (parts.length > 0) {
 					var executable = parts[0].replace ("\"", "").replace ("'", "");
-					if (executable != "") {
-						candidates.add (File.new_for_path (executable).get_basename ().down ());
+					if (executable != null && executable != "") {
+						candidates.add (Path.get_basename (executable).down ());
 						add_script_candidates (executable, candidates, 0);
 					}
 				}
@@ -261,12 +261,14 @@ namespace Plank
 				string? specific_arg = null;
 				for (int i = 1; i < parts.length; i++) {
 					var p = parts[i].strip ().replace ("\"", "").replace ("'", "");
+					if (p == null || p == "")
+						continue;
 					if (p.has_prefix ("--app=")) {
 						specific_arg = p.slice (6, p.length).down ();
 						break;
 					}
-					if (p != "" && !p.has_prefix ("-") && !p.has_prefix ("%")) {
-						var basename = File.new_for_path (p).get_basename ().down ();
+					if (!p.has_prefix ("-") && !p.has_prefix ("%")) {
+						var basename = Path.get_basename (p).down ();
 						if (basename != "" && basename != ".") {
 							specific_arg = basename;
 							break;
@@ -291,7 +293,7 @@ namespace Plank
 					GLib.FileUtils.get_contents ("/proc/%s/comm".printf (name), out comm);
 					GLib.FileUtils.get_contents ("/proc/%s/cmdline".printf (name), out cmdline);
 					comm = comm.strip ().down ();
-					var cmdline_down = cmdline.replace ("\0", " ").down ();
+					var cmdline_down = cmdline.replace ("\0", " ").strip ().down ();
 
 					if (specific_arg != null && specific_arg != "") {
 						if (cmdline_down.contains (specific_arg))
@@ -299,8 +301,12 @@ namespace Plank
 						continue;
 					}
 
-					var argv0 = cmdline_down.split (" ")[0];
-					var bin_name = File.new_for_path (argv0).get_basename ();
+					/* Empty /proc cmdline → g_strsplit("",…) yields length-0; [0] is NULL
+					 * and File.new_for_path(NULL) spam CRITICAL at dock startup. */
+					var argv_parts = cmdline_down.split (" ");
+					string bin_name = "";
+					if (argv_parts.length > 0 && argv_parts[0] != null && argv_parts[0] != "")
+						bin_name = Path.get_basename (argv_parts[0]);
 					foreach (var candidate in candidates) {
 						if (candidate != "" && (comm == candidate || bin_name == candidate || (comm.length >= 15 && candidate.has_prefix (comm))))
 							return true;
@@ -330,13 +336,17 @@ namespace Plank
 			var script_dir = File.new_for_path (script_path).get_parent ();
 			foreach (var token in script.split (" ")) {
 				var path = token.strip ().replace ("\"", "").replace ("'", "").replace ("\n", "");
-				if (path.has_prefix ("$HERE/"))
-					path = script_dir.get_child (path.substring (6)).get_path ();
+				if (path.has_prefix ("$HERE/")) {
+					var resolved = script_dir.get_child (path.substring (6)).get_path ();
+					if (resolved == null || resolved == "")
+						continue;
+					path = resolved;
+				}
 				if (!path.has_prefix ("/"))
 					continue;
 
-				var candidate = File.new_for_path (path).get_basename ().down ();
-				if (candidate == null || candidate == "")
+				var candidate = Path.get_basename (path).down ();
+				if (candidate == "")
 					continue;
 
 				candidates.add (candidate);

@@ -58,6 +58,7 @@ namespace Plank
 			
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
 			monitor_geo = get_effective_monitor_geometry (monitor);
+			current_monitor = monitor;
 			
 			screen_is_composited = screen.is_composited ();
 		}
@@ -252,20 +253,7 @@ namespace Plank
 			if (monitor == null)
 				return Gdk.Rectangle ();
 
-			if (GtkLayerShell.is_supported ())
-				return monitor.get_geometry ();
-
-			var geom = monitor.get_geometry ();
-			Gdk.Rectangle wa;
-			if (WindowControl.get_workarea_for_geometry (geom, out wa)) {
-				message ("Wayplank: using Mutter workarea %d,%d %dx%d (monitor geom was %d,%d %dx%d)",
-					wa.x, wa.y, wa.width, wa.height, geom.x, geom.y, geom.width, geom.height);
-				return wa;
-			}
-
-			message ("Wayplank: fallback to monitor.get_workarea() %d,%d %dx%d",
-				monitor.get_workarea ().x, monitor.get_workarea ().y, monitor.get_workarea ().width, monitor.get_workarea ().height);
-			return monitor.get_workarea ();
+			return monitor.get_geometry ();
 		}
 
 		uint screen_topology_timer_id = 0U;
@@ -714,13 +702,6 @@ namespace Plank
 			}
 			
 			if (!controller.hide_manager.Hidden || controller.hide_manager.unhide_pending ()) {
-				if (is_horizontal_dock ()) {
-					cursor_region.y = 0;
-					cursor_region.height = DockHeight;
-				} else {
-					cursor_region.x = 0;
-					cursor_region.width = DockWidth;
-				}
 				return cursor_region;
 			}
 			
@@ -1314,36 +1295,11 @@ namespace Plank
 
 		public void get_hover_position (DockElement item, out int x, out int y)
 		{
-			// =========================================================================
-			// 1. NATIVE LAYER SHELL COMPOSITORS: KWIN (PLASMA) & LABWC (WLROOTS)
-			// =========================================================================
-			if (GtkLayerShell.is_supported ()) {
-				unowned DockItem? dock_item = (item as DockItem);
-				if (dock_item != null) {
-					var val = get_draw_value_for_item (dock_item);
-					x = (int) Math.round (val.center.x);
-					y = (int) Math.round (val.center.y);
-				} else {
-					var rect = get_hover_region_for_element (item);
-					x = rect.x + rect.width / 2;
-					y = rect.y + rect.height / 2;
-				}
-				return;
-			}
-
-			// =========================================================================
-			// 2. NON-LAYER SHELL COMPOSITOR: GNOME SHELL / MUTTER ONLY
-			// =========================================================================
 			unowned DockItem? dock_item = (item as DockItem);
 			if (dock_item != null) {
 				var val = get_draw_value_for_item (dock_item);
-				x = (int) Math.round (val.static_center.x > 0 ? val.static_center.x : val.center.x);
-				if (is_horizontal_dock ()) {
-					y = (int) Math.round (val.center.y);
-				} else {
-					int half_icon = (int) Math.round (IconSize / 2.0);
-					y = (int) Math.round (val.static_center.y > 0 ? val.static_center.y : val.center.y) + half_icon;
-				}
+				x = (int) Math.round (val.center.x);
+				y = (int) Math.round (val.center.y);
 			} else {
 				var rect = get_hover_region_for_element (item);
 				x = rect.x + rect.width / 2;

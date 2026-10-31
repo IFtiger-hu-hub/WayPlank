@@ -395,7 +395,7 @@ namespace Plank
 		public override string get_drop_text ()
 		{
 			if (is_directory ())
-				return _("Drop to copy into %s").printf (Text);
+				return "拖放到此处以复制到 %s".printf (Text);
 			return base.get_drop_text ();
 		}
 
@@ -523,7 +523,7 @@ namespace Plank
 			populate_items_from_dir (OwnedFile, items, 0);
 
 			if (items.size == 0) {
-				var empty_item = new Gtk.MenuItem.with_label (_("Empty Folder"));
+				var empty_item = new Gtk.MenuItem.with_label ("空文件夹");
 				empty_item.sensitive = false;
 				items.add (empty_item);
 			}
@@ -538,19 +538,19 @@ namespace Plank
 			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
 			if (default_provider != null
 				&& !default_provider.Prefs.LockItems) {
-				var delete_item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
+				var delete_item = new Gtk.CheckMenuItem.with_mnemonic ("固定在 Dock 栏(_K)");
 				delete_item.active = true;
 				delete_item.activate.connect (() => delete ());
 				items.add (delete_item);
 			}
 
-			var item = create_menu_item (_("_Open in File Browser"), "gtk-open");
+			var item = create_menu_item ("在文件管理器中打开(_O)", "gtk-open");
 			item.activate.connect (() => {
 				launch ();
 			});
 			items.add (item);
 
-			var icon_item = create_menu_item (_("Change _Icon..."), "preferences-desktop-theme");
+			var icon_item = create_menu_item ("更换图标(_I)...", "preferences-desktop-theme");
 			icon_item.activate.connect (() => {
 				IconChooserDialog.show_for_folder (this);
 			});
@@ -612,7 +612,7 @@ namespace Plank
 							populate_items_from_dir (child, sub_items, depth + 1, visited_set);
 
 							if (sub_items.size == 0) {
-								var empty_child = new Gtk.MenuItem.with_label (_("Empty"));
+								var empty_child = new Gtk.MenuItem.with_label ("空");
 								empty_child.sensitive = false;
 								submenu.append (empty_child);
 							} else {
@@ -676,17 +676,17 @@ namespace Plank
 			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
 			if (default_provider != null
 				&& !default_provider.Prefs.LockItems) {
-				var delete_item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
+				var delete_item = new Gtk.CheckMenuItem.with_mnemonic ("固定在 Dock 栏(_K)");
 				delete_item.active = true;
 				delete_item.activate.connect (() => delete ());
 				items.add (delete_item);
 			}
 			
-			var item = create_menu_item (_("_Open"), "gtk-open");
+			var item = create_menu_item ("打开(_O)", "gtk-open");
 			item.activate.connect (launch);
 			items.add (item);
 			
-			item = create_menu_item (_("Open Containing _Folder"), "folder");
+			item = create_menu_item ("打开所在文件夹(_F)", "folder");
 			item.activate.connect (() => {
 				System.get_default ().open (OwnedFile.get_parent ());
 				ClickedAnimation = AnimationType.BOUNCE;
@@ -694,7 +694,7 @@ namespace Plank
 			});
 			items.add (item);
 
-			var icon_item = create_menu_item (_("Change _Icon..."), "preferences-desktop-theme");
+			var icon_item = create_menu_item ("更换图标(_I)...", "preferences-desktop-theme");
 			icon_item.activate.connect (() => {
 				IconChooserDialog.show_for_folder (this);
 			});

@@ -68,36 +68,7 @@ namespace Plank
 		
 		public static bool hide_mode_supported (HideType mode)
 		{
-			if (mode == HideType.NONE || mode == HideType.AUTO)
-				return true;
-			
-			if (WindowControl.is_kwin ()) {
-				return mode == HideType.INTELLIGENT
-					|| mode == HideType.DODGE_MAXIMIZED
-					|| mode == HideType.WINDOW_DODGE
-					|| mode == HideType.DODGE_ACTIVE;
-			}
-			
-			if (WindowControl.is_labwc ()) {
-				return mode == HideType.DODGE_MAXIMIZED;
-			}
-
-			if (WindowControl.is_mutter ()) {
-				return mode == HideType.INTELLIGENT
-					|| mode == HideType.DODGE_MAXIMIZED
-					|| mode == HideType.WINDOW_DODGE
-					|| mode == HideType.DODGE_ACTIVE;
-			}
-
-			if (environment_is_session_desktop (XdgSessionDesktop.KDE)
-				&& environment_is_session_type (XdgSessionType.WAYLAND)) {
-				return mode == HideType.INTELLIGENT
-					|| mode == HideType.DODGE_MAXIMIZED
-					|| mode == HideType.WINDOW_DODGE
-					|| mode == HideType.DODGE_ACTIVE;
-			}
-			
-			return mode == HideType.DODGE_MAXIMIZED;
+			return true;
 		}
 	}
 }

@@ -1,4 +1,0 @@
-Drag this text to wayplank to test the uri opening
-
-https://github.com/sergiomelas/WayPlank
-

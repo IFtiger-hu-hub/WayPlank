@@ -44,7 +44,7 @@ namespace Plank
 		construct
 		{
 			trash_file = File.new_for_uri (TRASH_URI);
-			Text = _("Trash");
+			Text = "废纸篓";
 			Icon = ICON_EMPTY;
 			Button = PopupButton.RIGHT;
 			
@@ -170,13 +170,13 @@ namespace Plank
 			
 			if (trash_count == 0) {
 				Icon = ICON_EMPTY;
-				Text = _("Trash (Empty)");
+				Text = "废纸篓 (空)";
 			} else if (trash_count == 1) {
 				Icon = ICON_FULL;
-				Text = _("Trash (1 item)");
+				Text = "废纸篓 (1 项)";
 			} else {
 				Icon = ICON_FULL;
-				Text = _("Trash (%u items)").printf (trash_count);
+				Text = "废纸篓 (%u 项)".printf (trash_count);
 			}
 			
 			reset_icon_buffer ();
@@ -381,18 +381,18 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 			
-			var open_item = create_menu_item (_("_Open Trash"), "document-open", true);
+			var open_item = create_menu_item ("打开废纸篓(_O)", "document-open", true);
 			open_item.activate.connect (open_trash);
 			items.add (open_item);
 			
-			var empty_item = create_menu_item (_("_Empty Trash"), "edit-clear", true);
+			var empty_item = create_menu_item ("清空废纸篓(_E)", "edit-clear", true);
 			empty_item.sensitive = (trash_count > 0);
 			empty_item.activate.connect (empty_trash);
 			items.add (empty_item);
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

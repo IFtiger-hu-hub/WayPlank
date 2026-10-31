@@ -71,6 +71,20 @@ namespace Plank
 		 */
 		public void open_uri (string uri)
 		{
+			// 1. 优先使用 KDE 原生 kstart 隔离启动，由 KDE 为应用分配专属 cgroup 服务
+			try {
+				string[] argv = { "kstart", "--", "xdg-open", uri };
+				Process.spawn_async (null, argv, null, SpawnFlags.SEARCH_PATH, null, null);
+				return;
+			} catch {}
+
+			// 2. systemd-run 回退
+			try {
+				string[] argv = { "systemd-run", "--user", "--slice=app.slice", "xdg-open", uri };
+				Process.spawn_async (null, argv, null, SpawnFlags.SEARCH_PATH, null, null);
+				return;
+			} catch {}
+
 			try {
 				if (!AppInfo.launch_default_for_uri (uri, null)) {
 					AppInfo.launch_default_for_uri (uri, context);
@@ -97,23 +111,7 @@ namespace Plank
 		{
 			if (file == null)
 				return;
-			var uri = file.get_uri ();
-			try {
-				if (!AppInfo.launch_default_for_uri (uri, null)) {
-					AppInfo.launch_default_for_uri (uri, context);
-				}
-			} catch (Error e) {
-				try {
-					AppInfo.launch_default_for_uri (uri, context);
-				} catch (Error e2) {
-					try {
-						var path = file.get_path ();
-						Process.spawn_async (null, { "xdg-open", path != null ? path : uri }, null, SpawnFlags.SEARCH_PATH, null, null);
-					} catch (Error e3) {
-						critical ("Failed to open file '%s': %s", uri, e3.message);
-					}
-				}
-			}
+			open_uri (file.get_uri ());
 		}
 		
 		/**
@@ -166,67 +164,8 @@ namespace Plank
 			if (launcher_path == null)
 				return;
 
-			try {
-				var info = new DesktopAppInfo.from_filename (launcher_path);
-				if (info == null) {
-					critical ("Unable to use application '%s' for execution.", launcher_path);
-					return;
-				}
-
-				if (uris.length == 0) {
-					info.launch (null, context);
-					return;
-				}
-
-				var uri_list = new GLib.List<string> ();
-				var file_list = new GLib.List<File> ();
-				bool has_remote_uri = false;
-
-				foreach (var u in uris) {
-					uri_list.append (u);
-					file_list.append (File.new_for_uri (u));
-					if (!u.has_prefix ("file://")) {
-						has_remote_uri = true;
-					}
-				}
-
-				Logger.verbose ("Launch '%s' with %d URIs", info.get_name (), (int) uris.length);
-
-				// 1. If remote URIs exist (e.g. http://, https://), launch with launch_uris
-				if (has_remote_uri) {
-					try {
-						info.launch_uris (uri_list, context);
-						return;
-					} catch (Error e) {
-						warning ("Failed to launch '%s' with remote URIs: %s", info.get_name (), e.message);
-					}
-				}
-
-				// 2. If app supports files:
-				if (info.supports_files ()) {
-					try {
-						info.launch (file_list, context);
-						return;
-					} catch (Error e) {
-						warning ("Failed to launch '%s' with files: %s", info.get_name (), e.message);
-					}
-				}
-
-				// 3. Fallback: try launch_uris, then basic launch
-				try {
-					info.launch_uris (uri_list, context);
-					return;
-				} catch (Error e) {
-					warning ("launch_uris failed for '%s', falling back to basic launch: %s", info.get_name (), e.message);
-					try {
-						info.launch (null, context);
-					} catch (Error err) {
-						warning ("Failed basic launch for '%s': %s", info.get_name (), err.message);
-					}
-				}
-			} catch (Error e) {
-				critical ("%s: %s", launcher_path, e.message);
-			}
+			// 优先使用 KDE 原生 kstart 隔离启动，由 KDE 为应用分配专属 cgroup 服务
+			launch_desktop_isolated (launcher_path, uris);
 		}
 
 		/**
@@ -373,6 +312,165 @@ namespace Plank
 
 			return null;
 		}
+
+		/**
+		 * Cleans standard Desktop Entry argument placeholders like %u, %U, %f, %F from Exec command.
+		 */
+		public static string sanitize_exec_command (string exec)
+		{
+			string result = exec;
+			string[] placeholders = { "%u", "%U", "%f", "%F", "%i", "%c", "%k", "%d", "%D", "%n", "%N", "%v", "%m" };
+			foreach (var ph in placeholders) {
+				result = result.replace (ph, "");
+			}
+			return result.strip ();
+		}
+
+		/**
+		 * Launches an isolated desktop application using KDE Plasma's native kstart launcher,
+		 * completely decoupling the spawned process into its own KDE systemd service/slice
+		 * so that KDE System Monitor never accumulates child application memory into Dockbar.
+		 */
+		public static void launch_desktop_isolated (string launcher_path, string[] extra_args)
+		{
+			string app_id = Path.get_basename (launcher_path);
+			if (app_id.has_suffix (".desktop"))
+				app_id = app_id.slice (0, app_id.length - 8);
+
+			// When opening files/URIs, prefer gio launch under kstart so %F/%U substitution is reliable.
+			if (extra_args != null && extra_args.length > 0) {
+				try {
+					var gio_args = new Gee.ArrayList<string> ();
+					gio_args.add ("kstart");
+					gio_args.add ("--");
+					gio_args.add ("gio");
+					gio_args.add ("launch");
+					gio_args.add (launcher_path);
+					foreach (var arg in extra_args)
+						gio_args.add (arg);
+					Process.spawn_async (null, gio_args.to_array (), null, SpawnFlags.SEARCH_PATH, null, null);
+					return;
+				} catch (Error e) {
+					warning ("kstart gio launch failed for '%s': %s", launcher_path, e.message);
+				}
+			}
+
+			// 1. 优先使用 KDE 原生 kstart --application 启动（Plasma 6 官方隔离网关）
+			try {
+				var kstart_args = new Gee.ArrayList<string> ();
+				kstart_args.add ("kstart");
+				kstart_args.add ("--application");
+				kstart_args.add (app_id);
+				foreach (var arg in extra_args) {
+					kstart_args.add ("--url");
+					kstart_args.add (arg);
+				}
+				Process.spawn_async (null, kstart_args.to_array (), null, SpawnFlags.SEARCH_PATH, null, null);
+				return;
+			} catch (Error e) {
+				warning ("kstart --application failed for '%s': %s", app_id, e.message);
+			}
+
+			// 2. 使用 kstart -- gtk-launch 启动
+			try {
+				var gtk_args = new Gee.ArrayList<string> ();
+				gtk_args.add ("kstart");
+				gtk_args.add ("--");
+				gtk_args.add ("gtk-launch");
+				gtk_args.add (app_id);
+				foreach (var arg in extra_args) {
+					gtk_args.add (arg);
+				}
+				Process.spawn_async (null, gtk_args.to_array (), null, SpawnFlags.SEARCH_PATH, null, null);
+				return;
+			} catch (Error e) {
+				warning ("kstart gtk-launch failed for '%s': %s", app_id, e.message);
+			}
+
+			// 3. 回退到 systemd-run gio launch
+			try {
+				var sys_args = new Gee.ArrayList<string> ();
+				sys_args.add ("systemd-run");
+				sys_args.add ("--user");
+				sys_args.add ("--slice=app.slice");
+				sys_args.add ("gio");
+				sys_args.add ("launch");
+				sys_args.add (launcher_path);
+				foreach (var arg in extra_args) {
+					sys_args.add (arg);
+				}
+				Process.spawn_async (null, sys_args.to_array (), null, SpawnFlags.SEARCH_PATH, null, null);
+				return;
+			} catch (Error e) {
+				warning ("systemd-run gio launch failed for '%s': %s", launcher_path, e.message);
+			}
+
+			// 4. Last resort: DesktopAppInfo.launch_uris (may nest under dock cgroup)
+			try {
+				var info = new DesktopAppInfo.from_filename (launcher_path);
+				if (info == null) {
+					critical ("Unable to use application '%s' for execution.", launcher_path);
+					return;
+				}
+				if (extra_args == null || extra_args.length == 0) {
+					info.launch (null, null);
+					return;
+				}
+				var uri_list = new GLib.List<string> ();
+				foreach (var u in extra_args)
+					uri_list.append (u);
+				info.launch_uris (uri_list, null);
+			} catch (Error e) {
+				critical ("Failed to launch '%s': %s", launcher_path, e.message);
+			}
+		}
+
+		/**
+		 * Launches an arbitrary shell/app command isolated in a new systemd scope.
+		 */
+		public void launch_command (string cmd)
+		{
+			try {
+				string[] argv = { "kstart", "--", "sh", "-c", "exec " + cmd };
+				Process.spawn_async (null, argv, null, SpawnFlags.SEARCH_PATH, null, null);
+				return;
+			} catch {}
+
+			try {
+				string[] argv = { "systemd-run", "--user", "--slice=app.slice", "sh", "-c", "exec " + cmd };
+				Process.spawn_async (null, argv, null, SpawnFlags.SEARCH_PATH, null, null);
+				return;
+			} catch {}
+
+			try {
+				AppInfo.create_from_commandline (cmd, null, AppInfoCreateFlags.NONE).launch (null, null);
+			} catch (Error e) {
+				warning ("Failed to launch command '%s': %s", cmd, e.message);
+			}
+		}
+
+		/**
+		 * Launches a Desktop Action isolated in a new systemd scope.
+		 */
+		public void launch_action (string launcher_path, string action_id, DesktopAppInfo desktop_info)
+		{
+			try {
+				KeyFile kf = new KeyFile ();
+				if (load_keyfile_safe (kf, launcher_path, KeyFileFlags.NONE)) {
+					string group = "Desktop Action " + action_id;
+					if (kf.has_group (group) && kf.has_key (group, "Exec")) {
+						string exec_cmd = kf.get_string (group, "Exec");
+						exec_cmd = sanitize_exec_command (exec_cmd);
+						if (exec_cmd.length > 0) {
+							launch_command (exec_cmd);
+							return;
+						}
+					}
+				}
+			} catch {}
+
+			desktop_info.launch_action (action_id, context);
+		}
 		
 		void internal_launch (File? app, GLib.List<File> files)
 		{
@@ -433,30 +531,26 @@ namespace Plank
 				return;
 			}
 			
-			try {
-				Logger.verbose ("Launch '%s' ('%s')", info.get_name (), info.get_executable ());
-				
-				if (files.length () == 0) {
-					info.launch (null, context);
+			// 优先使用 KDE 原生 kstart 隔离启动，由 KDE 为应用分配专属 cgroup 服务
+			if (app != null) {
+				var launcher_path = app.get_path ();
+				if (launcher_path != null && launcher_path.length > 0) {
+					var extra_args = new Gee.ArrayList<string> ();
+					foreach (var f in files) {
+						var fp = f.get_path ();
+						if (fp != null)
+							extra_args.add (fp);
+						else
+							extra_args.add (f.get_uri ());
+					}
+					launch_desktop_isolated (launcher_path, extra_args.to_array ());
 					return;
 				}
-				
-				if (info.supports_files ()) {
-					info.launch (files, context);
-					return;
-				}
-				
-				if (info.supports_uris ()) {
-					var uris = new GLib.List<string> ();
-					foreach (var f in files)
-						uris.append (f.get_uri ());
-					info.launch_uris (uris, context);
-					return;
-				}
-				
-				warning ("The application '%s' doesn't support files/URIs or wasn't found.", info.get_name ());
-			} catch (Error e) {
-				critical (e.message);
+			}
+
+			if (files.length () > 0) {
+				foreach (var f in files)
+					open (f);
 			}
 		}
 	}

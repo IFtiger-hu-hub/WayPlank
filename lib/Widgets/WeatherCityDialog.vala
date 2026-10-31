@@ -119,7 +119,7 @@ namespace Plank
 			content_area.pack_start (unit_box, false, false, 0);
 
 			// Dialog action buttons
-			add_button (_("Cancel"), Gtk.ResponseType.CANCEL);
+			add_button ("取消", Gtk.ResponseType.CANCEL);
 			var save_btn = add_button (_("Save & Apply"), Gtk.ResponseType.OK);
 			set_default_response (Gtk.ResponseType.OK);
 			save_btn.get_style_context ().add_class ("suggested-action");

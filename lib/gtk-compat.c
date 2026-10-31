@@ -44,3 +44,24 @@ plank_compat_gtk_widget_path_iter_set_object_name (GtkWidgetPath *path, gint pos
 	}
 }
 G_GNUC_END_IGNORE_DEPRECATIONS
+
+#include <malloc.h>
+
+void
+plank_compat_malloc_trim (void)
+{
+#ifdef __GLIBC__
+	malloc_trim (0);
+#endif
+}
+
+void
+plank_compat_optimize_memory (void)
+{
+#ifdef __GLIBC__
+	mallopt (M_ARENA_MAX, 2);
+	mallopt (M_TRIM_THRESHOLD, 128 * 1024);
+	mallopt (M_MMAP_THRESHOLD, 64 * 1024);
+	malloc_trim (0);
+#endif
+}

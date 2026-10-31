@@ -270,7 +270,7 @@ namespace Plank
 		{
 			var mode = controller.prefs.HideMode;
 			if (mode != HideType.NONE && !WindowCapabilities.hide_mode_supported (mode))
-				return WindowControl.is_mutter () ? HideType.AUTO : HideType.DODGE_MAXIMIZED;
+				return HideType.DODGE_MAXIMIZED;
 			return mode;
 		}
 

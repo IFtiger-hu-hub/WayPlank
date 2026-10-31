@@ -71,6 +71,16 @@ namespace Plank
 			KWinBridge.queue_command (target, action);
 			return true;
 		}
+
+		public override void show_window_view (string[] uuids)
+		{
+			KWinBridge.show_window_view (uuids);
+		}
+
+		public override void toggle_grid_view ()
+		{
+			KWinBridge.toggle_grid_view ();
+		}
 		
 		public bool any_window_intersects (Gdk.Rectangle rect)
 		{

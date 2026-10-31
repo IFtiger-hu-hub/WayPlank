@@ -247,7 +247,7 @@ namespace Plank
 			
 			DragItem = window.HoveredItem;
 			
-			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is TrashDockItem || DragItem is PlankDockItem || DragItem is PreferencesDockItem || (DragItem.Prefs != null && DragItem.Prefs.Launcher == "docklet://preferences"))
+			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is TrashDockItem || DragItem is MinimizedWindowDockItem || DragItem is PlankDockItem || DragItem is PreferencesDockItem || (DragItem.Prefs != null && DragItem.Prefs.Launcher == "docklet://preferences"))
 				DragItem = null;
 			
 			if (DragItem == null) {
@@ -522,7 +522,7 @@ namespace Plank
 							} else {
 								unowned DockItem? fallback = null;
 								foreach (var el in app_prov.Elements) {
-									if (el is TransientDockItem || el is TrashDockItem) {
+									if (el is TransientDockItem || el is TrashDockItem || el is MinimizedWindowDockItem) {
 										fallback = el as DockItem;
 										break;
 									}
@@ -552,10 +552,9 @@ namespace Plank
 				handled = item.accept_drop (drag_data);
 			}
 			// PRIORITY 4: Non-desktop payloads dropped onto specific dock items (App)
+			// can_accept_drop already enforces directory-only / MIME / payload rules — do not double-gate here
 			else if (item != null && item.can_accept_drop (drag_data)) {
-				if (item is ApplicationDockItem && (!contains_directory || ((ApplicationDockItem) item).can_accept_directory ())) {
-					handled = item.accept_drop (drag_data);
-				}
+				handled = item.accept_drop (drag_data);
 			}
 			// PRIORITY 5: Non-desktop payloads (pin file/folder to dock if unhandled and dropped on empty dock space)
 			if (!handled && (item == null || !DragNeedsCheck) && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data)) {
@@ -1127,7 +1126,7 @@ namespace Plank
 				if (sep_pref_idx >= 0 && hover_idx <= sep_pref_idx) {
 					if (sep_pref_idx + 1 < elements.size && drag_idx != sep_pref_idx + 1) {
 						var target = elements.get (sep_pref_idx + 1);
-						if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem))
+						if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem) && !(target is MinimizedWindowDockItem))
 							DragItem.Container.move_to (DragItem, target);
 					}
 					return;
@@ -1139,7 +1138,7 @@ namespace Plank
 					// Move DragItem to immediately before limit_trash if it isn't already there
 					if (limit_trash_idx > 0 && drag_idx != limit_trash_idx - 1) {
 						var target = elements.get (limit_trash_idx - 1);
-						if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem))
+						if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem) && !(target is MinimizedWindowDockItem))
 							DragItem.Container.move_to (DragItem, target);
 					}
 					return;
@@ -1151,7 +1150,7 @@ namespace Plank
 						if (drag_idx < sep_transient_idx && sep_transient_idx + 1 < elements.size) {
 							// Moving right across separator into transient section
 							var target = elements.get (sep_transient_idx + 1);
-							if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem))
+							if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem) && !(target is MinimizedWindowDockItem))
 								DragItem.Container.move_to (DragItem, target);
 						} else if (drag_idx > sep_transient_idx && sep_transient_idx > 0) {
 							// Moving left across separator into pinned section

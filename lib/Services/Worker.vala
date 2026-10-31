@@ -69,8 +69,8 @@ namespace Plank
 			try {
 				ThreadPool.set_max_unused_threads (0);
 				
-				var thread_count = (int) GLib.get_num_processors ();
-				message ("Using up to %i threads.", thread_count);
+				var thread_count = int.min (2, (int) GLib.get_num_processors ());
+				message ("Using up to %i worker threads for lean memory footprint.", thread_count);
 				
 				pool = new ThreadPool<Task>.with_owned_data ((task) => {
 					task.run ();

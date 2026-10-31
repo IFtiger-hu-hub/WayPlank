@@ -35,7 +35,7 @@ namespace Plank
 		construct
 		{
 			Indicator = IndicatorState.NONE;
-			Text = _("Drop applications or files here");
+			Text = "将应用程序或文件拖到此处";
 			Icon = "add";
 		}
 		
@@ -49,7 +49,7 @@ namespace Plank
 		
 		public override string get_drop_text ()
 		{
-			return _("Drop to add to dock");
+			return "拖放到此处以添加到 Dock";
 		}
 		
 		/**

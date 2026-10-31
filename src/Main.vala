@@ -1,27 +1,22 @@
 //
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
+//  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
-//  This file is part of WayPlank.
+//  This file is part of kde-dockbar.
 //
-//  WayPlank is free software: you can redistribute it and/or modify
+//  kde-dockbar is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-//
-//  WayPlank is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 namespace Plank
 {
     public static int main (string[] argv)
     {
+        PlankCompat.optimize_memory ();
+
         Intl.setlocale (LocaleCategory.ALL, "");
         Intl.bindtextdomain (Build.GETTEXT_PACKAGE, Build.DATADIR + "/locale");
         Intl.bind_textdomain_codeset (Build.GETTEXT_PACKAGE, "UTF-8");
@@ -34,7 +29,7 @@ namespace Plank
                 return 0;
             }
             if (argv[i] == "--version" || argv[i] == "-v" || argv[i] == "-V") {
-                print ("WayPlank %s\n", Build.VERSION);
+                print ("kde-dockbar %s\n", Build.VERSION);
                 return 0;
             }
             if (argv[i] == "--shortcuts" || argv[i] == "-s" || argv[i] == "--gestures") {
@@ -48,7 +43,7 @@ namespace Plank
 
         if (replace_requested) {
             try {
-                Process.spawn_command_line_sync ("killall -q -o 1s -9 wayplank");
+                Process.spawn_command_line_sync ("killall -q -o 1s -9 kde-dockbar wayplank");
             } catch (Error e) { }
             Thread.usleep (250000);
         }
@@ -62,9 +57,9 @@ namespace Plank
                 Gtk.DialogFlags.MODAL,
                 Gtk.MessageType.WARNING,
                 Gtk.ButtonsType.OK,
-                "WayPlank is designed exclusively for Wayland sessions."
+                "kde-dockbar is designed exclusively for KDE Plasma Wayland sessions."
             );
-            dialog.title = "WayPlank - Unsupported Session";
+            dialog.title = "kde-dockbar - Unsupported Session";
             dialog.run ();
             dialog.destroy ();
             return 1;
@@ -80,6 +75,7 @@ namespace Plank
         public Main ()
         {
             var authors = new string[] {
+                    "史有虎 (IFtiger-hu)",
                     "Sergio Melas <sergiomelas@gmail.com>",
                     "Robert Dyer <psybers@gmail.com>",
                     "Rico Tzschichholz <ricotz@ubuntu.com>",
@@ -87,9 +83,8 @@ namespace Plank
                 };
 
             var documenters = new string[] {
-                    "Sergio Melas <sergiomelas@gmail.com>",
-                    "Robert Dyer <psybers@gmail.com>",
-                    "Rico Tzschichholz <ricotz@ubuntu.com>"
+                    "史有虎 (IFtiger-hu)",
+                    "Sergio Melas <sergiomelas@gmail.com>"
                 };
 
             var artists = new string[] {
@@ -103,17 +98,17 @@ namespace Plank
                 build_version : Build.VERSION,
                 build_version_info : Build.VERSION_INFO,
 
-                program_name : "WayPlank",
-                exec_name : "wayplank",
+                program_name : "kde-dockbar",
+                exec_name : "kde-dockbar",
 
-                app_copyright : "2026 Sergio Melas\nCopyright © 2011-2017 Plank Developers",
+                app_copyright : "2026 史有虎 (IFtiger-hu)\nCopyright © 2026 Sergio Melas\nCopyright © 2011-2017 Plank Developers",
                 app_dbus : "net.launchpad.plank",
-                app_icon : "plank",
-                app_launcher : "wayplank.desktop",
+                app_icon : "kde-dockbar",
+                app_launcher : "kde-dockbar.desktop",
 
-                main_url : "https://github.com/sergiomelas/wayplank",
-                help_url : "https://github.com/sergiomelas/wayplank/issues",
-                translate_url : "https://github.com/sergiomelas/wayplank",
+                main_url : "https://github.com/IFtiger-hu-hub/WayPlank",
+                help_url : "https://github.com/IFtiger-hu-hub/WayPlank/issues",
+                translate_url : "https://github.com/IFtiger-hu-hub/WayPlank",
 
                 about_authors : authors,
                 about_documenters : documenters,
@@ -126,54 +121,53 @@ namespace Plank
 
     static void print_clean_help ()
     {
-        print ("Usage:\n  wayplank [OPTION…]\n\n");
-        print ("Help Options:\n");
-        print ("  -h, --help                Show help options\n");
-        print ("  -s, --shortcuts           Show shortcuts and mouse gestures in terminal\n");
-        print ("  -v, --version             Show application version\n\n");
-        print ("Application Options:\n");
-        print ("  -p, --preferences         Show preferences dialog of the running or started instance\n");
-        print ("  -r, --replace, --reload   Restart and replace running dock instance\n");
-        print ("  -d, --debug               Enable debug logging\n");
-        print ("  -V, --verbose             Enable verbose logging\n");
-        print ("  -n, --name=NAME           The name of this dock. Defaults to \"dock1\"\n\n");
+        print ("用法:\n  kde-dockbar [选项…]\n\n");
+        print ("帮助选项:\n");
+        print ("  -h, --help                显示帮助选项\n");
+        print ("  -s, --shortcuts           在终端打印快捷键与鼠标操作说明\n");
+        print ("  -v, --version             显示应用程序版本\n\n");
+        print ("应用程序选项:\n");
+        print ("  -p, --preferences         显示运行中或已启动实例的首选项对话框\n");
+        print ("  -r, --replace, --reload   重启并替换当前运行中的 Dock 实例\n");
+        print ("  -d, --debug               开启调试日志\n");
+        print ("  -V, --verbose             开启详细日志\n");
+        print ("  -n, --name=NAME           此 Dock 栏的名称，默认为 \"dock1\"\n\n");
     }
 
     static void print_shortcuts_cheatsheet ()
     {
         print ("\n=======================================================\n");
-        print ("  WayPlank — Shortcuts, Mouse Controls & Gestures Guide\n");
+        print ("  kde-dockbar — 快捷键、鼠标操作与手势指南\n");
         print ("=======================================================\n\n");
-        print ("MOUSE ACTIONS ON ICONS:\n");
-        print ("  Left Click                    Launch app; if running, raises or opens Multi-Window Cards\n");
-        print ("  Middle Click (or Ctrl+Left)   Force launch a NEW instance of the application\n");
-        print ("  Right Click                   Open context menu (Recent Documents, Quicklists, Keep in\n");
-        print ("                                Dock, Change Icon, Shortcuts & Gestures, Preferences)\n");
-        print ("  Mouse Scroll on App           Cycle between all open windows of this application\n");
-        print ("  Hover / Click on Preferences  Expand docklet accordion drawer; Directional indicators (▸ / ◂ / ▾ / ▴)\n");
-        print ("  Accordion Auto-Retention      Drawer stays open during menus/dialogs; resets delay (0.5s–20s) on close\n\n");
-        print ("MULTI-WINDOW PREVIEW CARDS:\n");
-        print ("  Left Click (2+ windows)       Displays floating Cairo preview cards with live window thumbnails\n");
-        print ("  Card Left Click               Brings chosen window forward and focuses it\n");
-        print ("  Card Close / Middle Click     Closes the target window instance directly from the card\n");
-        print ("  Preferences -> Behaviour      Toggle between Multi-Window Preview Cards and cyclic switching\n\n");
-        print ("OVERFLOW & DYNAMIC ZOOM:\n");
-        print ("  Mouse Scroll on Dock Body     Smoothly scroll overflowing dock items when capacity is reached\n");
-        print ("  Ctrl + Mouse Scroll Up        Increase dock icon size dynamically in real-time\n");
-        print ("  Ctrl + Mouse Scroll Down      Decrease dock icon size dynamically in real-time\n\n");
-        print ("DRAG & DROP GESTURES:\n");
-        print ("  Drag icon off dock            Unpin / remove launcher from dock (with poof animation)\n");
-        print ("  Drag icon along dock          Reorder pinned items (within category in Categorized mode)\n");
-        print ("  Drop file on app icon         Open the dropped file directly with that application\n");
-        print ("  Drop web URL on browser       Drop http:// or https:// URL onto browser to open in new tab\n");
-        print ("  Hover over icon during DND    Spring-loaded hover (500ms) raises window to foreground\n");
-        print ("  Drop .desktop / folder        Pin a new application or folder drawer to the dock\n\n");
-        print ("DOCK CONTROLS & THEMES:\n");
-        print ("  Right Click -> Change Icon    Choose system icon or custom image for launcher or folder\n");
-        print ("  Right Click -> Shortcuts      Open interactive Shortcuts & Gestures window directly\n");
-        print ("  Ctrl + Right Click            Open dock preferences menu directly, even over an icon\n");
-        print ("  Preferences -> Theme Manager  Install theme archives (.zip, .tar.gz) with native file chooser\n");
-        print ("  Dynamic Counterpart Swapping  Real-time automatic Light/Dark mode switching on KDE and GNOME\n");
-        print ("  Ctrl+Alt+Shift + Right Click  Open Developer Tools submenu (inspect launcher, config, theme)\n\n");
+        print ("图标鼠标操作:\n");
+        print ("  左键单击                      启动应用；若已运行，置顶或展开多窗口预览卡片\n");
+        print ("  中键单击 (或 Ctrl+左键)       强制启动该应用程序的新实例\n");
+        print ("  右键单击                      打开上下文菜单 (保持在Dock、更换图标、首选项等)\n");
+        print ("  在应用图标上滚动滚轮          依次循环切换该应用的所有已打开窗口\n");
+        print ("  悬停 / 点击首选项图标         展开小组件抽屉面板；方向指示器 (▸ / ◂ / ▾ / ▴)\n");
+        print ("  抽屉自动保持展开              菜单/对话框打开时保持抽屉不自动关闭\n\n");
+        print ("多窗口视觉预览卡片:\n");
+        print ("  左键单击 (2个以上窗口)        显示带有实时缩略图的 Cairo 浮动窗口预览卡片\n");
+        print ("  卡片左键单击                  将目标窗口置顶并激活焦点\n");
+        print ("  关闭按钮 / 中键点击卡片       直接在卡片上关闭目标窗口实例\n");
+        print ("  首选项 -> 行为                在多窗口预览卡片与循环轮巡模式间切换\n\n");
+        print ("超出滑动与动态缩放:\n");
+        print ("  在 Dock 空白处滚动滚轮        当容量超出屏幕宽度时平滑左右/上下滑动\n");
+        print ("  Ctrl + 鼠标滚轮向上           实时无级放大 Dock 图标尺寸\n");
+        print ("  Ctrl + 鼠标滚轮向下           实时无级缩小 Dock 图标尺寸\n\n");
+        print ("拖拽手势:\n");
+        print ("  将图标拖离 Dock 栏            取消固定/从 Dock 移除 (触发烟雾消散动画)\n");
+        print ("  沿 Dock 栏拖拽图标            重新排列固定图标顺序\n");
+        print ("  将文件拖放到应用图标          使用该应用程序直接打开该文件\n");
+        print ("  将网址拖放到浏览器图标        将网页链接拖入浏览器在新标签页打开\n");
+        print ("  拖拽文件时悬停在图标上        触发弹簧悬停(500ms)并将目标窗口激活到前台\n");
+        print ("  拖入 .desktop 文件            将新应用程序固定到 Dock 栏\n\n");
+        print ("Dock 控制与主题:\n");
+        print ("  右键单击 -> 更换图标          为应用选择系统图标或自定义图像\n");
+        print ("  右键单击 -> 快捷键与手势      直接打开可视化快捷键与手势说明窗口\n");
+        print ("  Ctrl + 右键单击               直接打开 Dock 栏首选项菜单\n");
+        print ("  首选项 -> 主题管理器          通过文件选择器安装主题压缩包 (.zip, .tar.gz)\n");
+        print ("  动态深浅主题自动匹配          KDE Plasma 切换深浅主题时自动匹配 Dock 主题\n");
+        print ("  Ctrl+Alt+Shift + 右键单击     打开开发者工具子菜单 (检查启动器、配置、主题)\n\n");
     }
 }

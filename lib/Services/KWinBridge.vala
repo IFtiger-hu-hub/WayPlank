@@ -49,10 +49,13 @@ namespace Plank
 			+ "    var windows = [];\n"
 			+ "    var allClients = getAllWindows();\n"
 			+ "    allClients.forEach(function (client) {\n"
-			+ "        if (!client || client.deleted === true)\n"
-			+ "            return;\n"
-			+ "        if (client.skipTaskbar === true || client.specialWindow === true)\n"
-			+ "            return;\n"
+			+ "        try {\n"
+			+ "            if (!client || client.deleted === true)\n"
+			+ "                return;\n"
+			+ "            if (client.skipTaskbar === true || client.specialWindow === true)\n"
+			+ "                return;\n"
+			+ "            if (!client.frameGeometry)\n"
+			+ "                return;\n"
 			+ "        var resClass = (client.resourceClass ? String(client.resourceClass).toLowerCase() : \"\");\n"
 			+ "        var resName = (client.resourceName ? String(client.resourceName).toLowerCase() : \"\");\n"
 			+ "        var capt = (client.caption ? String(client.caption).toLowerCase() : \"\");\n"
@@ -128,13 +131,14 @@ namespace Plank
 			+ "            visible: client.visible !== false,\n"
 			+ "            currentDesktop: onCurr\n"
 			+ "        });\n"
+			+ "        } catch (e) { }\n"
 			+ "    });\n"
 			+ "    callDBus(wayplankService, wayplankPath, wayplankInterface,\n"
 			+ "        \"UpdateWindowState\", JSON.stringify(windows));\n"
 			+ "}\n"
 			+ "\n"
 			+ "var wayplankDebounceTimer = new QTimer();\n"
-			+ "wayplankDebounceTimer.interval = 50;\n"
+			+ "wayplankDebounceTimer.interval = 120;\n"
 			+ "wayplankDebounceTimer.singleShot = true;\n"
 			+ "wayplankDebounceTimer.timeout.connect(function () {\n"
 			+ "    sendWindowState();\n"
@@ -162,8 +166,8 @@ namespace Plank
 			+ "        dName === \"xwaylandvideobridge\" || dName === \"org.kde.xwaylandvideobridge\" ||\n"
 			+ "        capt.indexOf(\"xwaylandvideobridge\") !== -1)\n"
 			+ "        return;\n"
-			+ "    if (window.frameGeometryChanged)\n"
-			+ "        window.frameGeometryChanged.connect(scheduleWindowState);\n"
+			+ "    // frameGeometryChanged intentionally NOT connected: WindowInfo.Geometry is unused\n"
+			+ "    // and geometry spam during resize/move flooded Wayland via indicator redraws.\n"
 			+ "    if (window.minimizedChanged)\n"
 			+ "        window.minimizedChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.maximizedChanged)\n"
@@ -344,6 +348,17 @@ namespace Plank
 			+ "    pollWayplankCommand);\n"
 			+ "print(\"Wayplank: command shortcut registered: \" + wayplankShortcutRegistered);\n";
 
+		class PidCacheEntry {
+			public string cmdline;
+			public string executable;
+			public PidCacheEntry (string c, string e)
+			{
+				this.cmdline = c;
+				this.executable = e;
+			}
+		}
+
+		static Gee.HashMap<int, PidCacheEntry>? pid_cache = null;
 		static KWinBridge? instance;
 		static string? window_state;
 		static Gee.ArrayList<WindowInfo> window_infos = new Gee.ArrayList<WindowInfo> ();
@@ -430,13 +445,25 @@ namespace Plank
 					info.Caption = json.has_member ("caption") ? json.get_string_member ("caption") : "";
 					info.Pid = json.has_member ("pid") ? (int) json.get_int_member ("pid") : 0;
 					if (info.Pid > 0) {
-						string cmd = "";
-						if (GLib.FileUtils.get_contents ("/proc/%d/cmdline".printf (info.Pid), out cmd)) {
-							info.Cmdline = cmd.replace ("\0", " ").strip ();
-						}
-						string comm = "";
-						if (GLib.FileUtils.get_contents ("/proc/%d/comm".printf (info.Pid), out comm)) {
-							info.Executable = comm.strip ();
+						if (pid_cache == null)
+							pid_cache = new Gee.HashMap<int, PidCacheEntry> ();
+
+						if (pid_cache.has_key (info.Pid)) {
+							var pentry = pid_cache.get (info.Pid);
+							info.Cmdline = pentry.cmdline;
+							info.Executable = pentry.executable;
+						} else {
+							string cmd = "";
+							if (GLib.FileUtils.get_contents ("/proc/%d/cmdline".printf (info.Pid), out cmd)) {
+								info.Cmdline = cmd.replace ("\0", " ").strip ();
+							}
+							string comm = "";
+							if (GLib.FileUtils.get_contents ("/proc/%d/comm".printf (info.Pid), out comm)) {
+								info.Executable = comm.strip ();
+							}
+							if (pid_cache.size > 256)
+								pid_cache.clear ();
+							pid_cache.set (info.Pid, new PidCacheEntry (info.Cmdline, info.Executable));
 						}
 					}
 					if (json.has_member ("x") && json.has_member ("y") && json.has_member ("width") && json.has_member ("height"))
@@ -490,6 +517,64 @@ namespace Plank
 				message ("Wayplank: invoked KWin shortcut to apply pending command");
 			} catch (Error e) {
 				warning ("Wayplank: unable to invoke KWin shortcut (%s)", e.message);
+			}
+		}
+
+		public static void show_window_view (string[] uuids)
+		{
+			if (uuids.length == 0)
+				return;
+
+			try {
+				var connection = Bus.get_sync (BusType.SESSION, null);
+				var builder = new VariantBuilder (new VariantType ("as"));
+				foreach (var u in uuids)
+					builder.add ("s", u);
+
+				connection.call_sync ("org.kde.KWin.Effect.WindowView1",
+					"/org/kde/KWin/Effect/WindowView1",
+					"org.kde.KWin.Effect.WindowView1",
+					"activate",
+					new Variant ("(as)", builder),
+					null, DBusCallFlags.NONE, 250, null);
+				message ("KWinBridge: invoked WindowView1.activate for %d windows", uuids.length);
+				return;
+			} catch (Error e) {
+				warning ("KWinBridge: WindowView1.activate failed (%s), attempting ExposeClass fallback", e.message);
+			}
+
+			try {
+				var connection = Bus.get_sync (BusType.SESSION, null);
+				connection.call_sync ("org.kde.kglobalaccel", "/component/kwin",
+					"org.kde.kglobalaccel.Component", "invokeShortcut",
+					new Variant ("(s)", "ExposeClass"),
+					null, DBusCallFlags.NONE, 250, null);
+				message ("KWinBridge: invoked ExposeClass shortcut fallback");
+			} catch (Error e) {
+				warning ("KWinBridge: unable to invoke ExposeClass (%s)", e.message);
+			}
+		}
+
+		public static void toggle_grid_view ()
+		{
+			try {
+				var connection = Bus.get_sync (BusType.SESSION, null);
+				connection.call_sync ("org.kde.kglobalaccel", "/component/kwin",
+					"org.kde.kglobalaccel.Component", "invokeShortcut",
+					new Variant ("(s)", "Grid View"),
+					null, DBusCallFlags.NONE, 250, null);
+				message ("KWinBridge: invoked Grid View shortcut");
+			} catch (Error e) {
+				warning ("KWinBridge: Grid View failed (%s), trying Overview fallback", e.message);
+				try {
+					var connection = Bus.get_sync (BusType.SESSION, null);
+					connection.call_sync ("org.kde.kglobalaccel", "/component/kwin",
+						"org.kde.kglobalaccel.Component", "invokeShortcut",
+						new Variant ("(s)", "Overview"),
+						null, DBusCallFlags.NONE, 250, null);
+				} catch (Error e2) {
+					warning ("KWinBridge: unable to invoke Overview (%s)", e2.message);
+				}
 			}
 		}
 

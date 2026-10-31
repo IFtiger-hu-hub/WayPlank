@@ -55,7 +55,21 @@ namespace Plank
 		Gee.ArrayList<unowned DockItem> items;
 		DockItem? dock_itself_item;
 		uint serialize_item_positions_timer_id = 0U;
+		uint states_draw_timer_id = 0U;
 		bool is_initialized = false;
+
+		public enum WindowMinimizeTransition
+		{
+			NONE,
+			MINIMIZING,
+			RESTORING
+		}
+
+		Gee.HashMap<string, WindowMinimizeTransition> minimize_transitions;
+		Gee.HashMap<string, uint> transition_timer_ids;
+		Gee.HashMap<string, Gdk.Rectangle?> last_minimized_regions;
+		Gee.HashSet<string> last_known_minimized_uuids;
+		bool minimize_transition_initialized = false;
 		
 		/**
 		 * List of all items on this dock
@@ -97,6 +111,11 @@ namespace Plank
 			
 			items = new Gee.ArrayList<unowned DockItem> ();
 			visible_items = new Gee.ArrayList<unowned DockItem> ();
+
+			minimize_transitions = new Gee.HashMap<string, WindowMinimizeTransition> ();
+			transition_timer_ids = new Gee.HashMap<string, uint> ();
+			last_minimized_regions = new Gee.HashMap<string, Gdk.Rectangle?> ();
+			last_known_minimized_uuids = new Gee.HashSet<string> ();
 			
 			prefs.notify["Position"].connect (update_visible_elements);
 			prefs.notify["ShowDockItem"].connect (update_show_dock_item);
@@ -142,6 +161,12 @@ namespace Plank
 			}
 			serialize_item_positions ();
 
+			foreach (var timer_id in transition_timer_ids.values) {
+				if (timer_id > 0U)
+					Source.remove (timer_id);
+			}
+			transition_timer_ids.clear ();
+
 			items.clear ();
 			visible_items.clear ();
 
@@ -149,6 +174,8 @@ namespace Plank
 				hover.destroy ();
 			if (window != null)
 				window.destroy ();
+
+			KWinPlasmaWindow.cleanup ();
 		}
 		
 		/**
@@ -184,6 +211,157 @@ namespace Plank
 			if (GtkLayerShell.is_supported ())
 				window.present ();
 			window.queue_draw ();
+
+			KWinPlasmaWindow.init (window);
+			sync_minimized_geometries ();
+		}
+
+		public void sync_minimized_geometries ()
+		{
+			if (!is_initialized || window == null || !window.get_realized () || !window.get_mapped () || !window.get_visible ())
+				return;
+
+			var window_manager = WindowManager.get_default ();
+			var windows = WindowControl.get_windows ();
+			if (windows.size == 0)
+				return;
+
+			// 更新最小化状态机并处理过度计时
+			update_window_minimize_transitions (windows);
+
+			var specific_uuids = new Gee.HashSet<string> ();
+
+			// 1. 处于 RESTORING 状态的窗口：强制保持在右侧卡片记录的位置，供展开动画使用
+			foreach (var entry in minimize_transitions.entries) {
+				if (entry.value == WindowMinimizeTransition.RESTORING) {
+					var uuid = entry.key;
+					if (last_minimized_regions.has_key (uuid)) {
+						var rect = last_minimized_regions[uuid];
+						if (rect != null && rect.width > 0 && rect.height > 0) {
+							KWinPlasmaWindow.set_window_minimized_geometry (uuid, rect.x, rect.y, rect.width, rect.height);
+							specific_uuids.add (uuid);
+						}
+					}
+				}
+			}
+
+			// 2. 右侧已有的 MinimizedWindowDockItem
+			foreach (unowned DockItem item in VisibleItems) {
+				if (item is MinimizedWindowDockItem) {
+					var min_item = (MinimizedWindowDockItem) item;
+					var draw_val = position_manager.get_draw_value_for_item (min_item);
+					var rect = draw_val.draw_region;
+					if (rect.width > 0 && rect.height > 0) {
+						last_minimized_regions[min_item.WindowId] = rect;
+
+						// 处于 MINIMIZING 状态的窗口：动画正在吸入左侧应用主图标，禁止提前切到右边！
+						if (minimize_transitions.has_key (min_item.WindowId) &&
+						    minimize_transitions[min_item.WindowId] == WindowMinimizeTransition.MINIMIZING) {
+							continue;
+						}
+
+						KWinPlasmaWindow.set_window_minimized_geometry (min_item.WindowId, rect.x, rect.y, rect.width, rect.height);
+						specific_uuids.add (min_item.WindowId);
+					}
+				}
+			}
+
+			// 3. 左侧主图标：将其余窗口（包括处于 MINIMIZING 状态的窗口）设为左侧主图标坐标
+			foreach (unowned DockItem item in VisibleItems) {
+				if (item is ApplicationDockItem) {
+					var app_item = (ApplicationDockItem) item;
+					var matched_windows = window_manager.matching_windows (app_item.Launcher);
+					if (matched_windows.size == 0)
+						continue;
+
+					var draw_val = position_manager.get_draw_value_for_item (app_item);
+					var rect = draw_val.draw_region;
+					if (rect.width <= 0 || rect.height <= 0)
+						continue;
+
+					foreach (var win in matched_windows) {
+						if (!specific_uuids.contains (win.Id)) {
+							// 关键防护：如果窗口不在当前工作区，绝对不要向其发送当前工作区的 Dock 几何位置！
+							if (!win.CurrentDesktop)
+								continue;
+							KWinPlasmaWindow.set_window_minimized_geometry (win.Id, rect.x, rect.y, rect.width, rect.height);
+						}
+					}
+				}
+			}
+
+			// 收集当前已知活动的窗口 UUID，在主循环中安全修剪已关闭窗口的代理
+			string[] active_uuids = new string[windows.size];
+			for (int i = 0; i < windows.size; i++) {
+				active_uuids[i] = windows[i].Id;
+			}
+			KWinPlasmaWindow.prune_window_proxies (active_uuids);
+		}
+
+		void update_window_minimize_transitions (Gee.ArrayList<WindowInfo> windows)
+		{
+			var current_min_uuids = new Gee.HashSet<string> ();
+			var active_window_uuids = new Gee.HashSet<string> ();
+
+			foreach (var win in windows) {
+				active_window_uuids.add (win.Id);
+				if (win.Minimized) {
+					current_min_uuids.add (win.Id);
+				}
+			}
+
+			if (!minimize_transition_initialized) {
+				minimize_transition_initialized = true;
+				last_known_minimized_uuids.add_all (current_min_uuids);
+				return;
+			}
+
+			// 检测从未最小化变为最小化 (Minimize): 持续 450ms 保持在左侧应用图标
+			foreach (var uuid in current_min_uuids) {
+				if (!last_known_minimized_uuids.contains (uuid)) {
+					start_minimize_transition (uuid, WindowMinimizeTransition.MINIMIZING, 450);
+				}
+			}
+
+			// 检测从已最小化变为恢复 (Restore): 持续 450ms 保持在右侧卡片展开
+			foreach (var uuid in last_known_minimized_uuids) {
+				if (!current_min_uuids.contains (uuid) && active_window_uuids.contains (uuid)) {
+					start_minimize_transition (uuid, WindowMinimizeTransition.RESTORING, 450);
+				}
+			}
+
+			// 清理已销毁窗口
+			foreach (var uuid in last_known_minimized_uuids.to_array ()) {
+				if (!active_window_uuids.contains (uuid)) {
+					cancel_minimize_transition (uuid);
+					last_minimized_regions.unset (uuid);
+				}
+			}
+
+			last_known_minimized_uuids.clear ();
+			last_known_minimized_uuids.add_all (current_min_uuids);
+		}
+
+		void start_minimize_transition (string uuid, WindowMinimizeTransition state, uint duration_ms)
+		{
+			cancel_minimize_transition (uuid);
+			minimize_transitions[uuid] = state;
+
+			transition_timer_ids[uuid] = Timeout.add (duration_ms, () => {
+				transition_timer_ids.unset (uuid);
+				minimize_transitions.unset (uuid);
+				sync_minimized_geometries ();
+				return Source.REMOVE;
+			});
+		}
+
+		void cancel_minimize_transition (string uuid)
+		{
+			if (transition_timer_ids.has_key (uuid)) {
+				Source.remove (transition_timer_ids[uuid]);
+				transition_timer_ids.unset (uuid);
+			}
+			minimize_transitions.unset (uuid);
 		}
 		
 		/**
@@ -430,11 +608,20 @@ namespace Plank
 			renderer.animated_draw ();
 
 			schedule_serialize_item_positions ();
+			sync_minimized_geometries ();
 		}
 		
 		void handle_states_changed (DockContainer container)
 		{
-			renderer.animated_draw ();
+			// Coalesce indicator/urgent redraws — many items fire needs_redraw per window tick
+			if (states_draw_timer_id == 0U) {
+				states_draw_timer_id = Timeout.add (32, () => {
+					states_draw_timer_id = 0U;
+					renderer.animated_draw ();
+					return false;
+				});
+			}
+			sync_minimized_geometries ();
 		}
 
 		public void refresh_visible_elements ()

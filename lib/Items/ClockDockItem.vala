@@ -35,7 +35,7 @@ namespace Plank
 		
 		construct
 		{
-			Text = _("Clock");
+			Text = "时钟";
 			Icon = "preferences-system-time";
 			Button = PopupButton.RIGHT;
 			
@@ -206,7 +206,7 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var copy_item = create_menu_item (_("_Copy Time"), "edit-copy", true);
+			var copy_item = create_menu_item ("复制时间(_C)", "edit-copy", true);
 			copy_item.activate.connect (() => {
 				var clip = Gtk.Clipboard.get (Gdk.SELECTION_CLIPBOARD);
 				clip.set_text (new DateTime.now_local ().format ("%H:%M:%S"), -1);
@@ -215,7 +215,7 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

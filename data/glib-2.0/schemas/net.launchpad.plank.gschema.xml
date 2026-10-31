@@ -28,95 +28,106 @@
 
 		<key name="enabled-docks" type="as">
 			<default>['dock1']</default>
-			<summary>Array of names of active/enabled docks</summary>
-			<description>Contains the names of docks which are created and loaded on start up</description>
+			<summary>活动/已启用的 Dock 栏名称数组</summary>
+			<description>包含启动时创建并加载的 Dock 栏名称列表</description>
 		</key>
 	</schema>
 
 	<schema id="net.launchpad.plank.dock.settings" gettext-domain="@GETTEXT_PACKAGE@">
 		<key name="alignment" enum='GtkAlignType'>
 			<default>'center'</default>
-			<summary>The alignment for the dock along the monitor's edge</summary>
-			<description>Possible values are "fill", "start", "end", and "center".</description>
+			<summary>Dock 栏沿显示器边缘的对齐方式</summary>
+			<description>可选值为 "fill"(充满), "start"(靠前), "end"(靠后), "center"(居中)。</description>
 		</key>
 		<key name="auto-pinning" type="b">
 			<default>true</default>
-			<summary>Automatically pin an application if it seems useful to do</summary>
-			<description>If true, automatically pin applications when it seems useful to do.</description>
+			<summary>自动固定常用应用程序</summary>
+			<description>为 true 时，自动固定可能有用的常用应用程序。</description>
 		</key>
 		<key name="current-workspace-only" type="b">
 			<default>false</default>
-			<summary>Only show windows from the current workspace</summary>
-			<description>If true, only show unpinned windows from the current workspace in addition to pinned items.</description>
+			<summary>仅显示当前工作区的窗口</summary>
+			<description>为 true 时，除了固定项外仅显示当前工作区中未固定的窗口。</description>
 		</key>
 		<key name="dock-items" type="as">
 			<default>[]</default>
-			<summary>Dockitem-files Array</summary>
-			<description>Array of dockitem-files for this particular dock. This list is automatically updated and managed by Plank. DO NOT MODIFY.</description>
+			<summary>Dock 项文件数组</summary>
+			<description>此 Dock 栏的 dockitem 文件数组。由系统自动管理与更新，请勿手动编辑。</description>
 		</key>
 		<key name="free-dock-items" type="as">
 			<default>[]</default>
-			<summary>Free mode dockitem-files Array</summary>
-			<description>Array of dockitem-files for uncategorized mode. Automatically updated and managed by Plank. DO NOT MODIFY.</description>
+			<summary>自由模式 Dock 项文件数组</summary>
+			<description>未分类自由模式下的 dockitem 文件数组。系统自动维护，请勿手动编辑。</description>
 		</key>
 		<key name="categorized-dock-items" type="as">
 			<default>[]</default>
-			<summary>Categorized mode dockitem-files Array</summary>
-			<description>Array of dockitem-files for categorized mode. Automatically updated and managed by Plank. DO NOT MODIFY.</description>
+			<summary>分类模式 Dock 项文件数组</summary>
+			<description>分类抽屉模式下的 dockitem 文件数组。系统自动维护，请勿手动编辑。</description>
 		</key>
 		<key name="hide-delay" type="i">
 			<range min="0"/>
 			<default>0</default>
-			<summary>Dock hide delay</summary>
-			<description>Length of the delay before hiding the dock, in milliseconds.</description>
+			<summary>Dock 隐藏延迟</summary>
+			<description>触发隐藏 Dock 前的延迟时间，单位为毫秒。</description>
 		</key>
 		<key name="hide-mode" enum='PlankHideType'>
 			<default>'intelligent'</default>
-			<summary>Hidemode of the dock</summary>
-			<description>Possible values are "none", "intelligent", "auto", "dodge-maximized", "window-dodge", and "dodge-active".</description>
+			<summary>Dock 隐藏模式</summary>
+			<description>可选值为 "none"(不隐藏), "intelligent"(智能避让), "auto"(自动隐藏), "dodge-maximized"(避让最大化窗口), "window-dodge"(避让窗口), "dodge-active"(避让活动窗口)。</description>
 		</key>
 		<key name="icon-size" type="i">
 			<range min="24" max="128"/>
 			<default>48</default>
-			<summary>Icon Size</summary>
-			<description>The size of dock items, in pixels.</description>
+			<summary>图标大小</summary>
+			<description>Dock 图标的首选像素大小。</description>
 		</key>
 		<key name="items-alignment" enum='GtkAlignType'>
 			<default>'center'</default>
-			<summary>The alignment of dock items</summary>
-			<description>Possible values are "fill", "start", "end", and "center".</description>
+			<summary>Dock 图标的对齐方式</summary>
+			<description>可选值为 "fill"(充满), "start"(靠前), "end"(靠后), "center"(居中)。</description>
 		</key>
 		<key name="lock-items" type="b">
 			<default>false</default>
-			<summary>Lock dock items</summary>
-			<description>If true, prevent drag'n'drop actions and lock dock items in place.</description>
+			<summary>锁定 Dock 图标</summary>
+			<description>为 true 时，禁止拖拽并锁定所有图标位置。</description>
 		</key>
 		<key name="monitor" type="s">
 			<default>''</default>
-			<summary>The name of the monitor for the dock to show on</summary>
-			<description>The plug-name of the monitor for the dock to show on (e.g. DVI-I-1, HDMI1, LVDS1). Leave this empty to keep on the primary monitor.</description>
+			<summary>Dock 栏显示的显示器名称</summary>
+			<description>指定显示器的接口名称 (例如 DP-1, HDMI-1)。留空则保持在主显示器上。</description>
 		</key>
 		<key name="offset" type="i">
 			<range min="-100" max="100"/>
 			<default>0</default>
-			<summary>Position Offset</summary>
-			<description>The dock's position offset from center, in percent.</description>
+			<summary>位置偏移量</summary>
+			<description>Dock 栏相对居中位置的偏移百分比。</description>
 		</key>
 		<key name="pinned-only" type="b">
 			<default>false</default>
-			<summary>Only show pinned applications</summary>
-			<description>If true, only show pinned applications. Useful for running more than one dock.</description>
+			<summary>仅显示固定应用程序</summary>
+			<description>为 true 时，只显示已固定的应用程序项。</description>
 		</key>
 		<key name="position" enum='GtkPositionType'>
 			<default>'bottom'</default>
 			<summary>The position for the dock on the monitor</summary>
-			<description>Possible values are "left", "right", "top", and "bottom".</description>
+			<description>可选值为 "left"(左侧), "right"(右侧), "top"(顶部), "bottom"(底部)。</description>
 		</key>
 		<key name="window-click-behavior" type="i">
-			<range min="0" max="2"/>
+			<range min="0" max="4"/>
 			<default>0</default>
 			<summary>Window click behavior</summary>
-			<description>0 smart, 1 focus, 2 cycle.</description>
+			<description>0 smart, 1 focus, 2 cycle, 3 kwin workspace grid, 4 kwin present windows.</description>
+		</key>
+		<key name="multi-window-behavior" type="i">
+			<range min="0" max="4"/>
+			<default>0</default>
+			<summary>Multi-window click behavior</summary>
+			<description>0 kwin present windows, 1 kwin workspace grid, 2 dockbar preview cards, 3 cycle, 4 focus.</description>
+		</key>
+		<key name="show-minimized-previews" type="b">
+			<default>true</default>
+			<summary>Show minimized window previews</summary>
+			<description>Retain preview icons for minimized windows in a dedicated category next to trash.</description>
 		</key>
 		<key name="show-window-cards" type="b">
 			<default>true</default>
@@ -161,7 +172,7 @@
 		<key name="unhide-delay" type="i">
 			<range min="0"/>
 			<default>0</default>
-			<summary>Dock unhide delay</summary>
+			<summary>Dock 唤出延迟</summary>
 			<description>Length of the delay before unhiding the dock, in milliseconds.</description>
 		</key>
 		<key name="zoom-enabled" type="b">

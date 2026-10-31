@@ -1,0 +1,17 @@
+[Desktop Entry]
+Name=KDE Dockbar
+Name[zh_CN]=KDE 任务栏 (Dock)
+Comment=Modern native dock for KDE Plasma Wayland
+Comment[zh_CN]=专为 KDE Plasma Wayland 量身打造的高性能原生 Dock 栏
+GenericName=Dock
+GenericName[zh_CN]=任务栏
+Exec=kde-dockbar
+Icon=kde-dockbar
+Terminal=false
+Type=Application
+Categories=Utility;
+OnlyShowIn=KDE;
+StartupNotify=false
+X-KDE-autostart-phase=2
+X-KDE-autostart-after=kwin_wayland
+X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2

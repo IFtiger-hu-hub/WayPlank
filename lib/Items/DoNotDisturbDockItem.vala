@@ -42,7 +42,7 @@ namespace Plank
 
 		construct
 		{
-			Text = _("Do Not Disturb");
+			Text = "勿扰模式";
 			Icon = ICON_ACTIVE;
 			Button = PopupButton.RIGHT;
 
@@ -361,7 +361,7 @@ namespace Plank
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

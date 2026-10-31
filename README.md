@@ -1,400 +1,140 @@
-# WAYPLANK: THE ROAD TO WAYLAND DOCK
+# kde-dockbar
 
-> A lightweight native Wayland dock, forked and modernized from Plank.
->
-> Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
->
-> [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Current Live Release: v0.6.2.3 (Round 3)](https://img.shields.io/badge/Live_on_GitHub-v0.6.2.3_(Round_3)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
-> [![Next Release: Public Beta v0.7.0 (Week 45 - Nov 2, 2026)](https://img.shields.io/badge/Next_Release-Public_Beta_v0.7.0_(Week_45)-orange.svg)](README.md)
-> [![FAT: 100% Passed (355/355)](https://img.shields.io/badge/FAT_Status-100%25_PASS_(355%2F355)-success.svg)](FAT/2026-10-26%20FAT%200.6.2.3.txt)
+> 专为 **KDE Plasma (Wayland)** 量身打造的高性能原生 Dock 栏。
 
-![Wayplank Release Banner](Release%20Pic.png)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![Platform: KDE Plasma Wayland](https://img.shields.io/badge/Desktop-KDE%20Plasma%20Wayland-0057B7.svg)](https://kde.org)
+[![Packaging: Native RPM](https://img.shields.io/badge/Package-Fedora%20%7C%20openSUSE-green.svg)](BuildRpm.sh)
 
 ---
 
-> [!IMPORTANT]
-> ### 📅 Master Release Roadmap & Milestone Schedule
-> - **v0.6.2.3 (Current Live Pre-Beta)**: Officially live on GitHub with 100% FAT qualification (355/355 tests passing, 2 NA).
-> - **v0.7.x (Public Beta — Week 45: Monday, Nov 2, 2026)**: Monolithic embedded localization engine (in-memory GResource), community testing, and bug squashing.
-> - **v0.8.x (Release Candidate — RC Series)**: Strict feature freeze, memory leak profiling, and distribution packaging hardening (.deb, .rpm, AUR).
-> - **v0.9.x (Long-Term Production Stabilization)**: The official battle-tested production milestone for daily driving across all Linux distros.
-> - **v1.0.0 (The Grand Milestone — ~2-Year Horizon)**: The long-term landmark celebrating proven stability and next-gen Wayland protocol standards.
+## 🌟 项目简介
 
-> [!TIP]
-> ### 🌍 Call for Translators — Help Localize WayPlank for Public Beta (v0.7.0)!
-> In preparation for the Public Beta, all translations are maintained in a clean, self-contained Python generator script: [`po/generate_translations.py`](po/generate_translations.py).
-> Complete 100% string coverage already exists for **Simplified Chinese (`zh_CN`)**, **Italian (`it`)**, **Spanish (`es`)**, **French (`fr`)**, **Catalan (`ca`)**, **German (`de`)**, and **Ukrainian (`uk`)**.
->
-> **Want to add your language (e.g. Portuguese, Polish, Japanese, etc.) or contribute?**
-> 1. Open [`po/generate_translations.py`](po/generate_translations.py), where all 322 strings are stored in a simple, structured Python dictionary.
-> 2. Add or update your language entries directly in the dictionary (much cleaner and easier to manage than raw `.po` files!).
-> 3. Submit your updated `generate_translations.py` by opening a [GitHub Issue](https://github.com/sergiomelas/WayPlank/issues)!
->
-> ⏰ **Submission Window**: All languages received via GitHub Issues before the end of next week (**Sunday, November 1, 2026 — Week 44**) will be officially integrated into the Public Beta (v0.7.0) release!
+`kde-dockbar` 诞生于对极致轻量与原生融合的追求。
+
+传统或通用的 Wayland Dock（如原始 WayPlank）为了跨桌面兼容 GNOME (Mutter 扩展/DBus 桥接) 与 wlroots (Labwc/Sway 协议桥接)，引入了大量复杂的兼容层、Workarea hack、C 桥接驱动以及繁琐的多合成器检测逻辑。
+
+**`kde-dockbar` 彻底剥离所有非 KDE 杂质**，只专注服务于 **KDE Plasma 桌面环境**：
+- **纯粹的 KWin 深度集成**：通过原生 KWin D-Bus 脚本与事件桥接获取精准窗口状态、焦点、虚拟桌面与多窗口管理；
+- **原生 GtkLayerShell**：依托 KWin 完善的 Layer Shell 支持，实现零 Hack 的屏幕吸附、独占区（Exclusive Zone）与多显示器管理；
+- **KDE 生态优先**：内置 Spectacle 截图、Plasma SystemMonitor 监视、KDE 锁屏/电源与 Breeze 配色融合；
+- **极简工程架构**：无任何外部 C 协议垫片或废弃多桌面后端，代码清晰干净，便于二次开发与新特性拓展。
 
 ---
 
-## 📢 Current Status
+## 🚀 快速上手
 
-Plank was completely unmaintained and broken on Wayland. Wayplank brings it back to life with a native Wayland architecture using `gtk-layer-shell`, modular bridges for different compositors, while preserving the fast and clean Cairo rendering engine we all loved.
+### 1. 编译依赖 (Fedora / openSUSE / RHEL)
 
-I get why it might look like slop at first glance, but this is done with professional rigor. Before dumping code, every single change and architecture shift goes through strict Factory Acceptance Testing—you can literally check the logs in the FAT/ folder to see how every version is systematically tested and verified.
+确保系统已安装基本的构建工具与依赖：
 
-AI is fantastic for rapid prototyping and bringing boilerplate up fast, but this isn't just 'vibe coding'; it's heavily human-reviewed, debugged, and architected for real stability across KWin, Labwc, and Mutter. It’s a robust, hobbyist-driven, native Wayland solution. All compositor features, window previews, and theming integrations are verified with total engineering transparency. Take it or leave it, enjoy the code!
+**Fedora / RHEL:**
+```bash
+sudo dnf install vala gtk3-devel gtk-layer-shell-devel libgee-devel json-glib-devel rpm-build
+```
 
-Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL) working out of the box with **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)**. It auto-detects your compositor at startup without messy configs. 
-
-## 🤝 Acknowledgments & Contributors
-
-**A huge thank you to our 400+ community users: with 1,600+ lifetime downloads & clones and real-world feedback, 95 bugs have been squashed across 355 validation points (100% FAT pass rate)! Testing, bug reports, and pull requests are warmly welcome.**
-
-* **史有虎 (IFtiger-hu)** ([@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub)): Author of the WayPlank community fork, contributor of native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), dock overflow smooth scrolling architecture, and launcher deduplication engine.
-
-### 💡 Community Feature Ideas & User Suggestions
-
-WayPlank is actively shaped and driven by community needs and user creativity! Special thanks to:
-
-* **[Gabenoh](https://github.com/Gabenoh)** ([Discussion #3](https://github.com/sergiomelas/WayPlank/discussions/3#discussion-11094347)): Suggested adding an option to hide the Preferences/Settings icon on the dock for minimalist setups, as well as a strict Docklets-only mode without app menu fallback. This inspired the design and implementation of the 4-position System Menu Access engine (`SystemMenuAccess`: Docklets Only strict, Docklets Only with fallback, All Icons integrated, or Dedicated Icon).
-* **Do Not Disturb Docklet (`docklet://dnd`)**: Instant desktop notification inhibition toggle via standard `org.freedesktop.Notifications` D-Bus interface, dynamic bell/muted state icons, and bidirectional sync with KDE Plasma tray and GNOME top bar.
-* **Symmetric 7×2 Balanced Docklets Grid**: Perfectly balanced 14-item grid in Preferences -> Docklets with real-time toggle switches, and relocation of Trash to the Appearance tab as a permanent desktop shell anchor.
-
-
-## 📖 Documentation
-
-* 📚 [User Guide & Reference Manual](Documentation/USER_GUIDE.md)
-* 🤝 [Contributing Guidelines & Community Tracks](CONTRIBUTING.md)
-* 🗺️ [v0.6.2 Fork Integration Roadmap](Documentation/WAYPLANK_V062_FORK_INTEGRATION_ROADMAP.md)
-* 📖 [Technical migration report](Documentation/wayplank_x11_to_wayland_report_en.md)
-* 🧪 [Compositor test matrix & protocols](FAT/)
-* 📦 [Full technical changelogs](Changelogs/)
-
-### 🎯 Compositor Support & Native HAL Architecture
-
-WayPlank features a modular Hardware Abstraction Layer (HAL) with zero-configuration runtime auto-detection:
-
-| Compositor / Desktop | Integration Engine | Key Capabilities | Status |
-| :--- | :--- | :--- | :---: |
-| **KDE Plasma 6 (KWin)** | D-Bus ECMAScript Bridge | Live Cairo window preview cards (`ScreenShot2` D-Bus IPC), `Bus.watch_name` bridge self-healing, bidirectional event tracking, atomic DRM `kscreen-doctor` brightness sync, real-time dark/light theme switching, 100% FAT pass | **Tier 1 (100% PASS)** |
-| **GNOME Shell (Mutter)** | Monolithic Mutter Extension | Live Cairo window preview cards (`/mutter/screen/preview` IPC), 0.74s instant cold start, deterministic map activation (zero async timer crashes), native CSD HeaderBar dialogs, window Dodge/Intellihide, real-time dark/light theme switching, 100% FAT pass | **Tier 1 (100% PASS)** |
-| **Labwc / wlroots** | `gtk-layer-shell` + `zwlr_foreign_toplevel` | Native C protocol bridge, Cairo blank preview cards with app icons & titles, Honest UI matrix, real-time dark/light theme switching, tested on LXQt 2.x & XFCE 4.20 Wayland | **Tier 1 (100% PASS)** |
-| **Sway & Hyprland** | wlroots protocol extensions | Native layer-shell docking & workspace tracking | *In Roadmap* |
-
-*For in-depth architectural details, protocol diagrams, and security model analysis, see [User Guide Chapter 8: Hardware Abstraction Layer (HAL)](Documentation/USER_GUIDE.md#8-hardware-abstraction-layer-hal--compositor-architecture).*
-
-Feel free to star the repo or follow releases if you want to track progress!
+**openSUSE:**
+```bash
+sudo zypper install vala gtk3-devel gtk-layer-shell-devel libgee-devel json-glib-devel rpm-build
+```
 
 ---
 
-> 🌟 **Zero Open Defects:** Across all 3 Tier-1 Wayland compositors (KDE Plasma 6, GNOME Shell, and Labwc), WayPlank v0.6.2.3 achieves 100% FAT compliance (357 tests defined, 355 passed, 0 open defects, 2 NA). Every validation point is documented with total engineering transparency in [`FAT/`](FAT/).
+### 2. 编译本地二进制
 
----
-
-## 📸 Screenshots
-
-![Wayplank Dock & Drawers Showcase](Screenshots/1.png)
-
-<details>
-<summary><b>🔍 Click to view full desktop integration (1920x1080), detail 1</b></summary>
-
-<br>
-
-![Wayplank Full Desktop](Screenshots/2.png)
-
-</details>
-
-<details>
-<summary><b>🔍 Click to view full desktop integration (1920x1080), detail 2</b></summary>
-
-<br>
-
-![Wayplank Full Desktop](Screenshots/3.png)
-
-</details>
-
----
-
-# Universal Build & Installation Guide (Any Linux Distribution)
-
-## 1. CORE DEPENDENCIES
-
-To compile Wayplank from source and enable all docklets, ensure your distribution provides the required development libraries and runtime tools:
-
-### Build Dependencies (Compiler & Headers):
-- Vala compiler (`valac >= 0.40`)
-- GTK+ 3.0 development headers (`gtk3` / `libgtk-3-dev`)
-- GTK Layer Shell (`gtk-layer-shell` / `libgtk-layer-shell-dev`)
-- Wayland Client library (`wayland` / `libwayland-client0` / `libwayland-dev`)
-- JSON-GLib 1.0 (`json-glib` / `libjson-glib-dev`)
-- LibGee 0.8 (`libgee` / `libgee-0.8-dev`)
-- GLib 2.0 (`glib2` / `libglib2.0-dev`, includes `glib-compile-resources`)
-- `pkg-config` / `base-devel` / `build-essential`
-
-### Runtime Dependencies & Docklet Tools:
-- **Screenshot Docklet (Labwc / wlroots / XFCE on Labwc):** `grim`, `slurp`
-- **Screenshot Docklet (KDE Plasma):** `kde-spectacle`
-- **Screenshot Docklet (XFCE / Generic X11):** `xfce4-screenshooter` or `flameshot`
-- **Screen Brightness Docklet (Hardware control fallback):** `brightnessctl` (optional)
-
-**Quick Install Commands:**
-- **Debian / Ubuntu:**
-  ```bash
-  sudo apt install build-essential valac libgtk-3-dev libgtk-layer-shell-dev libwayland-dev libjson-glib-dev libgee-0.8-dev libglib2.0-dev grim slurp
-  ```
-- **Arch Linux:**
-  ```bash
-  sudo pacman -S --needed base-devel vala gtk3 gtk-layer-shell wayland json-glib libgee glib2 grim slurp
-  ```
-- **Fedora / RHEL:**
-  ```bash
-  sudo dnf install gcc vala gtk3-devel gtk-layer-shell-devel wayland-devel json-glib-devel libgee-devel glib2-devel grim slurp rpm-build
-  ```
-- **openSUSE (Tumbleweed / Leap):**
-  ```bash
-  sudo zypper install gcc vala gtk3-devel gtk-layer-shell-devel wayland-devel json-glib-devel libgee-devel glib2-devel grim slurp rpm-build
-  ```
-
----
-
-## 2. COMPILATION
-
-### Option A: Universal Automated Build Script (Recommended for Any Distro)
-
-Wayplank includes an automated standalone build script that compiles all Vala sources, C bridges, and GLib resources directly without distribution-specific dependencies:
+直接运行一键构建脚本即可完成 GResource 编译与原生二进制生成：
 
 ```bash
-chmod +x BuildBin.sh
 ./BuildBin.sh
 ```
 
-The resulting standalone binary is generated in `build/wayplank`.
+构建产物位于：`build/kde-dockbar`。
 
----
-
-### Option B: Manual Step-by-Step Compilation
-
-If you prefer building manually in your terminal:
-
+启动运行或调试：
 ```bash
-# Step 1: Compile embedded GLib resources
-glib-compile-resources --sourcedir=data --target=lib/resources.c --generate-source data/plank.gresource.xml
+# 启动运行
+./build/kde-dockbar
 
-# Step 2: Compile native Wayplank binary (Vala + C bridges)
-valac -g \
-    --gresources=data/plank.gresource.xml \
-    --gresourcesdir=data \
-    --vapidir=vapi \
-    --pkg posix --pkg gio-unix-2.0 --pkg gtk+-3.0 --pkg gtk-layer-shell-0 \
-    --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg config --pkg wlr-bridge \
-    -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
-    -X -DGETTEXT_PACKAGE=\"wayplank\" \
-    -X -Ilib -X -Ilib/Protocols -X -Ilib/Services -X -Iinclude -X -w -X -lm -X -lwayland-client \
-    $(find lib src -name "*.vala") \
-    lib/resources.c \
-    lib/gtk-compat.c \
-    lib/Protocols/wlr-foreign-toplevel-management-protocol.c \
-    lib/Services/wlr-toplevel-bridge.c \
-    -o wayplank
+# 替换当前已运行的 dock 实例并开启调试日志
+./build/kde-dockbar -r -d
 ```
 
 ---
 
-### Step 3: Install Binary and Desktop Assets
+### 3. 一键打包 RPM (推荐)
 
-Once built (via Option A or Option B), install the binary, themes, icons, and GSettings schemas:
-
-```bash
-# Install binary into /usr/local/bin
-[ -f build/wayplank ] && sudo install -Dm755 build/wayplank /usr/local/bin/wayplank || sudo install -Dm755 wayplank /usr/local/bin/wayplank
-sudo ln -sf /usr/local/bin/wayplank /usr/local/bin/plank
-
-# Install themes and icons
-sudo mkdir -p /usr/local/share/wayplank/themes
-sudo cp -r data/themes/* /usr/local/share/wayplank/themes/
-sudo cp -r data/icons/* /usr/local/share/icons/hicolor/
-
-# Install and compile GSettings schemas
-sudo cp data/glib-2.0/schemas/* /usr/local/share/glib-2.0/schemas/
-sudo glib-compile-schemas /usr/local/share/glib-2.0/schemas/
-```
-
----
-
-## 3. AUTOMATED DEBIAN/UBUNTU PACKAGE CREATION
-
-If running Debian, Ubuntu, or derivative distributions, run the automated packager to create a native `.deb`:
+项目自带纯净的 RPM 构建流程，自动生成适配本机的标准 RPM 安装包：
 
 ```bash
-chmod +x BuildDeb.sh
-./BuildDeb.sh
-# Install with automatic dependency resolution:
-sudo apt install ./build/wayplank_0.6.2.3_amd64.deb
-# Or via dpkg:
-# sudo dpkg -i build/wayplank_0.6.2.3_amd64.deb && sudo apt install -f
-```
-
----
-
-## 4. AUTOMATED OPENSUSE / FEDORA / RHEL RPM PACKAGE CREATION
-
-If running openSUSE (Tumbleweed / Leap), Fedora, or RHEL-based distributions, run the automated RPM packager:
-
-```bash
-chmod +x BuildRpm.sh
 ./BuildRpm.sh
-
-# Install on openSUSE with zypper:
-sudo zypper install ./build/wayplank-0.6.2.3-1.x86_64.rpm
-
-# Or install on Fedora/RHEL with dnf:
-sudo dnf install ./build/wayplank-0.6.2.3-1.x86_64.rpm
-
-# Or install via rpm directly:
-sudo rpm -Uvh ./build/wayplank-0.6.2.3-1.x86_64.rpm
 ```
 
-> 💡 **Headless / CI Environments:** You can bypass interactive prompts across all build scripts using `WAYPLANK_NO_PROMPT=1` (e.g. `WAYPLANK_NO_PROMPT=1 ./BuildRpm.sh`).
-
----
-
-# RUNTIME DIRECTORIES & CONFIGURATION MIGRATION
-
-Wayplank operates under its own isolated namespace and standard XDG locations:
-
-- Configuration Directory: `~/.config/wayplank/`
-- Application Launchers: `~/.config/wayplank/dock1/launchers/`
-- Local User Themes: `~/.local/share/wayplank/themes/`
-- System Themes: `/usr/share/wayplank/themes/` (or `/usr/local/share/wayplank/themes/`)
-
-**Theme Configuration:**
-Wayplank inspects both system and user theme paths natively. To change dock appearance:
-
+构建成功后，直接通过包管理器安装：
 ```bash
-wayplank --preferences
-```
+# Fedora:
+sudo dnf install build/kde-dockbar-0.1.0-1.x86_64.rpm
 
-**Debug & Verbose Logging:**
-To inspect running window hooks and debug output:
-
-```bash
-wayplank -d
+# openSUSE:
+sudo zypper install build/kde-dockbar-0.1.0-1.x86_64.rpm
 ```
 
 ---
 
-# PROJECT ROADMAP & THE WAYLAND MILESTONES
+## 🗂️ 目录结构
 
-- [x] Phase 1 (Completed) v0.1.0: Decoupled Standalone Fork
-  - [x] Complete breakaway from unmaintained upstream Plank.
-  - [x] Full namespace migration to 'wayplank' (configs, directories, launchers).
-  - [x] Modern monolithic build system replacing broken autotools/autogen scripts.
-  - [x] Multi-distro compatibility and standalone Debian packaging pipeline.
-
-- [x] Phase 2 (Completed) v0.2.0: Application Discovery and Dock Lifecycle
-  - [x] Implemented generic application discovery from running processes and desktop files.
-  - [x] Added persistent pinned application handling and temporary running application icons.
-  - [x] Implemented running-instance marking and multi-instance application management.
-
-- [x] Phase 3 (Completed) v0.3.0: Declaration of Independence from X11 & Native Wayland Integration
-  - [x] Implementation of Wayland native protocols.
-  - [x] Complete phasing out of X11/XWayland dependencies. Support one compositor.
-    This will be Kwin because it is the one I know the best.
-  - [x] Full fractional scaling and native Wayland compositor window tracking.
-
-- [x] Phase 4 (Completed) v0.4.0, v0.4.1, v0.4.2: KWin Stabilization, Monolithic Docklets & Bug Fixes
-  - [x] Hardened KWin scripting bridge, overlap detection, and multi-monitor tracking.
-  - [x] Implemented 8 embedded monolithic docklets (Trash, Clocks, Battery, CPU/RAM, Show Desktop, MPRIS, Volume).
-  - [x] Bi-directional KWin & Plasma D-Bus trash bridge synchronization.
-  - [x] Resolved icon bounce regressions, portal file launching, and process replacement (`--replace` / `-r`).
-
-- [x] Phase 5 (Completed) v0.4.3: Multi-Compositor HAL & Support for Other Compositors (Labwc, wlroots, Mutter)
-  - [x] Defined and implemented the modular Hardware Abstraction Layer (`WindowBackend` / `WindowControl`).
-  - [x] Added native Labwc & wlroots support via `zwlr_foreign_toplevel_manager_v1` protocol and C bridge (v0.4.3).
-  - [x] Zero-configuration runtime dynamic compositor auto-probing (Labwc vs KWin vs Mutter).
-  - [x] Reactive Cairo indicator dots and cross-compositor Show Desktop toggle engine.
-  - [x] State-based Dodge & Honest UI Matrix for Labwc (`DODGE_MAXIMIZED`, UI filtering, transparent fallback; validated on LXQt 2.x and XFCE 4.20).
-  - [x] Native GNOME Shell / Mutter bridge integration (Phase 1): monolithic self-deploying GNOME Shell extension via D-Bus (`MutterBackend`), window state tracking, zero-notification banners, centered dialogs, and edge positioning (v0.4.3).
-  - [x] Strict HAL coordinate isolation: native Layer Shell margins for KWin/Labwc and dedicated absolute screen positioning for Mutter (v0.4.3).
-  - [x] Finalize GNOME Shell extension bridge for window geometry retrieval to support Intellihide & Dodge on Mutter.
-
-- [ ] Phase 6 (In Progress) v0.5.0 - v0.6.2.3: Visual Ergonomics, Advanced Theming & Community Features
-  - [x] Comprehensive 14-docklet suite (including Do Not Disturb, Screenshot, Brightness, Weather, Removable Drive Ejector).
-  - [x] Semantic categorized multi-zone dock layout (`[Folders] | [Docklets] | [Pinned Apps] | [Transients] | [Trash]`).
-  - [x] Cairo folder launcher menus and full application drawers with active window indicators.
-  - [x] Universal Cairo multi-window preview cards with live thumbnails on KWin and GNOME Mutter.
-  - [x] Real-time dark/light theme switching with native Theme Manager and portal synchronization.
-  - [x] Advanced ergonomics: remote URL drag-and-drop, hover-to-raise window activation, recent files jump lists.
-  - [x] Configurable System Menu Access modes and dynamic compositor panel avoidance.
-  - [x] Multi-distribution packaging parity (Debian `.deb` & openSUSE/Fedora `.rpm`).
-  - [ ] Incorporate community user contributions, bug reports, and UX requests ahead of Public Beta.
-
-- [ ] Phase 7 (Upcoming) WayPlank Public Beta (v0.7.x)
-  - [ ] **Week 45 (Monday, November 2, 2026): Official Launch of Public Beta (v0.7.0) on GitHub!**
-  - [ ] Monolithic embedded gettext localization engine (`GResource`) with 100% in-memory string resolution.
-  - [ ] Downstream collaborator synchronization & community testing buffer throughout Week 44.
-  - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
-- [ ] Phase 8 (Planned) WayPlank Release Candidate (v0.8.x)
-  - [ ] Strict Feature Freeze — no new architectural features, focusing purely on stability and hardening.
-  - [ ] Systematic memory leak profiling (Valgrind / AddressSanitizer) and CPU efficiency audits.
-  - [ ] Distribution packaging parity: official Debian (.deb), Fedora/openSUSE (.rpm), and Arch Linux AUR PKGBUILD.
-- [ ] Phase 9 (Planned) WayPlank Long-Term Production Stabilization (v0.9.x)
-  - [ ] The official daily driver production milestone, rock-solid across all major compositors (KWin, Mutter, Labwc).
-  - [ ] Production maintenance releases (`v0.9.1`, `v0.9.2`, etc.) as Wayland protocols and driver stacks evolve.
-- [ ] Phase 10 (Long-Term Horizon ~2 Years) WayPlank 1.0.0 Grand Milestone
-  - [ ] The definitive landmark celebration after 2 years of proven daily production stability and mature protocol integration.
----
-
-# 📝 Release Highlights & Changelog
-
-Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
-
-* 🚀 **v0.6.2.3 (Community & Visual Enhancements) — Current Live Release (2026-10-26)**:  
-  Universal Cairo multi-window preview cards with live thumbnails on KWin and GNOME Mutter, real-time light/dark theme switching, built-in Do Not Disturb docklet, 3-position configurable System Menu Access, dynamic top panel avoidance, folder launcher indicators, and recent files jump lists. Directly paves the way for the **Public Beta (v0.7.0)** launching in Week 45 (Monday, November 2, 2026)!
-* 🌟 **v0.6.2.2 (Round 2, Pre-Beta) — Current Live GitHub Release (2026-10-21) [COMPLETED / 100% FAT PASSED]**:  
-  Remote web URL & browser shortcut DND delivery (`DesktopAppInfo.launch_uris`), hover-to-raise target window activation,  
-  real-time dark/light portal color-scheme synchronization (`org.freedesktop.portal.Settings`), interactive Theme Manager  
-  with native portal file chooser and archive installer (.zip/.tar.gz), strict FreeDesktop MIME type drop validation,  
-  canonical launcher deduplication (`Posix.realpath` & `File.equal`), and clean KISS drag-off removal with instant poof animation.
-* 🌟 **v0.6.2.1 (Round 1, Pre-Beta) — 2026-10-19 [COMPLETED / 100% FAT PASSED]**:  
-  Native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), launcher deduplication & item reuse, ghost bridge window shield,  
-  dock overflow smooth scrolling with tachometer redline capacity indicator, and multi-monitor DDC/CI sync with SP/PV decoupling.
-* 💡 **v0.6.1 (Alpha) — 2026-10-15:** The Bug Hunting Release — Multi-monitor KWin brightness sync, unified Global System Pressure engine, drag-and-drop payload delivery & 0-byte MIME fix, docklet icon standardization & adaptive dynamic Gtk+ theme engine.
-* ✨ **v0.6.0 (Alpha) — 2026-10-11:** Smart first-run auto-configuration (categorized English app drawers, auto-detected pinned apps, docklets & trash), universal "Change Icon..." dialog with FreeDesktop & GIO metadata, integrated User Guide, and clean release polish.
-* 🚀 **v0.5.2 (Alpha) — 2026-10-09:** Cairo folder launcher menu, 14 built-in docklets, category layout grouping and deep audit fixing stack overflows & GObject assertions.
-* 🛠️ **v0.5.1 (Alpha) — 2026-10-08:** Fixed KWin resume freeze on Plasma 6 with 50ms debouncer, native screenshot docklet and 100% FAT pass rate.
-* 🖥️ **v0.5.0 (Alpha) — 2026-10-07:** Solved multi-monitor duplicate ID collisions, live monitor hotplugging and Mutter drag race fixes.
-* 🧩 **v0.4.3 (Pre-Alpha) — 2026-10-05:** Modular Multi-Compositor HAL: dynamic auto-probing for KWin, Labwc (via `zwlr_foreign_toplevel`) and GNOME Shell bridge.
-* 📦 **v0.4.2 (Pre-Alpha) — 2026-10-02:** First 8 monolithic docklets (Trash, Clock, Battery, etc.), total purge of X11 libs and `--replace` flag.
-* ⚙️ **v0.4.1 (Pre-Alpha) — 2026-09-25:** Multi-monitor config persistence, secondary display tooltip fix and smooth zoom without micro-stutters.
-* 🪟 **v0.4.0 (Pre-Alpha) — 2026-09-24:** KWin D-Bus scripting bridge, real-time window Dodge/Intellihide and layer-shell input region negotiation.
-* 📌 **v0.3.0 (Pre-Alpha) — 2026-09-23:** Drag-and-drop icon pinning, running app dots and native compositor-safe window tracking.
-* 🏗️ **v0.2.0 (Pre-Alpha) — 2026-09-22:** Native `gtk-layer-shell` integration, `/proc` process scanner and standalone packaging scripts.
-* 🌱 **v0.1.0 (Pre-Alpha) — 2026-09-19:** Initial standalone fork from Plank, clean namespace migration to `wayplank` and XDG isolated paths.
-
-👉 *Read the full detailed commits and milestone notes in [`Changelogs/`](Changelogs/).*
- 
+```text
+kde-dockbar/
+├── BuildBin.sh             # 原生二进制一键构建脚本
+├── BuildRpm.sh             # RPM 自动化打包脚本
+├── LICENSE                 # GPL-3.0 许可证
+├── README.md               # 项目文档
+├── data/                   # 资源文件
+│   ├── glib-2.0/schemas/   # GSettings 配置模式定义
+│   ├── icons/              # 内置通用应用与状态图标
+│   ├── themes/             # 预设主题 (Dark, Light, Transparent 等)
+│   ├── docklets/           # 内置 Docklet SVG 矢量图标
+│   ├── ui/                 # 首选项配置 GTK UI 描述
+│   ├── kde-dockbar.desktop # KDE 自动启动与桌面入口
+│   ├── kde-dockbar.svg     # 应用矢量图标
+│   └── plank.gresource.xml # GResource 清单
+├── include/
+│   └── config.h            # 构建与元数据宏定义
+├── vapi/                   # Vala 绑定配置 (compat, config)
+├── lib/                    # 核心库实现
+│   ├── DBus/               # DBus 接口抽象
+│   ├── Drawing/            # Cairo 渲染、主题与色彩引擎
+│   ├── Factories/          # Item / Docklet 工厂与主控制器基类
+│   ├── Items/              # Docklet（音量/CPU/网络/电池/截图/会话等）
+│   ├── Services/           # KWinBridge, KWinBackend, WindowControl, Theme 等
+│   └── Widgets/            # DockWindow, HoverWindow, Multi-Window Cards 等
+└── src/
+    └── Main.vala           # 应用程序主入口
+```
 
 ---
 
-## ⚖️ License & Integrated Assets Attribution
+## 🎯 核心特性与快捷操作
 
-Wayplank is free software licensed under the **GNU General Public License v3.0 or later** ([GPL-3.0-or-later](LICENSE)).
+- **多窗口预览卡片**：当单个应用拥有多个窗口时，左键点击触发平滑的 Cairo 悬浮预览卡片，支持直接关闭或切换焦点；
+- **动态图标缩放**：按住 `Ctrl` + 鼠标滚轮可实时无缝调节 Dock 图标尺寸；
+- **KDE 原生截图**：右键截图 Docklet 可选择区域截图、全屏截图、活动窗口或延时截图（无缝调用 Spectacle）；
+- **拖拽整理**：
+  - 拖拽图标离开 Dock 栏触发烟雾消散（Poof）动画移除；
+  - 拖拽调整固定项顺序；
+  - 支持将外部文件/网页 URL 拖入应用图标直接打开；
+- **智能避让与隐藏**：支持智能避让（Intelligent）、最大化避让（Dodge Maximized）、自动隐藏（Auto Hide）与固定显示；
+- **深浅色主题无缝协同**：实时检测 KDE Plasma 主题变化并自动匹配高对比度呈现。
 
-### 1. Core Project & Codebase
-* **License**: GNU General Public License v3.0 or later ([GPL-3.0-or-later](LICENSE)).
-* **Original Plank Codebase**: © 2011–2015 Robert Dyer, Michal Hruby, Rico Tzschichholz, and Plank contributors.
-* **Wayplank Fork & Architecture**: © 2026 Sergio Melas (<sergiomelas@gmail.com>).
+---
 
-### 2. Integrated Fallback Assets & Vector Artwork
-Wayplank incorporates high-definition vector assets compiled directly into the binary executable via GLib GResources (`/net/launchpad/plank/docklets/`) to provide self-contained, standalone operation on any desktop or minimal distribution:
-* **Docklet Fallback Icons** (`data/docklets/`):
-  * **Volume Scale**: Overamplified (>100%), High, Medium, Low, Muted (`volume-*.svg`).
-  * **Battery Scale**: Full, Good, Low, Caution, Empty, Full-Charging, Good-Charging, Low-Charging, Caution-Charging, Empty-Charging, AC-Adapter, Missing (`battery-*.svg`).
-  * **Brightness Scale**: High, Medium, Low, Base (`brightness-*.svg`).
-  * **Weather Forecast Scale**: Clear, Few Clouds, Overcast, Showers, Snow, Storm, Fog (`weather-*.svg`).
-  * **Clock & Time**: Analog Clock (`clock.svg`), Digital LED Clock (`digital-clock.svg`).
-  * **System & Hardware**: Trash empty/full (`trash.svg`, `trash-full.svg`), Global System Pressure Monitor (`cpu.svg`), Show Desktop (`desktop.svg`), MPRIS Media Player (`mpris.svg`), Screenshot (`screenshot.svg`), Session/Power (`session.svg`), Wayplank Preferences (`preferences.svg`), Removable Drive Ejector (`ejector.svg`).
-* **Attribution & Upstream**: Derived from FreeDesktop & KDE Breeze icon specifications © KDE Community / Breeze Icon Artists, licensed under **LGPL-3.0-or-later** / **GPL-3.0-or-later**.
-* **Zero Host Pollution**: All fallback icons are strictly compiled into the internal executable binary; no extra icon files are installed into `/usr/share/icons/hicolor/`, ensuring pure standalone behavior and complete distribution independence.
+## 🤝 鸣谢与致敬
 
+- 基于 [Plank](https://launchpad.net/plank) 与 [WayPlank](https://github.com/sergiomelas/WayPlank) 项目的优秀积淀与架构演进；
+- 感谢 KDE 社区对 Wayland 标准与 Layer-Shell 协议的卓越实现。
 
+## Wayland flush-retry (scheme A)
+
+GDK aborts on transient `wl_display_flush` EAGAIN. kde-dockbar loads
+`~/.local/lib/kde-dockbar/libwl_flush_retry.so` via `LD_PRELOAD` in the user
+systemd unit so flush is polled/retried (~400ms cap) before returning the error.
+Details: `lib/flush-retry/README.md`. This only affects kde-dockbar.

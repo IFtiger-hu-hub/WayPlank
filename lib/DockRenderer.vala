@@ -271,6 +271,7 @@ namespace Plank
 			urgent_indicator_buffer = null;
 			urgent_glow_buffer = null;
 			
+			PlankCompat.malloc_trim ();
 			animated_draw ();
 		}
 		
@@ -1194,6 +1195,10 @@ namespace Plank
 			
 			local_cursor = new_cursor;
 			
+			// Cards + dock zoom together flood the Wayland client socket — freeze zoom paint.
+			if (controller.window_cards != null && controller.window_cards.get_visible ())
+				return;
+			
 			if (screen_is_composited) {
 				zoom_changed = true;
 				animated_draw ();
@@ -1268,7 +1273,10 @@ namespace Plank
 				return true;
 			if (item.LastActive > 0 && render_time - item.LastActive <= theme.ActiveTime * 1000)
 				return true;
-			if (show_notifications && (item.State & ItemState.URGENT) != 0)
+			// URGENT used to keep the frame clock forever (display-Hz → Wayland EAGAIN).
+			// Animate for ~6s only (Renderer also FPS-caps); then static urgent badge.
+			if (show_notifications && (item.State & ItemState.URGENT) != 0
+			    && (render_time - item.LastUrgent) <= 6LL * 1000 * 1000)
 				return true;
 			if (item.LastMove > 0 && (item.State & ItemState.MOVE) != 0 && render_time - item.LastMove <= theme.ItemMoveTime * 1000)
 				return true;

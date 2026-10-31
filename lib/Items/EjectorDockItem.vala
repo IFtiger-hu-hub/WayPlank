@@ -44,7 +44,7 @@ namespace Plank
 
 		construct
 		{
-			Text = _("Removable Drives");
+			Text = "可移动磁盘";
 			Icon = ICON_NAMES;
 			Button = PopupButton.RIGHT;
 
@@ -136,11 +136,11 @@ namespace Plank
 			if (count > 0) {
 				Count = count;
 				CountVisible = true;
-				Text = _("Removable Drives (%u mounted)").printf (count);
+				Text = "可移动磁盘 (已挂载 %u 个)".printf (count);
 			} else {
 				Count = 0;
 				CountVisible = false;
-				Text = _("Removable Drives (None connected)");
+				Text = "可移动磁盘 (未连接设备)";
 			}
 
 			reset_icon_buffer ();
@@ -178,8 +178,8 @@ namespace Plank
 				builder.add ("s", "WayPlank");
 				builder.add ("u", 0U);
 				builder.add ("s", "media-eject");
-				builder.add ("s", _("Safe to Remove"));
-				builder.add ("s", _("Device '%s' has been safely unmounted.").printf (drive_name));
+				builder.add ("s", "可以安全拔出");
+				builder.add ("s", "设备 '%s' 已安全卸载。".printf (drive_name));
 				builder.add ("as", new string[0]);
 				builder.open (new GLib.VariantType ("a{sv}"));
 				builder.close ();
@@ -199,7 +199,7 @@ namespace Plank
 			} catch (GLib.Error e) {
 				// Fallback to notify-send
 				try {
-					Process.spawn_command_line_async ("notify-send -i media-eject '%s' '%s'".printf (_("Safe to Remove"), drive_name));
+					Process.spawn_command_line_async ("notify-send -i media-eject '%s' '%s'".printf ("可以安全拔出", drive_name));
 				} catch (Error e2) { }
 			}
 		}
@@ -214,13 +214,13 @@ namespace Plank
 				} else if (mounts.length () > 1) {
 					var menu = new Gtk.Menu ();
 					foreach (var m in mounts) {
-						var item = new Gtk.MenuItem.with_label (_("Eject '%s'").printf (m.get_name ()));
+						var item = new Gtk.MenuItem.with_label ("弹出 '%s'".printf (m.get_name ()));
 						item.activate.connect (() => eject_mount (m));
 						menu.append (item);
 					}
 					var sep = new Gtk.SeparatorMenuItem ();
 					menu.append (sep);
-					var item_all = new Gtk.MenuItem.with_label (_("Eject All Devices"));
+					var item_all = new Gtk.MenuItem.with_label ("弹出所有设备");
 					item_all.activate.connect (() => eject_all ());
 					menu.append (item_all);
 
@@ -239,7 +239,7 @@ namespace Plank
 		private void notify_no_devices ()
 		{
 			try {
-				Process.spawn_command_line_async ("notify-send -i drive-removable-media 'WayPlank' '%s'".printf (_("No removable devices connected")));
+				Process.spawn_command_line_async ("notify-send -i drive-removable-media 'WayPlank' '%s'".printf ("未连接可移动设备"));
 			} catch (Error e) { }
 		}
 
@@ -250,25 +250,25 @@ namespace Plank
 
 			if (mounts.length () > 0) {
 				foreach (var m in mounts) {
-					var eject_item = create_menu_item (_("Eject '%s'").printf (m.get_name ()), "media-eject", true);
+					var eject_item = create_menu_item ("弹出 '%s'".printf (m.get_name ()), "media-eject", true);
 					eject_item.activate.connect (() => eject_mount (m));
 					items.add (eject_item);
 				}
 
 				if (mounts.length () > 1) {
-					var eject_all_item = create_menu_item (_("Eject All Devices"), "media-eject", true);
+					var eject_all_item = create_menu_item ("弹出所有设备", "media-eject", true);
 					eject_all_item.activate.connect (() => eject_all ());
 					items.add (eject_all_item);
 				}
 			} else {
-				var empty_item = create_menu_item (_("No Removable Devices"), "drive-removable-media", false);
+				var empty_item = create_menu_item ("无已连接的可移动设备", "drive-removable-media", false);
 				empty_item.set_sensitive (false);
 				items.add (empty_item);
 			}
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

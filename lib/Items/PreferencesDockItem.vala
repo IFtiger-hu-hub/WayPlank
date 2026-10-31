@@ -35,7 +35,7 @@ namespace Plank
 
 		construct
 		{
-			Text = _("Preferences");
+			Text = "首选项";
 			Icon = ICON_NAMES;
 			Button = PopupButton.RIGHT;
 		}
@@ -89,24 +89,24 @@ namespace Plank
 			if (controller != null) {
 				unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
 				if (default_provider != null) {
-					var docklets_item = DockElement.create_menu_item (_("_Docklets"), "system-run", true);
+					var docklets_item = DockElement.create_menu_item ("小组件(_D)", "system-run", true);
 					var docklets_menu = new Gtk.Menu ();
 					DockletMenuEntry[] docklets = {
-						{ _("_Trash"), "docklet://trash" },
-						{ _("_Analog Clock"), "docklet://clock" },
-						{ _("_Digital Clock"), "docklet://digital-clock" },
-						{ _("_Battery"), "docklet://battery" },
-						{ _("_CPU / RAM Monitor"), "docklet://cpu" },
-						{ _("_Show Desktop"), "docklet://desktop" },
-						{ _("_Media Player"), "docklet://mpris" },
-						{ _("_Volume Control"), "docklet://volume" },
-						{ _("_Screenshot"), "docklet://screenshot" },
-						{ _("_Session / Power"), "docklet://session" },
-						{ _("_Screen Brightness"), "docklet://brightness" },
-						{ _("_Removable Drives"), "docklet://ejector" },
-						{ _("_Weather Forecast"), "docklet://weather" },
-						{ _("_Network / Wi-Fi"), "docklet://network" },
-						{ _("_Do Not Disturb"), "docklet://dnd" }
+						{ "废纸篓(_T)", "docklet://trash" },
+						{ "指针时钟(_A)", "docklet://clock" },
+						{ "数字时钟(_D)", "docklet://digital-clock" },
+						{ "电池(_B)", "docklet://battery" },
+						{ "CPU / 内存监视器(_C)", "docklet://cpu" },
+						{ "显示桌面(_S)", "docklet://desktop" },
+						{ "媒体播放器(_M)", "docklet://mpris" },
+						{ "音量控制(_V)", "docklet://volume" },
+						{ "截图工具(_S)", "docklet://screenshot" },
+						{ "会话与电源(_S)", "docklet://session" },
+						{ "屏幕亮度(_S)", "docklet://brightness" },
+						{ "可移动磁盘(_R)", "docklet://ejector" },
+						{ "天气预报(_W)", "docklet://weather" },
+						{ "网络 / Wi-Fi(_N)", "docklet://network" },
+						{ "勿扰模式(_D)", "docklet://dnd" }
 					};
 					foreach (var d in docklets) {
 						var d_uri = d.uri;
@@ -132,46 +132,46 @@ namespace Plank
 				}
 			}
 
-			var pref_item = DockElement.create_menu_item (_("_Preferences..."), "preferences-system", true);
+			var pref_item = DockElement.create_menu_item ("首选项(_P)...", "preferences-system", true);
 			pref_item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));
 			items.add (pref_item);
 
-			var appearance_item = DockElement.create_menu_item (_("_Appearance..."), "preferences-desktop-theme", true);
+			var appearance_item = DockElement.create_menu_item ("外观设置(_A)...", "preferences-desktop-theme", true);
 			appearance_item.activate.connect (() => Application.get_default ().activate_action ("preferences-appearance", null));
 			items.add (appearance_item);
 
-			var behaviour_item = DockElement.create_menu_item (_("_Behaviour..."), "preferences-desktop", true);
+			var behaviour_item = DockElement.create_menu_item ("行为设置(_B)...", "preferences-desktop", true);
 			behaviour_item.activate.connect (() => Application.get_default ().activate_action ("preferences-behaviour", null));
 			items.add (behaviour_item);
 
-			var apps_item = DockElement.create_menu_item (_("A_pplications..."), "applications-other", true);
+			var apps_item = DockElement.create_menu_item ("应用程序管理(_P)...", "applications-other", true);
 			apps_item.activate.connect (() => Application.get_default ().activate_action ("preferences-applications", null));
 			items.add (apps_item);
 
-			var docklets_tab_item = DockElement.create_menu_item (_("_Docklets..."), "preferences-plugin", true);
+			var docklets_tab_item = DockElement.create_menu_item ("小组件管理(_D)...", "preferences-plugin", true);
 			docklets_tab_item.activate.connect (() => Application.get_default ().activate_action ("preferences-docklets", null));
 			items.add (docklets_tab_item);
 
-			var shortcuts_item = DockElement.create_menu_item (_("_Shortcuts & Gestures..."), "help-browser");
+			var shortcuts_item = DockElement.create_menu_item ("快捷键与鼠标手势(_S)...", "help-browser");
 			shortcuts_item.activate.connect (() => Application.get_default ().activate_action ("shortcuts", null));
 			items.add (shortcuts_item);
 
-			var guide_item = DockElement.create_menu_item (_("User Guide..."), "help-browser", true);
+			var guide_item = DockElement.create_menu_item ("使用指南...", "help-browser", true);
 			guide_item.activate.connect (() => Application.get_default ().activate_action ("guide", null));
 			items.add (guide_item);
 
-			var report_item = DockElement.create_menu_item (_("Report a _Bug Online..."), "tools-report-bug");
+			var report_item = DockElement.create_menu_item ("在线反馈问题(_B)...", "tools-report-bug");
 			report_item.activate.connect (() => Application.get_default ().activate_action ("help", null));
 			items.add (report_item);
 
-			var about_item = DockElement.create_menu_item (_("_About"), "help-about", true);
+			var about_item = DockElement.create_menu_item ("关于(_A)", "help-about", true);
 			about_item.activate.connect (() => Application.get_default ().activate_action ("about", null));
 			items.add (about_item);
 
 			if (!environment_is_session_desktop (XdgSessionDesktop.PANTHEON)) {
 				items.add (new Gtk.SeparatorMenuItem ());
 
-				var quit_item = DockElement.create_menu_item (_("_Quit"), "application-exit", true);
+				var quit_item = DockElement.create_menu_item ("退出(_Q)", "application-exit", true);
 				quit_item.activate.connect (() => Application.get_default ().activate_action ("quit", null));
 				items.add (quit_item);
 			}

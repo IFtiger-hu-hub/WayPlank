@@ -40,6 +40,8 @@ namespace Plank
 		Gtk.ScrolledWindow scrolled;
 
 		uint dismiss_timer_id = 0U;
+		uint refresh_draw_timer_id = 0U;
+		uint thumbs_start_timer_id = 0U;
 		bool pointer_inside = false;
 
 		static Pango.FontDescription? cached_font_title = null;
@@ -117,11 +119,19 @@ namespace Plank
 			scroll_event.connect (on_scroll);
 
 			WindowManager.get_default ().windows_refreshed.connect (on_windows_refreshed);
+			KWinThumbnailService.get_default ().thumbnail_updated.connect (on_thumbnail_updated);
 		}
 
 		~WindowCardsWindow ()
 		{
 			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
+			KWinThumbnailService.get_default ().thumbnail_updated.disconnect (on_thumbnail_updated);
+		}
+
+		void on_thumbnail_updated (string win_id)
+		{
+			if (get_visible ())
+				cards_box.queue_draw ();
 		}
 
 		bool on_scroll (Gdk.EventScroll event)
@@ -153,8 +163,15 @@ namespace Plank
 				populate_cards ();
 				update_position ();
 			} else {
-				// Re-draw all cards to shift active cyan highlight
-				cards_box.queue_draw ();
+				// Debounce highlight redraw — window state can tick often
+				if (refresh_draw_timer_id > 0U)
+					return;
+				refresh_draw_timer_id = Timeout.add (80, () => {
+					refresh_draw_timer_id = 0U;
+					if (get_visible ())
+						cards_box.queue_draw ();
+					return false;
+				});
 			}
 		}
 
@@ -221,6 +238,10 @@ namespace Plank
 			TargetItem = item;
 			pointer_inside = false;
 			cancel_dismiss_timer ();
+			if (thumbs_start_timer_id > 0U) {
+				Source.remove (thumbs_start_timer_id);
+				thumbs_start_timer_id = 0U;
+			}
 
 			populate_cards ();
 			show_all ();
@@ -232,12 +253,8 @@ namespace Plank
 
 			update_position ();
 
-			GLib.Timeout.add (25, () => {
-				if (get_visible () && TargetItem != null)
-					update_position ();
-				return false;
-			});
-			GLib.Timeout.add (75, () => {
+			// One settle reposition (was 25+75ms → dual layer-shell configure bursts)
+			GLib.Timeout.add (60, () => {
 				if (get_visible () && TargetItem != null)
 					update_position ();
 				return false;
@@ -247,8 +264,18 @@ namespace Plank
 		public void close_cards ()
 		{
 			cancel_dismiss_timer ();
+			if (refresh_draw_timer_id > 0U) {
+				Source.remove (refresh_draw_timer_id);
+				refresh_draw_timer_id = 0U;
+			}
+			if (thumbs_start_timer_id > 0U) {
+				Source.remove (thumbs_start_timer_id);
+				thumbs_start_timer_id = 0U;
+			}
 			hide ();
 			TargetItem = null;
+			// Keep pixbuf cache across close — only soft-cancel UI callbacks (anti EAGAIN storm)
+			KWinThumbnailService.get_default ().clear_ui_pending ();
 			controller.check_collapse_after_interaction (this);
 		}
 
@@ -297,15 +324,17 @@ namespace Plank
 				return GLib.strcmp (a.Caption, b.Caption);
 			});
 
+			int stagger_idx = 0;
 			foreach (var win in sorted) {
-				var card = create_card_widget (win);
+				var card = create_card_widget (win, stagger_idx);
+				stagger_idx++;
 				cards_box.pack_start (card, false, false, 0);
 			}
 
 			cards_box.show_all ();
 		}
 
-		Gtk.Widget create_card_widget (WindowInfo win)
+		Gtk.Widget create_card_widget (WindowInfo win, int stagger_idx = 0)
 		{
 			var eb = new Gtk.EventBox ();
 			eb.set_visible_window (true);
@@ -351,7 +380,7 @@ namespace Plank
 			var da = new Gtk.DrawingArea ();
 			da.set_size_request (CARD_WIDTH, CARD_HEIGHT);
 
-			string app_text = (TargetItem != null) ? TargetItem.Text : _("Application");
+			string app_text = (TargetItem != null) ? TargetItem.Text : "应用程序";
 			string cleaned_caption = clean_window_caption (win.Caption, app_text);
 
 			int prev_w = CARD_WIDTH - 10;
@@ -359,13 +388,19 @@ namespace Plank
 
 			Gdk.Pixbuf? thumb_pixbuf = KWinThumbnailService.get_default ().get_cached (win.Id);
 			if (thumb_pixbuf == null) {
-				KWinThumbnailService.get_default ().request_thumbnail (win.Id, prev_w, prev_h, (pix) => {
-					if (pix != null) {
-						thumb_pixbuf = pix;
-						da.queue_draw ();
-						cards_box.queue_draw ();
-						this.queue_draw ();
-					}
+				// Wait for cards to map + idle, then stagger ScreenShot2 (icon fallback until ready)
+				uint delay_ms = 180U + (uint) (stagger_idx * 90);
+				string win_id_copy = win.Id;
+				Timeout.add (delay_ms, () => {
+					if (!get_visible () || TargetItem == null)
+						return false;
+					KWinThumbnailService.get_default ().request_thumbnail (win_id_copy, prev_w, prev_h, (pix) => {
+						if (pix != null && get_visible ()) {
+							thumb_pixbuf = pix;
+							da.queue_draw (); // only the card that changed — avoid triple commit
+						}
+					});
+					return false;
 				});
 			}
 
@@ -435,7 +470,10 @@ namespace Plank
 				Theme.draw_rounded_rect (cr, prev_x, prev_y, prev_w_d, prev_h_d, prev_r, prev_r, 0.0);
 				cr.clip ();
 
-				var current_thumb = (thumb_pixbuf != null) ? thumb_pixbuf : KWinThumbnailService.get_default ().get_cached (win.Id);
+				// Prefer service cache so silent TTL refresh is visible without sticky local pixbuf
+				var current_thumb = KWinThumbnailService.get_default ().get_cached (win.Id);
+				if (current_thumb == null)
+					current_thumb = thumb_pixbuf;
 				if (current_thumb != null) {
 					Gdk.cairo_set_source_pixbuf (cr, current_thumb, prev_x, prev_y);
 					cr.paint ();
@@ -465,7 +503,7 @@ namespace Plank
 							cached_font_title = Pango.FontDescription.from_string ("Sans 7.5");
 						var layout_min = Pango.cairo_create_layout (cr);
 						layout_min.set_font_description (cached_font_title);
-						layout_min.set_text (_("Minimized"), -1);
+						layout_min.set_text ("已最小化", -1);
 						cr.set_source_rgba (148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, 0.85);
 						cr.move_to (center_x - 22.0, center_y + 24.0);
 						Pango.cairo_show_layout (cr, layout_min);

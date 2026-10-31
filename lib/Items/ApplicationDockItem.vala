@@ -220,11 +220,27 @@ namespace Plank
 				var app_id = File.new_for_uri (Launcher).get_basename ();
 				unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
 				var click_behavior = (provider != null ? provider.Prefs.WindowClickBehavior : 0);
+				if (click_behavior == 3) {
+					WindowControl.toggle_grid_view ();
+					return AnimationType.BOUNCE;
+				} else if (click_behavior == 4) {
+					var matches = WindowManager.get_default ().matching_windows (Launcher);
+					if (matches.size > 0) {
+						var uuids = new Gee.ArrayList<string> ();
+						foreach (var w in matches)
+							uuids.add (w.Id);
+						WindowControl.show_window_view (uuids.to_array ());
+						return AnimationType.BOUNCE;
+					}
+				}
 				var restore_minimized = (provider == null || provider.Prefs.RestoreMinimizedWindows);
 				string? uuid;
 				string action;
 				if (WindowManager.get_default ().resolve_click_command (Launcher, click_behavior, restore_minimized, out uuid, out action)) {
 					message ("Wayplank: click on '%s' (app_id=%s) -> uuid=%s action=%s", Text, app_id, uuid, action);
+					unowned DockController? dock = get_dock ();
+					if (dock != null)
+						dock.sync_minimized_geometries ();
 					WindowControl.queue_command (uuid, action);
 					return AnimationType.BOUNCE;
 				}
@@ -270,7 +286,7 @@ namespace Plank
 						});
 						items.add (win_item);
 					}
-					var close_all_item = create_menu_item (_("Close _All"), "window-close", true);
+					var close_all_item = create_menu_item ("关闭所有窗口(_A)", "window-close", true);
 					close_all_item.activate.connect (() => {
 						foreach (var win in windows) {
 							WindowControl.queue_command (win.Id, "close");
@@ -279,7 +295,7 @@ namespace Plank
 					items.add (close_all_item);
 				} else {
 					var win = windows[0];
-					var close_item = create_menu_item (_("_Close"), "window-close", true);
+					var close_item = create_menu_item ("关闭(_C)", "window-close", true);
 					string target_id = win.Id;
 					close_item.activate.connect (() => {
 						WindowControl.queue_command (target_id, "close");
@@ -313,15 +329,13 @@ namespace Plank
 								if (path != null) {
 									var desktop_info = new DesktopAppInfo.from_filename (path);
 									if (desktop_info != null) {
-										desktop_info.launch_action (action_id, System.get_default ().context);
+										System.get_default ().launch_action (path, action_id, desktop_info);
 										return;
 									}
 								}
 							}
 							if (values.length > 0 && values[0] != "") {
-								try {
-									AppInfo.create_from_commandline (values[0], null, AppInfoCreateFlags.NONE).launch (null, null);
-								} catch { }
+								System.get_default ().launch_command (values[0]);
 							}
 						});
 						items.add (item);
@@ -343,6 +357,38 @@ namespace Plank
 			}
 #endif
 			
+			// Recent files opened with this application (max 8)
+			if (!is_window () && Launcher != "") {
+				var recent = RecentFilesStore.get_default ().get_recent (Prefs.Launcher);
+				if (recent.size > 0) {
+					if (items.size > 0)
+						items.add (new Gtk.SeparatorMenuItem ());
+					items.add (new TitledSeparatorMenuItem.no_line ("最近打开"));
+					foreach (var recent_uri in recent) {
+						string label = recent_uri;
+						var rf = File.new_for_uri (recent_uri);
+						try {
+							var info = rf.query_info (FileAttribute.STANDARD_DISPLAY_NAME, FileQueryInfoFlags.NONE);
+							label = info.get_display_name () ?? rf.get_basename () ?? recent_uri;
+						} catch (Error e2) {
+							label = rf.get_basename () ?? recent_uri;
+						}
+						var recent_item = create_literal_menu_item (label, "document-open", false);
+						string uri_copy = recent_uri;
+						recent_item.activate.connect (() => {
+							File? app_file = null;
+							if (Prefs.Launcher.has_prefix ("file://"))
+								app_file = File.new_for_uri (Prefs.Launcher);
+							else
+								app_file = File.new_for_path (Prefs.Launcher);
+							System.get_default ().launch_with_uris (app_file, new string[] { uri_copy });
+							RecentFilesStore.get_default ().record (Prefs.Launcher, new string[] { uri_copy });
+						});
+						items.add (recent_item);
+					}
+				}
+			}
+			
 			if (items.size > 0)
 				items.add (new Gtk.SeparatorMenuItem ());
 
@@ -350,14 +396,14 @@ namespace Plank
 			if (default_provider != null
 				&& !default_provider.Prefs.LockItems
 				&& !is_window ()) {
-				var item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
+				var item = new Gtk.CheckMenuItem.with_mnemonic ("固定在 Dock 栏(_K)");
 				item.active = !(this is TransientDockItem);
 				item.activate.connect (() => pin_launcher ());
 				items.add (item);
 			}
 			
 			if (!is_window () && Launcher != "") {
-				var icon_item = create_menu_item (_("Change _Icon..."), "preferences-desktop-theme", true);
+				var icon_item = create_menu_item ("更换图标(_I)...", "preferences-desktop-theme", true);
 				icon_item.activate.connect (() => {
 					IconChooserDialog.show_for_launcher (this);
 				});
@@ -372,7 +418,7 @@ namespace Plank
 		 */
 		public override string get_drop_text ()
 		{
-			return _("Drop to open with %s").printf (Text);
+			return "拖放到此处以用 %s 打开".printf (Text);
 		}
 		
 		/**
@@ -482,8 +528,9 @@ namespace Plank
 				return true;
 			}
 
-			// If application explicitly declares supported MIME types, strictly enforce them!
+			// If application declares MIME types, prefer matches; Exec %f/%F/%u/%U still accepts other local payloads.
 			if (supported_mime_types != null && supported_mime_types.size > 0) {
+				bool all_matched = true;
 				foreach (var uri in uris) {
 					if (uri.has_prefix ("http://") || uri.has_prefix ("https://") || uri.has_prefix ("ftp://")) {
 						bool match_web = false;
@@ -493,8 +540,10 @@ namespace Plank
 								break;
 							}
 						}
-						if (!match_web)
-							return false;
+						if (!match_web) {
+							all_matched = false;
+							break;
+						}
 					} else {
 						var file = uri.has_prefix ("/") ? File.new_for_path (uri) : File.new_for_uri (uri);
 						string? uri_content_type = null;
@@ -509,8 +558,10 @@ namespace Plank
 							uri_content_type = ContentType.guess (uri, null, out uncertain);
 						}
 						
-						if (uri_content_type == null)
-							return false;
+						if (uri_content_type == null) {
+							all_matched = false;
+							break;
+						}
 
 						bool matched = false;
 						foreach (var content_type in supported_mime_types) {
@@ -519,14 +570,21 @@ namespace Plank
 								break;
 							}
 						}
-						if (!matched)
-							return false;
+						if (!matched) {
+							all_matched = false;
+							break;
+						}
 					}
 				}
-				return true;
+				if (all_matched)
+					return true;
+				// MIME list missed this payload, but desktop Exec accepts files/URIs — still allow drop-open
+				if (accepts_payload)
+					return true;
+				return false;
 			}
 
-			// Fallback: only if NO MIME types were specified in .desktop, allow if application declares payload support (%f, %F, %u, %U)
+			// No MIME types in .desktop: allow if application declares payload support (%f, %F, %u, %U)
 			if (accepts_payload)
 				return true;
 			
@@ -543,12 +601,6 @@ namespace Plank
 			
 			trigger_bounce ();
 			
-			File? app_file = null;
-			if (Prefs.Launcher.has_prefix ("file://"))
-				app_file = File.new_for_uri (Prefs.Launcher);
-			else
-				app_file = File.new_for_path (Prefs.Launcher);
-			
 			var effective_uris = new Gee.ArrayList<string> ();
 			foreach (var u in uris) {
 				var link_url = System.extract_link_shortcut_url (u);
@@ -558,12 +610,27 @@ namespace Plank
 					effective_uris.add (u);
 			}
 
-			System.get_default ().launch_with_uris (app_file, effective_uris.to_array ());
-			
-			var windows = WindowManager.get_default ().matching_windows (Launcher);
-			if (windows.size > 0) {
-				WindowControl.queue_command (windows[0].Id, "activate");
-			}
+			// Defer launch until after the Wayland/GTK drag handshake finishes.
+			// Spawning kstart/app inside drag_data_received can silently fail to open the file.
+			string launcher = Prefs.Launcher;
+			string launcher_id = Launcher;
+			string[] uris_copy = effective_uris.to_array ();
+			Idle.add (() => {
+				File? app_file = null;
+				if (launcher.has_prefix ("file://"))
+					app_file = File.new_for_uri (launcher);
+				else
+					app_file = File.new_for_path (launcher);
+
+				System.get_default ().launch_with_uris (app_file, uris_copy);
+				RecentFilesStore.get_default ().record (launcher, uris_copy);
+
+				var windows = WindowManager.get_default ().matching_windows (launcher_id);
+				if (windows.size > 0) {
+					WindowControl.queue_command (windows[0].Id, "activate");
+				}
+				return false;
+			});
 			
 			return true;
 		}

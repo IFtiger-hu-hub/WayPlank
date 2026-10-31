@@ -26,6 +26,9 @@ namespace Plank
 	 */
 	public abstract class Renderer : GLib.Object
 	{
+		/** Min microseconds between paints — caps Wayland wl_surface commits (~30 FPS). */
+		const int64 MIN_FRAME_INTERVAL_US = 33333;
+		
 		public Gtk.Widget widget { get; construct; }
 		
 		[CCode (notify = false)]
@@ -35,6 +38,7 @@ namespace Plank
 		ulong widget_realize_handler_id = 0UL;
 		ulong widget_draw_handler_id = 0UL;
 		bool is_updating = false;
+		int64 last_queued_frame_us = 0LL;
 		
 		/**
 		 * Creates a new animation renderer.
@@ -130,6 +134,16 @@ namespace Plank
 				return true;
 
 			frame_time = GLib.get_monotonic_time ();
+			// Throttle commits: GDK Wayland _exits on wl_display_flush EAGAIN
+			if (last_queued_frame_us > 0 && (frame_time - last_queued_frame_us) < MIN_FRAME_INTERVAL_US) {
+				if (animation_needed (frame_time))
+					return true;
+				frame_clock.end_updating ();
+				is_updating = false;
+				animation_finished ();
+				return true;
+			}
+			last_queued_frame_us = frame_time;
 			initialize_frame (frame_time);
 			widget.queue_draw ();
 			

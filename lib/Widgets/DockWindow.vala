@@ -262,11 +262,29 @@ namespace Plank
 			}
 
 			if (GtkLayerShell.get_monitor (this) != monitor) {
+				KWinPlasmaWindow.invalidate_surface ();
+				bool was_visible = get_visible ();
+				if (was_visible) {
+					hide ();
+				}
+				input_rect = { -1, -1, -1, -1 };
 				GtkLayerShell.set_monitor (this, monitor);
 				update_layer_shell_anchors ();
+				if (controller.renderer != null) {
+					controller.renderer.reset_buffers ();
+				}
+				if (was_visible) {
+					show ();
+				}
 			}
 
 			update_size_and_position ();
+			Idle.add (() => {
+				if (get_realized () && get_mapped () && get_visible ()) {
+					controller.sync_minimized_geometries ();
+				}
+				return Source.REMOVE;
+			});
 		}
 
 		/**
@@ -380,16 +398,33 @@ namespace Plank
 				if (button == PopupButton.LEFT && !has_ctrl && ClickedItem is ApplicationDockItem) {
 					var app_item = (ApplicationDockItem) ClickedItem;
 					unowned DefaultApplicationDockItemProvider? provider = (app_item.Container as DefaultApplicationDockItemProvider);
-					var show_cards = (provider != null ? provider.Prefs.ShowWindowCards : true);
 					var win_count = WindowManager.get_default ().window_count_for_app (app_item.Launcher);
-					if (show_cards && win_count > 1) {
-						if (controller.window_cards.get_visible () && controller.window_cards.TargetItem == ClickedItem) {
-							controller.window_cards.close_cards ();
-						} else {
-							controller.window_cards.show_for_item (app_item);
+					if (win_count > 1) {
+						var multi_behavior = (provider != null ? provider.Prefs.MultiWindowBehavior : 0);
+						if (multi_behavior == 0) {
+							// 0 = KWin 多窗口平铺预览
+							var matches = WindowManager.get_default ().matching_windows (app_item.Launcher);
+							var uuids = new Gee.ArrayList<string> ();
+							foreach (var w in matches)
+								uuids.add (w.Id);
+							WindowControl.show_window_view (uuids.to_array ());
+							ClickedItem = null;
+							return Gdk.EVENT_STOP;
+						} else if (multi_behavior == 1) {
+							// 1 = KWin 桌面工作区网格
+							WindowControl.toggle_grid_view ();
+							ClickedItem = null;
+							return Gdk.EVENT_STOP;
+						} else if (multi_behavior == 2) {
+							// 2 = Dockbar 浮动预览卡片
+							if (controller.window_cards.get_visible () && controller.window_cards.TargetItem == ClickedItem) {
+								controller.window_cards.close_cards ();
+							} else {
+								controller.window_cards.show_for_item (app_item);
+							}
+							ClickedItem = null;
+							return Gdk.EVENT_STOP;
 						}
-						ClickedItem = null;
-						return Gdk.EVENT_STOP;
 					}
 				}
 				if (controller.window_cards.get_visible ())
@@ -742,6 +777,10 @@ namespace Plank
 
 			HoveredItem = item;
 
+			if (controller.prefs.ZoomEnabled) {
+				set_input_mask ();
+			}
+
 			if (hover_reposition_timer_id > 0U) {
 				Source.remove (hover_reposition_timer_id);
 				hover_reposition_timer_id = 0U;
@@ -771,11 +810,11 @@ namespace Plank
 				string tooltip_text = HoveredItem.Text;
 				if (!controller.prefs.CategorizeItems) {
 					if (HoveredItem is FileDockItem) {
-						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Folder"));
+						tooltip_text = "%s • %s".printf (HoveredItem.Text, "文件夹");
 					} else if (HoveredItem is TransientDockItem) {
-						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Running"));
+						tooltip_text = "%s • %s".printf (HoveredItem.Text, "运行中");
 					} else if ((HoveredItem is PlankDockItem || (HoveredItem.Prefs != null && HoveredItem.Prefs.Launcher.has_prefix ("docklet://"))) && !(HoveredItem is TrashDockItem)) {
-						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Docklet"));
+						tooltip_text = "%s • %s".printf (HoveredItem.Text, "小组件");
 					}
 				} else if (controller.prefs.AccordionDocklets && controller.app_provider != null
 					&& controller.app_provider.get_docklet_count () > 1
@@ -787,12 +826,12 @@ namespace Plank
 
 					if (app_prov != null && !app_prov.docklets_expanded) {
 						if (controller.prefs.AccordionClickToExpand) {
-							tooltip_text = "%s • %s %s (%s)".printf (HoveredItem.Text, _("Docklets"), arrow_expand, _("Click to expand"));
+							tooltip_text = "%s • %s %s (%s)".printf (HoveredItem.Text, "小组件", arrow_expand, "点击展开");
 						} else {
-							tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_expand);
+							tooltip_text = "%s • %s %s".printf (HoveredItem.Text, "小组件", arrow_expand);
 						}
 					} else {
-						tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_collapse);
+						tooltip_text = "%s • %s %s".printf (HoveredItem.Text, "小组件", arrow_collapse);
 					}
 				}
 				hover.set_text (tooltip_text);
@@ -983,11 +1022,20 @@ namespace Plank
 		public void update_icon_regions ()
 		{
 			Logger.verbose ("DockWindow.update_icon_regions ()");
+			controller.sync_minimized_geometries ();
 		}
 
 		public void update_icon_region (ApplicationDockItem appitem)
 		{
 			Logger.verbose ("DockWindow.update_icon_region ('%s')", appitem.Text);
+			var draw_val = controller.position_manager.get_draw_value_for_item (appitem);
+			var rect = draw_val.draw_region;
+			if (rect.width > 0 && rect.height > 0) {
+				var matched_windows = WindowManager.get_default ().matching_windows (appitem.Launcher);
+				foreach (var win in matched_windows) {
+					KWinPlasmaWindow.set_window_minimized_geometry (win.Id, rect.x, rect.y, rect.width, rect.height);
+				}
+			}
 		}
 
 		public bool menu_is_visible ()
@@ -1168,19 +1216,19 @@ namespace Plank
 
 			debug_items.add (new Gtk.SeparatorMenuItem ());
 
-			var dev_item = new Gtk.MenuItem.with_mnemonic (_("Developer _Tools"));
+			var dev_item = new Gtk.MenuItem.with_mnemonic ("开发者工具(_T)");
 			var dev_submenu = new Gtk.Menu ();
 			dev_item.set_submenu (dev_submenu);
 
 			Gtk.MenuItem menu_item;
 
-			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open config folder"));
+			menu_item = new Gtk.MenuItem.with_mnemonic ("打开配置目录");
 			menu_item.activate.connect (() => {
 				System.get_default ().open (controller.config_folder);
 			});
 			dev_submenu.append (menu_item);
 
-			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open current theme file"));
+			menu_item = new Gtk.MenuItem.with_mnemonic ("打开当前主题文件");
 			menu_item.activate.connect (() => {
 				System.get_default ().open (controller.renderer.theme.get_backing_file ());
 			});
@@ -1198,14 +1246,14 @@ namespace Plank
 
 			debug_items.add (new Gtk.SeparatorMenuItem ());
 
-			var dev_item = new Gtk.MenuItem.with_mnemonic (_("Developer _Tools"));
+			var dev_item = new Gtk.MenuItem.with_mnemonic ("开发者工具(_T)");
 			var dev_submenu = new Gtk.Menu ();
 			dev_item.set_submenu (dev_submenu);
 
 			Gtk.MenuItem menu_item;
 
 			var dock_item_file = item.Prefs.get_backing_file ();
-			menu_item = new Gtk.MenuItem.with_mnemonic (_("Print info to stdout"));
+			menu_item = new Gtk.MenuItem.with_mnemonic ("在终端打印信息");
 			menu_item.activate.connect (() => {
 				print ("DockItemFile: '%s'\nText = '%s'\nIcon = '%s'\nLauncher = '%s'\n",
 					dock_item_file != null ? dock_item_file.get_uri () : "",
@@ -1213,14 +1261,14 @@ namespace Plank
 			});
 			dev_submenu.append (menu_item);
 
-			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open dockitem file"));
+			menu_item = new Gtk.MenuItem.with_mnemonic ("打开 dockitem 文件");
 			menu_item.activate.connect (() => {
 				System.get_default ().open (dock_item_file);
 			});
 			menu_item.sensitive = (dock_item_file != null && dock_item_file.query_exists ());
 			dev_submenu.append (menu_item);
 
-			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open launcher file"));
+			menu_item = new Gtk.MenuItem.with_mnemonic ("打开启动器文件");
 			menu_item.activate.connect (() => {
 				System.get_default ().open (File.new_for_uri (item.Launcher));
 			});

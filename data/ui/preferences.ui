@@ -90,7 +90,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Theme:</property>
+                <property name="label" translatable="yes">主题:</property>
                 <property name="justify">right</property>
               </object>
               <packing>
@@ -124,7 +124,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="valign">center</property>
-                    <property name="tooltip_text" translatable="yes">Install Theme from Archive (.zip, .tar.gz, .theme)...</property>
+                    <property name="tooltip_text" translatable="yes">从压缩包安装主题 (.zip, .tar.gz, .theme)...</property>
                     <child>
                       <object class="GtkImage" id="img_add_theme">
                         <property name="visible">True</property>
@@ -145,7 +145,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="valign">center</property>
-                    <property name="tooltip_text" translatable="yes">Delete Selected User Theme</property>
+                    <property name="tooltip_text" translatable="yes">删除所选用户主题</property>
                     <child>
                       <object class="GtkImage" id="img_del_theme">
                         <property name="visible">True</property>
@@ -171,7 +171,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Position:</property>
+                <property name="label" translatable="yes">位置:</property>
                 <property name="justify">right</property>
               </object>
               <packing>
@@ -186,10 +186,10 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
                 <items>
-                  <item id="0" translatable="yes">Left</item>
-                  <item id="1" translatable="yes">Right</item>
-                  <item id="2" translatable="yes">Top</item>
-                  <item id="3" translatable="yes">Bottom</item>
+                  <item id="0" translatable="yes">左侧</item>
+                  <item id="1" translatable="yes">右侧</item>
+                  <item id="2" translatable="yes">顶部</item>
+                  <item id="3" translatable="yes">底部</item>
                 </items>
               </object>
               <packing>
@@ -202,9 +202,9 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">On Primary Display:</property>
+                <property name="label" translatable="yes">始终位于主显示器:</property>
                 <property name="justify">right</property>
-                <property name="tooltip_text" translatable="yes">Automatically display the dock on the primary monitor; disable to choose a specific display</property>
+                <property name="tooltip_text" translatable="yes">自动在主显示器上显示 Dock；禁用可指定其他显示器</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -223,7 +223,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can_focus">True</property>
                     <property name="halign">start</property>
                     <property name="valign">center</property>
-                    <property name="tooltip_text" translatable="yes">Automatically display the dock on the primary monitor; disable to choose a specific display</property>
+                    <property name="tooltip_text" translatable="yes">自动在主显示器上显示 Dock；禁用可指定其他显示器</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -254,7 +254,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Alignment:</property>
+                <property name="label" translatable="yes">对齐方式:</property>
                 <property name="justify">right</property>
               </object>
               <packing>
@@ -274,10 +274,10 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can_focus">False</property>
                     <property name="hexpand">True</property>
                     <items>
-                      <item id="0" translatable="yes">Fill</item>
-                      <item id="1" translatable="yes">Start</item>
-                      <item id="2" translatable="yes">End</item>
-                      <item id="3" translatable="yes">Center</item>
+                      <item id="0" translatable="yes">充满</item>
+                      <item id="1" translatable="yes">靠前</item>
+                      <item id="2" translatable="yes">靠后</item>
+                      <item id="3" translatable="yes">居中</item>
                     </items>
                   </object>
                   <packing>
@@ -291,7 +291,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="hexpand">True</property>
-                    <property name="tooltip_text" translatable="yes">Offset in percent from the center of the screen-edge</property>
+                    <property name="tooltip_text" translatable="yes">相对屏幕边缘中心点的偏移百分比</property>
                     <property name="adjustment">adj_offset</property>
                     <property name="round_digits">0</property>
                     <property name="digits">0</property>
@@ -314,7 +314,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Icon Alignment:</property>
+                <property name="label" translatable="yes">图标对齐:</property>
                 <property name="justify">right</property>
               </object>
               <packing>
@@ -328,9 +328,9 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
                 <items>
-                  <item id="1" translatable="yes">Start</item>
-                  <item id="2" translatable="yes">End</item>
-                  <item id="3" translatable="yes">Center</item>
+                  <item id="1" translatable="yes">靠前</item>
+                  <item id="2" translatable="yes">靠后</item>
+                  <item id="3" translatable="yes">居中</item>
                 </items>
               </object>
               <packing>
@@ -343,9 +343,9 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Icon Size:</property>
+                <property name="label" translatable="yes">图标大小:</property>
                 <property name="justify">right</property>
-                <property name="tooltip_text" translatable="yes">Preferred dock item size in pixels (24px to 128px); when screen space is full, items auto-shrink unless Scroll on Overflow is enabled</property>
+                <property name="tooltip_text" translatable="yes">Dock 项的首选像素大小 (24px 到 128px)；当屏幕空间不足时会自动收缩，除非启用了超出滑动</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -366,7 +366,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="invisible_char">•</property>
                     <property name="adjustment">adj_iconsize</property>
                     <property name="numeric">True</property>
-                    <property name="tooltip_text" translatable="yes">Adjust dock item size in pixels (24px to 128px)</property>
+                    <property name="tooltip_text" translatable="yes">调整 Dock 图标像素大小 (24px 到 128px)</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -390,7 +390,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="digits">0</property>
                         <property name="draw_value">False</property>
                         <property name="value_pos">left</property>
-                        <property name="tooltip_text" translatable="yes">Adjust dock item size in pixels; turning red indicates the screen capacity is exceeded and icons are auto-shrunk</property>
+                        <property name="tooltip_text" translatable="yes">调整 Dock 图标大小；变红表示超出屏幕容量，已触发自动收缩</property>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -405,7 +405,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="halign">start</property>
                         <property name="xalign">0</property>
                         <property name="use_markup">True</property>
-                        <property name="tooltip_text" translatable="yes">Dynamic indicator of screen space capacity and auto-shrink status</property>
+                        <property name="tooltip_text" translatable="yes">屏幕空间容量及图标自动收缩状态指示</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -431,9 +431,9 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Icon Zoom:</property>
+                <property name="label" translatable="yes">鼠标悬停放大:</property>
                 <property name="justify">right</property>
-                <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+                <property name="tooltip_text" translatable="yes">平滑放大鼠标光标悬停下的图标</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -452,7 +452,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can_focus">True</property>
                     <property name="halign">start</property>
                     <property name="valign">center</property>
-                    <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+                    <property name="tooltip_text" translatable="yes">平滑放大鼠标光标悬停下的图标</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -486,9 +486,9 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Show Trash:</property>
+                <property name="label" translatable="yes">显示废纸篓:</property>
                 <property name="justify">right</property>
-                <property name="tooltip_text" translatable="yes">Show the Trash Bin icon on the dock</property>
+                <property name="tooltip_text" translatable="yes">在 Dock 栏上显示废纸篓图标</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -507,7 +507,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can_focus">True</property>
                     <property name="halign">start</property>
                     <property name="valign">center</property>
-                    <property name="tooltip_text" translatable="yes">Show the Trash Bin icon on the dock</property>
+                    <property name="tooltip_text" translatable="yes">在 Dock 栏上显示废纸篓图标</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -524,7 +524,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
           </object>
           <packing>
             <property name="name">grid_appearance</property>
-            <property name="title" translatable="yes">Appearance</property>
+            <property name="title" translatable="yes">外观</property>
           </packing>
         </child>
         <child>
@@ -545,7 +545,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>
                 <property name="margin_bottom">4</property>
-                <property name="label" translatable="yes">Hide Dock</property>
+                <property name="label" translatable="yes">隐藏 Dock</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
                 </attributes>
@@ -561,8 +561,8 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Hide Dock:</property>
-                <property name="tooltip_text" translatable="yes">Enable automatic dock hiding according to the selected Hide Mode; when disabled, the dock remains permanently visible</property>
+                <property name="label" translatable="yes">自动隐藏:</property>
+                <property name="tooltip_text" translatable="yes">根据选择的隐藏模式自动隐藏 Dock；关闭时 Dock 保持常驻显示</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -575,7 +575,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Enable automatic dock hiding according to the selected Hide Mode; when disabled, the dock remains permanently visible</property>
+                <property name="tooltip_text" translatable="yes">根据选择的隐藏模式自动隐藏 Dock；关闭时 Dock 保持常驻显示</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -588,7 +588,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="margin_left">12</property>
-                <property name="label" translatable="yes">Hide Mode:</property>
+                <property name="label" translatable="yes">隐藏模式:</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -601,11 +601,11 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
                 <items>
-                  <item id="1" translatable="yes">Intellihide</item>
-                  <item id="2" translatable="yes">Autohide</item>
-                  <item id="3" translatable="yes">Dodge maximized window</item>
-                  <item id="4" translatable="yes">Window Dodge</item>
-                  <item id="5" translatable="yes">Dodge active window</item>
+                  <item id="1" translatable="yes">智能避让</item>
+                  <item id="2" translatable="yes">自动隐藏</item>
+                  <item id="3" translatable="yes">避让最大化窗口</item>
+                  <item id="4" translatable="yes">避让所有窗口</item>
+                  <item id="5" translatable="yes">避让活动窗口</item>
                 </items>
               </object>
               <packing>
@@ -618,7 +618,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Hide Delay (ms):</property>
+                <property name="label" translatable="yes">隐藏延迟 (ms):</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -629,7 +629,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkSpinButton" id="sp_hide_delay">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="tooltip_text" translatable="yes">Delay in ms before hiding the dock</property>
+                <property name="tooltip_text" translatable="yes">触发隐藏前等待的毫秒延迟</property>
                 <property name="halign">start</property>
                 <property name="invisible_char">•</property>
                 <property name="adjustment">adj_hide_delay</property>
@@ -646,7 +646,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="margin_left">12</property>
-                <property name="label" translatable="yes">Unhide Delay (ms):</property>
+                <property name="label" translatable="yes">唤出延迟 (ms):</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -657,7 +657,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkSpinButton" id="sp_unhide_delay">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="tooltip_text" translatable="yes">Delay in ms before showing the dock</property>
+                <property name="tooltip_text" translatable="yes">光标进入后唤出 Dock 的毫秒延迟</property>
                 <property name="halign">start</property>
                 <property name="invisible_char">•</property>
                 <property name="adjustment">adj_unhide_delay</property>
@@ -673,7 +673,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Pressure Reveal:</property>
+                <property name="label" translatable="yes">边缘压力唤出:</property>
                 <property name="tooltip_text" translatable="yes">Requires touching the physical screen edge (1px) to reveal the dock, preventing accidental triggers; when disabled, reveals 10px before the edge for fluid unhiding</property>
               </object>
               <packing>
@@ -826,7 +826,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Scroll on Overflow:</property>
+                <property name="label" translatable="yes">超出时滚轮滑动:</property>
                 <property name="tooltip_text" translatable="yes">Smoothly scroll items with mouse wheel when dock exceeds screen space, preserving full icon size instead of auto-shrinking icons</property>
               </object>
               <packing>
@@ -1045,7 +1045,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Preferences &amp; System Menu:</property>
-                <property name="tooltip_text" translatable="yes">Controls where the Preferences icon and system control menu appear on the dock</property>
+                <property name="tooltip_text" translatable="yes">控制首选项与系统控制菜单在 Dock 上的显示入口</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -1057,11 +1057,11 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>
-                <property name="tooltip_text" translatable="yes">Controls where the Preferences icon and system control menu appear on the dock</property>
+                <property name="tooltip_text" translatable="yes">控制首选项与系统控制菜单在 Dock 上的显示入口</property>
                 <items>
-                  <item id="1" translatable="yes">Docklets Only (with fallback)</item>
-                  <item id="2" translatable="yes">All Icons (integrated)</item>
-                  <item id="3" translatable="yes">Dedicated Icon (on dock)</item>
+                  <item id="1" translatable="yes">仅小组件（带回退）</item>
+                  <item id="2" translatable="yes">所有图标（内置）</item>
+                  <item id="3" translatable="yes">独立图标（在 Dock 上）</item>
                 </items>
               </object>
               <packing>
@@ -1073,7 +1073,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
           </object>
           <packing>
             <property name="name">grid_behaviour</property>
-            <property name="title" translatable="yes">Behaviour</property>
+            <property name="title" translatable="yes">行为</property>
             <property name="position">1</property>
           </packing>
         </child>
@@ -1094,7 +1094,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">start</property>
                 <property name="margin_bottom">4</property>
-                <property name="label" translatable="yes">Window Management</property>
+                <property name="label" translatable="yes">窗口管理</property>
                 <attributes><attribute name="weight" value="bold"/></attributes>
               </object>
               <packing>
@@ -1107,8 +1107,8 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkLabel" id="l_window_click_behavior">
                 <property name="visible">True</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Click Behavior:</property>
-                <property name="tooltip_text" translatable="yes">How clicking a running application icon interacts with its windows</property>
+                <property name="label" translatable="yes">点击行为:</property>
+                <property name="tooltip_text" translatable="yes">点击运行中应用图标时与窗口的交互方式</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -1120,11 +1120,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="hexpand">True</property>
                 <property name="width_request">200</property>
-                <property name="tooltip_text" translatable="yes">How clicking a running application icon interacts with its windows</property>
+                <property name="tooltip_text" translatable="yes">点击运行中应用图标时与窗口的交互方式</property>
                 <items>
-                  <item id="0" translatable="yes">Smart: Focus, toggle or cycle windows</item>
-                  <item id="1" translatable="yes">Focus: Raise active window to front</item>
-                  <item id="2" translatable="yes">Cycle: Step through open windows</item>
+                  <item id="0" translatable="yes">智能：置顶、最小化或循环窗口</item>
+                  <item id="1" translatable="yes">置顶：仅将窗口置于最前</item>
+                  <item id="2" translatable="yes">循环：依次轮巡已打开窗口</item>
+                  <item id="3" translatable="yes">工作区：KWin 桌面工作区网格</item>
+                  <item id="4" translatable="yes">多窗口预览：KWin 窗口平铺展示</item>
                 </items>
               </object>
               <packing>
@@ -1134,11 +1136,11 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="l_show_window_cards">
+              <object class="GtkLabel" id="l_multi_window_behavior">
                 <property name="visible">True</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Window Preview Cards:</property>
-                <property name="tooltip_text" translatable="yes">Display floating visual preview cards when interacting with applications that have multiple open windows</property>
+                <property name="label" translatable="yes">多窗口处理:</property>
+                <property name="tooltip_text" translatable="yes">当应用拥有多个打开的窗口时，点击应用图标的处理方式</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -1146,15 +1148,47 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkSwitch" id="sw_show_window_cards">
+              <object class="GtkComboBoxText" id="cb_multi_window_behavior">
                 <property name="visible">True</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Display floating visual preview cards when interacting with applications that have multiple open windows</property>
+                <property name="hexpand">True</property>
+                <property name="width_request">200</property>
+                <property name="tooltip_text" translatable="yes">当应用拥有多个打开的窗口时，点击应用图标的处理方式</property>
+                <items>
+                  <item id="0" translatable="yes">多窗口预览：KWin 窗口平铺展示</item>
+                  <item id="1" translatable="yes">工作区：KWin 桌面工作区网格</item>
+                  <item id="2" translatable="yes">预览卡片：Dockbar 浮动预览卡片</item>
+                  <item id="3" translatable="yes">循环轮巡：依次循环切换窗口</item>
+                  <item id="4" translatable="yes">置顶聚焦：置顶首个已打开窗口</item>
+                </items>
               </object>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">2</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_show_minimized_previews">
+                <property name="visible">True</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">保留最小化预览:</property>
+                <property name="tooltip_text" translatable="yes">应用最小化时在垃圾桶旁边独立的分类保留预览图标</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_show_minimized_previews">
+                <property name="visible">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">应用最小化时在垃圾桶旁边独立的分类保留预览图标</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">3</property>
               </packing>
             </child>
             <child>
@@ -1162,12 +1196,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">end</property>
                 <property name="margin_left">24</property>
-                <property name="label" translatable="yes">Restore Minimized:</property>
-                <property name="tooltip_text" translatable="yes">Restore and unminimize windows when clicking their dock icon</property>
+                <property name="label" translatable="yes">点击恢复最小化:</property>
+                <property name="tooltip_text" translatable="yes">点击 Dock 图标时恢复并取消最小化窗口</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">3</property>
               </packing>
             </child>
             <child>
@@ -1175,11 +1209,11 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Restore and unminimize windows when clicking their dock icon</property>
+                <property name="tooltip_text" translatable="yes">点击 Dock 图标时恢复并取消最小化窗口</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">3</property>
               </packing>
             </child>
             <!-- Section 2: Indicators -->
@@ -1189,12 +1223,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">start</property>
                 <property name="margin_top">14</property>
                 <property name="margin_bottom">4</property>
-                <property name="label" translatable="yes">Indicators</property>
+                <property name="label" translatable="yes">运行指示器</property>
                 <attributes><attribute name="weight" value="bold"/></attributes>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">3</property>
+                <property name="top_attach">4</property>
                 <property name="width">4</property>
               </packing>
             </child>
@@ -1202,12 +1236,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkLabel" id="l_show_running_indicators">
                 <property name="visible">True</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Show Running:</property>
-                <property name="tooltip_text" translatable="yes">Display indicator dots beneath icons for actively running applications</property>
+                <property name="label" translatable="yes">显示运行指示点:</property>
+                <property name="tooltip_text" translatable="yes">在活动运行的应用图标下方显示指示亮点</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">4</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <child>
@@ -1215,11 +1249,11 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Display indicator dots beneath icons for actively running applications</property>
+                <property name="tooltip_text" translatable="yes">在活动运行的应用图标下方显示指示亮点</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">4</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <child>
@@ -1227,12 +1261,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">end</property>
                 <property name="margin_left">24</property>
-                <property name="label" translatable="yes">Show Attention:</property>
-                <property name="tooltip_text" translatable="yes">Highlight or animate indicator dots when an application requests user attention</property>
+                <property name="label" translatable="yes">显示应用提醒提示:</property>
+                <property name="tooltip_text" translatable="yes">当应用程序请求用户关注时高亮或动效提示指示点</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
-                <property name="top_attach">4</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <child>
@@ -1240,17 +1274,17 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Highlight or animate indicator dots when an application requests user attention</property>
+                <property name="tooltip_text" translatable="yes">当应用程序请求用户关注时高亮或动效提示指示点</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
-                <property name="top_attach">4</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
           </object>
           <packing>
             <property name="name">grid_windows</property>
-            <property name="title" translatable="yes">Applications</property>
+            <property name="title" translatable="yes">应用程序</property>
             <property name="position">2</property>
           </packing>
         </child>
@@ -1271,7 +1305,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="halign">start</property>
                 <property name="margin_bottom">6</property>
-                <property name="label" translatable="yes">Built-in Docklets</property>
+                <property name="label" translatable="yes">内置小组件</property>
                 <attributes><attribute name="weight" value="bold"/></attributes>
               </object>
               <packing>
@@ -1305,7 +1339,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">CPU &amp; RAM Monitor</property>
+                    <property name="label" translatable="yes">CPU 与内存监视器</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1356,8 +1390,8 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Do Not Disturb</property>
-                    <property name="tooltip_text" translatable="yes">Toggle desktop notifications and Do Not Disturb mode</property>
+                    <property name="label" translatable="yes">勿扰模式</property>
+                    <property name="tooltip_text" translatable="yes">切换桌面通知接收与勿扰模式</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1371,7 +1405,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="halign">end</property>
                     <property name="valign">center</property>
                     <property name="margin_right">10</property>
-                    <property name="tooltip_text" translatable="yes">Toggle desktop notifications and Do Not Disturb mode</property>
+                    <property name="tooltip_text" translatable="yes">切换桌面通知接收与勿扰模式</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1410,7 +1444,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Analog Clock</property>
+                    <property name="label" translatable="yes">指针时钟</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1461,7 +1495,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Show Desktop</property>
+                    <property name="label" translatable="yes">显示桌面</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1513,7 +1547,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Digital Clock</property>
+                    <property name="label" translatable="yes">数字时钟</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1564,7 +1598,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Media Player</property>
+                    <property name="label" translatable="yes">媒体播放器</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1616,7 +1650,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Battery Monitor</property>
+                    <property name="label" translatable="yes">电池监视器</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1667,7 +1701,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Volume Control</property>
+                    <property name="label" translatable="yes">音量控制</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1719,7 +1753,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Screenshot</property>
+                    <property name="label" translatable="yes">截图工具</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1770,7 +1804,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Session / Power</property>
+                    <property name="label" translatable="yes">会话与电源</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1821,7 +1855,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Screen Brightness</property>
+                    <property name="label" translatable="yes">屏幕亮度</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1872,7 +1906,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Removable Drives</property>
+                    <property name="label" translatable="yes">可移动磁盘</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1923,7 +1957,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Weather Forecast</property>
+                    <property name="label" translatable="yes">天气预报</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1974,7 +2008,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">start</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Network / Wi-Fi</property>
+                    <property name="label" translatable="yes">网络 / Wi-Fi</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -2004,7 +2038,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
           </object>
           <packing>
             <property name="name">grid_docklets</property>
-            <property name="title" translatable="yes">Docklets</property>
+            <property name="title" translatable="yes">小组件</property>
             <property name="position">3</property>
           </packing>
         </child>

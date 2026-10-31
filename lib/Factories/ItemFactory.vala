@@ -27,12 +27,11 @@ namespace Plank
 	public class ItemFactory : GLib.Object
 	{
 		const string[] FALLBACK_FILE_MANAGERS = {
-			"org.gnome.Nautilus.desktop",
 			"org.kde.dolphin.desktop",
+			"org.gnome.Nautilus.desktop",
 			"nemo.desktop",
 			"thunar.desktop",
-			"pcmanfm.desktop",
-			"org.xfce.FileManager.desktop"
+			"pcmanfm.desktop"
 		};
 
 		const string[] FALLBACK_BROWSERS = {
@@ -41,49 +40,28 @@ namespace Plank
 			"chromium-browser.desktop",
 			"chromium.desktop",
 			"brave-browser.desktop",
-			"microsoft-edge.desktop",
-			"org.gnome.Epiphany.desktop"
+			"microsoft-edge.desktop"
 		};
 
 		const string[] FALLBACK_TERMINALS = {
-			"org.gnome.Terminal.desktop",
-			"org.gnome.Ptyxis.desktop",
-			"ptyxis.desktop",
 			"org.kde.konsole.desktop",
+			"konsole.desktop",
 			"alacritty.desktop",
 			"kitty.desktop",
-			"xfce4-terminal.desktop",
 			"foot.desktop",
-			"terminator.desktop"
+			"org.gnome.Terminal.desktop",
+			"org.gnome.Ptyxis.desktop"
 		};
 
 		const string[] FALLBACK_EDITORS = {
-			"org.gnome.TextEditor.desktop",
-			"gedit.desktop",
 			"org.kde.kate.desktop",
+			"kate.desktop",
+			"org.kde.kwrite.desktop",
+			"kwrite.desktop",
 			"code.desktop",
-			"com.microsoft.VSCode.desktop",
-			"mousepad.desktop"
+			"com.microsoft.VSCode.desktop"
 		};
 
-		const string[] PRIORITY_INTERNET = {
-			"google-chrome", "firefox", "chromium-browser", "brave-browser",
-			"microsoft-edge", "thunderbird", "org.telegram.desktop", "discord", "signal-desktop"
-		};
-
-		const string[] PRIORITY_OFFICE = {
-			"libreoffice-startcenter", "libreoffice-writer", "code", "com.microsoft.VSCode",
-			"org.kde.kate", "org.gnome.TextEditor", "gedit", "org.kde.kcalc", "org.gnome.Calculator"
-		};
-
-		const string[] PRIORITY_MEDIA = {
-			"vlc", "org.videolan.VLC", "org.gnome.Totem", "org.kde.dragonplayer",
-			"spotify", "org.inkscape.Inkscape", "gimp", "org.gimp.GIMP", "rhythmbox", "org.pulseaudio.pavucontrol"
-		};
-
-		const string[] PRIORITY_GAMES = {
-			"steam", "com.valvesoftware.Steam", "lutris", "net.lutris.Lutris", "heroic", "com.heroicgameslauncher.hgl"
-		};
 		
 		/**
 		 * The directory containing .dockitem files.
@@ -122,6 +100,12 @@ namespace Plank
 		 */
 		protected DockElement? default_make_element (GLib.File file, string launcher)
 		{
+			var base_name = file.get_basename ();
+			if (base_name == "Internet.dockitem" || base_name == "Office.dockitem" ||
+			    base_name == "Media.dockitem" || base_name == "Games.dockitem" || base_name == "Utilities.dockitem") {
+				try { file.delete (); } catch { }
+				return null;
+			}
 			if (launcher == "docklet://trash")
 				return new TrashDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://clock")
@@ -317,135 +301,6 @@ namespace Plank
 			}
 		}
 
-		static bool categories_contain (string? categories, string[] search_tags)
-		{
-			if (categories == null || categories == "")
-				return false;
-			
-			foreach (unowned string tag in search_tags) {
-				if (categories.contains (tag))
-					return true;
-			}
-			return false;
-		}
-
-		void populate_folder (File folder, string icon_name, string[] priority_ids, string[] category_tags, int max_items = 6)
-		{
-			Paths.ensure_directory_exists (folder);
-
-			var dot_dir = folder.get_child (".directory");
-			if (!dot_dir.query_exists ()) {
-				try {
-					FileUtils.set_contents (dot_dir.get_path (), "[Desktop Entry]\nType=Directory\nIcon=%s\n".printf (icon_name));
-				} catch { }
-			}
-
-			try {
-				folder.set_attribute_string ("metadata::custom-icon-name", icon_name, FileQueryInfoFlags.NONE, null);
-			} catch { }
-
-			var added_files = new Gee.HashSet<string> ();
-
-			// 1. Check priority applications
-			foreach (unowned string id in priority_ids) {
-				if (added_files.size >= max_items)
-					break;
-				string desktop_id = id.has_suffix (".desktop") ? id : id + ".desktop";
-				var app = new DesktopAppInfo (desktop_id);
-				if (app != null && app.should_show ()) {
-					unowned string fn = app.get_filename ();
-					if (fn != null && !added_files.contains (fn)) {
-						var src = File.new_for_path (fn);
-						var dst = folder.get_child (src.get_basename ());
-						try {
-							src.copy (dst, FileCopyFlags.OVERWRITE, null, null);
-							added_files.add (fn);
-						} catch { }
-					}
-				}
-			}
-
-			// 2. Scan installed desktop apps for matching categories
-			if (added_files.size < max_items) {
-				var all = AppInfo.get_all ();
-				foreach (var info in all) {
-					if (added_files.size >= max_items)
-						break;
-					var d_info = info as DesktopAppInfo;
-					if (d_info == null || !d_info.should_show ())
-						continue;
-					unowned string fn = d_info.get_filename ();
-					if (fn == null || added_files.contains (fn))
-						continue;
-					unowned string cats = d_info.get_categories ();
-					if (categories_contain (cats, category_tags)) {
-						var src = File.new_for_path (fn);
-						var dst = folder.get_child (src.get_basename ());
-						try {
-							src.copy (dst, FileCopyFlags.OVERWRITE, null, null);
-							added_files.add (fn);
-						} catch { }
-					}
-				}
-			}
-		}
-
-		void make_default_folders ()
-		{
-			File folders_base = Paths.AppConfigFolder.get_child ("folders");
-			Paths.ensure_directory_exists (folders_base);
-
-			// 1. Internet Folder
-			var internet_folder = folders_base.get_child ("Internet");
-			populate_folder (internet_folder, "applications-internet", PRIORITY_INTERNET, {
-				"WebBrowser", "Network", "Email", "Chat", "InstantMessaging", "IRCClient", "Feed"
-			});
-			make_dock_item (internet_folder.get_uri ());
-
-			// 2. Office & Productivity Folder
-			var office_folder = folders_base.get_child ("Office");
-			populate_folder (office_folder, "applications-office", PRIORITY_OFFICE, {
-				"Office", "Development", "IDE", "TextEditor", "WordProcessor", "Spreadsheet", "Calculator", "Viewer"
-			});
-			make_dock_item (office_folder.get_uri ());
-
-			// 3. Media & Creative Folder
-			var media_folder = folders_base.get_child ("Media");
-			populate_folder (media_folder, "applications-multimedia", PRIORITY_MEDIA, {
-				"AudioVideo", "Audio", "Video", "Graphics", "Player", "Recorder", "Music"
-			});
-			make_dock_item (media_folder.get_uri ());
-
-			// 4. Games Folder (or Utilities fallback if no games exist)
-			var games_folder = folders_base.get_child ("Games");
-			populate_folder (games_folder, "applications-games", PRIORITY_GAMES, {
-				"Game", "Emulator"
-			});
-			
-			// Verify if Games folder received any app; if empty, create Utilities instead
-			bool has_game = false;
-			try {
-				var enum_games = games_folder.enumerate_children (FileAttribute.STANDARD_NAME, 0);
-				FileInfo? info;
-				while ((info = enum_games.next_file (null)) != null) {
-					if (info.get_name ().has_suffix (".desktop")) {
-						has_game = true;
-						break;
-					}
-				}
-			} catch { }
-
-			if (has_game) {
-				make_dock_item (games_folder.get_uri ());
-			} else {
-				var utils_folder = folders_base.get_child ("Utilities");
-				populate_folder (utils_folder, "applications-utilities", { "org.gnome.DiskUtility", "gnome-system-monitor", "org.kde.ark", "file-roller" }, {
-					"System", "Utility", "Archiving", "Settings", "FileManager"
-				});
-				make_dock_item (utils_folder.get_uri ());
-			}
-		}
-
 		void make_default_docklets ()
 		{
 			make_dock_item ("docklet://preferences");
@@ -505,7 +360,6 @@ namespace Plank
 		public void make_default_items ()
 		{
 			debug ("ItemFactory: creating modern default folders, docklets and pinned applications...");
-			make_default_folders ();
 			make_default_docklets ();
 			make_default_pinned_apps ();
 			debug ("ItemFactory: default items successfully created.");

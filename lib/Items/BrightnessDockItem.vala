@@ -84,7 +84,7 @@ namespace Plank
 
 		construct
 		{
-			Text = _("Screen Brightness");
+			Text = "屏幕亮度";
 			Button = PopupButton.RIGHT;
 
 			unowned BrightnessControl ctrl = BrightnessControl.get_default ();
@@ -129,7 +129,7 @@ namespace Plank
 			Count = percent;
 			BadgeText = "%d%%".printf (percent);
 			CountVisible = true;
-			Text = _("Screen Brightness: %d%%").printf (percent);
+			Text = "屏幕亮度: %d%%".printf (percent);
 			Icon = get_brightness_icon_name (percent);
 
 			reset_icon_buffer ();
@@ -168,7 +168,7 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 
-			var header_item = new Gtk.MenuItem.with_label (_("Brightness: %d%%").printf (current_percent));
+			var header_item = new Gtk.MenuItem.with_label ("当前亮度: %d%%".printf (current_percent));
 			header_item.sensitive = false;
 			items.add (header_item);
 
@@ -179,7 +179,7 @@ namespace Plank
 
 			for (int i = 0; i < presets.length; i++) {
 				int p = presets[i];
-				string label = "%d%% %s".printf (p, p == 100 ? _("(Maximum)") : (p == 10 ? _("(Minimum)") : ""));
+				string label = "%d%% %s".printf (p, p == 100 ? "(最高)" : (p == 10 ? "(最低)" : ""));
 				var item = create_menu_item (label, preset_icons[i], true);
 				item.activate.connect (() => BrightnessControl.get_default ().set_percent (p, true));
 				items.add (item);
@@ -187,7 +187,7 @@ namespace Plank
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var settings_item = create_menu_item (_("_Display Settings..."), "preferences-desktop-display", true);
+			var settings_item = create_menu_item ("显示器设置(_D)...", "preferences-desktop-display", true);
 			settings_item.activate.connect (() => {
 				string[] cmd_candidates = {
 					"systemsettings kcm_kscreen",
@@ -208,7 +208,7 @@ namespace Plank
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+			var remove_item = create_menu_item ("从 Dock 栏移除(_R)", "edit-delete", true);
 			remove_item.activate.connect (() => {
 				this.@delete ();
 			});

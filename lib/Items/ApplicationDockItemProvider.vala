@@ -192,7 +192,7 @@ namespace Plank
 			return false;
 		}
 
-		public void sync_compositor_windows ()
+		public virtual void sync_compositor_windows ()
 		{
 			var windows = WindowControl.get_windows ();
 			var discovery = ApplicationDiscovery.get_default ();
@@ -269,7 +269,7 @@ namespace Plank
 
 			foreach (var element in internal_elements) {
 				unowned DockItem? item = (element as DockItem);
-				if (item == null || (item is TransientDockItem) || (item is SeparatorDockItem))
+				if (item == null || (item is TransientDockItem) || (item is SeparatorDockItem) || (item is MinimizedWindowDockItem))
 					continue;
 
 				var dock_item_filename = item.DockItemFilename;
