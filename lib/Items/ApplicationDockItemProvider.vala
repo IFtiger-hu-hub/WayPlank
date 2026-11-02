@@ -269,7 +269,9 @@ namespace Plank
 
 			foreach (var element in internal_elements) {
 				unowned DockItem? item = (element as DockItem);
-				if (item == null || (item is TransientDockItem) || (item is SeparatorDockItem) || (item is MinimizedWindowDockItem))
+				if (item == null || (item is TransientDockItem) || (item is MinimizedWindowDockItem))
+					continue;
+				if (item is SeparatorDockItem && !((SeparatorDockItem) item).is_user_separator ())
 					continue;
 
 				var dock_item_filename = item.DockItemFilename;

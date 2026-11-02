@@ -1069,7 +1069,9 @@ namespace Plank
 			message ("DockWindow: show_menu mapped_button=%u item=%s", (uint) button, item != null ? item.Text : "null");
 
 			if ((button & PopupButton.RIGHT) != 0
-				&& (item == null || item is SeparatorDockItem || (state & Gdk.ModifierType.CONTROL_MASK) != 0)) {
+				&& (item == null
+					|| (item is SeparatorDockItem && !((SeparatorDockItem) item).is_user_separator ())
+					|| (state & Gdk.ModifierType.CONTROL_MASK) != 0)) {
 				if (controller.prefs.SystemMenuAccess != 4) {
 					menu_items = new Gee.ArrayList<Gtk.MenuItem> ();
 					PreferencesDockItem.append_full_system_menu (controller, menu_items);

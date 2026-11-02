@@ -288,7 +288,7 @@ namespace Plank
 			var seen = new Gee.HashSet<string> ();
 			foreach (var element in internal_elements) {
 				unowned DockItem? item = (element as DockItem);
-				if (item != null && !(item is TransientDockItem) && !(item is SeparatorDockItem) && item.DockItemFilename.length > 0) {
+				if (item != null && !(item is TransientDockItem) && item.DockItemFilename.length > 0) {
 					if (!seen.contains (item.DockItemFilename)) {
 						seen.add (item.DockItemFilename);
 						item_list.add (item.DockItemFilename);
@@ -316,6 +316,8 @@ namespace Plank
 			for (int i = 0; i < internal_elements.size; i++) {
 				var el = internal_elements.get (i);
 				if (el is SeparatorDockItem) {
+					if (((SeparatorDockItem) el).is_user_separator ())
+						remaining_elements.add (el);
 					continue;
 				} else if (el is TrashDockItem) {
 					trash_item = (TrashDockItem) el;
@@ -404,27 +406,52 @@ namespace Plank
 			var transients = new Gee.ArrayList<DockElement> ();
 			TrashDockItem? trash_item = null;
 
+			var pending_user_seps = new Gee.ArrayList<DockElement> ();
 			for (int i = 0; i < internal_elements.size; i++) {
 				var el = internal_elements.get (i);
-				if (el is SeparatorDockItem)
+				if (el is SeparatorDockItem) {
+					if (((SeparatorDockItem) el).is_user_separator ())
+						pending_user_seps.add (el);
 					continue;
+				}
 				if (el is TrashDockItem) {
+					foreach (var sep in pending_user_seps)
+						pinned_apps.add (sep);
+					pending_user_seps.clear ();
 					trash_item = (TrashDockItem) el;
 				} else if (el is TransientDockItem) {
+					foreach (var sep in pending_user_seps)
+						pinned_apps.add (sep);
+					pending_user_seps.clear ();
 					transients.add (el);
 				} else if (el is FileDockItem) {
+					foreach (var sep in pending_user_seps)
+						folders.add (sep);
+					pending_user_seps.clear ();
 					folders.add (el);
 				} else if (is_docklet_element (el)) {
 					unowned DockItem? item = el as DockItem;
 					if (el is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
+						foreach (var sep in pending_user_seps)
+							docklets.add (sep);
+						pending_user_seps.clear ();
 						preferences_docklet = el;
 					} else {
+						foreach (var sep in pending_user_seps)
+							docklets.add (sep);
+						pending_user_seps.clear ();
 						docklets.add (el);
 					}
 				} else {
+					foreach (var sep in pending_user_seps)
+						pinned_apps.add (sep);
+					pending_user_seps.clear ();
 					pinned_apps.add (el);
 				}
 			}
+			foreach (var sep in pending_user_seps)
+				pinned_apps.add (sep);
+			pending_user_seps.clear ();
 
 			// Preserve user's relative order within each category if CategorizedDockItems exists
 			if (Prefs.CategorizedDockItems != null && Prefs.CategorizedDockItems.length > 0) {
@@ -538,7 +565,9 @@ namespace Plank
 				}
 			}
 
-			// Clean up consecutive, leading, and trailing separators
+			// Clean up consecutive, leading, and trailing separators.
+			// Only collapse same-type pairs so a user sep next to an auto group
+			// boundary is not wiped (maintain_separator also skips auto when edge is user).
 			bool prev_was_sep = true; // Start true so any leading separator is suppressed
 			SeparatorDockItem? last_sep = null;
 			foreach (var element in internal_elements) {
@@ -547,7 +576,11 @@ namespace Plank
 				if (element is SeparatorDockItem) {
 					var sep = (SeparatorDockItem) element;
 					if (prev_was_sep) {
-						sep.IsAttached = false;
+						if (last_sep != null && last_sep.is_user_separator () == sep.is_user_separator ()) {
+							sep.IsAttached = false;
+						} else {
+							last_sep = sep;
+						}
 					} else {
 						prev_was_sep = true;
 						last_sep = sep;
@@ -593,6 +626,98 @@ namespace Plank
 		 *         - If transient items exist: 1 separator  [Pinned] | [Transient]
 		 *         - If no transient items:    0 separators [Pinned]
 		 */
+		static bool list_ends_with_user_separator (Gee.ArrayList<DockElement> list)
+		{
+			if (list.size == 0)
+				return false;
+			var last = list.get (list.size - 1);
+			return (last is SeparatorDockItem) && ((SeparatorDockItem) last).is_user_separator ();
+		}
+
+		static bool list_starts_with_user_separator (Gee.ArrayList<DockElement> list)
+		{
+			if (list.size == 0)
+				return false;
+			var first = list.get (0);
+			return (first is SeparatorDockItem) && ((SeparatorDockItem) first).is_user_separator ();
+		}
+
+		SeparatorDockItem take_auto_separator (Gee.ArrayList<SeparatorDockItem> pool, ref int pool_idx)
+		{
+			SeparatorDockItem sep;
+			if (pool_idx < pool.size) {
+				sep = pool.get (pool_idx);
+				pool_idx++;
+			} else {
+				sep = new SeparatorDockItem ();
+				sep.Container = this;
+				connect_element (sep);
+			}
+			sep.AddTime = 0;
+			sep.RemoveTime = 0;
+			sep.IsAttached = true;
+			return sep;
+		}
+
+		void append_auto_separator_between (Gee.ArrayList<DockElement> left, Gee.ArrayList<DockElement> right,
+			Gee.ArrayList<SeparatorDockItem> pool, ref int pool_idx)
+		{
+			if (left.size == 0 || right.size == 0)
+				return;
+			if (list_ends_with_user_separator (left) || list_starts_with_user_separator (right))
+				return;
+			internal_elements.add (take_auto_separator (pool, ref pool_idx));
+		}
+
+		/**
+		 * Insert a persistent user separator to the left or right of a pinned item.
+		 */
+		public void insert_user_separator (DockItem anchor, bool to_the_left)
+		{
+			if (anchor == null || !internal_elements.contains (anchor))
+				return;
+			if (anchor is TransientDockItem || anchor is SeparatorDockItem || anchor is TrashDockItem)
+				return;
+			if (Prefs.LockItems)
+				return;
+
+			delay_items_monitor ();
+			var dockitem_file = Factory.item_factory.make_separator_dock_item (LaunchersDir);
+			if (dockitem_file == null) {
+				resume_items_monitor ();
+				return;
+			}
+
+			var sep = new SeparatorDockItem.with_dockitem_file (dockitem_file);
+			DockElement? target = null;
+			if (to_the_left) {
+				target = anchor;
+			} else {
+				int idx = internal_elements.index_of (anchor);
+				if (idx >= 0 && idx + 1 < internal_elements.size)
+					target = internal_elements.get (idx + 1);
+			}
+
+			if (target != null)
+				add (sep, target);
+			else
+				add (sep);
+
+			resume_items_monitor ();
+			refresh_separators ();
+			unowned DockController? dock = get_dock ();
+			if (dock != null)
+				dock.schedule_serialize_item_positions ();
+		}
+
+		/**
+		 * Maintains clean grouping and dynamic separators:
+		 * - Pinned items (apps, folders, docklets) are grouped on the left.
+		 * - Transient (running unpinned) items are grouped in the middle.
+		 * - TrashDockItem is permanently anchored at the far right.
+		 * - Dynamic auto separators sit between those groups.
+		 * - User separators (separator-*.dockitem) stay inside the pinned sequence.
+		 */
 		void maintain_separator ()
 		{
 			unowned DockController? dock = get_dock ();
@@ -601,22 +726,20 @@ namespace Plank
 			if (dragging_item != null)
 				return;
 
-			// Step 1: Collect existing separators and identify Trash item
-			var existing_separators = new Gee.ArrayList<SeparatorDockItem> ();
+			var existing_auto_separators = new Gee.ArrayList<SeparatorDockItem> ();
 			TrashDockItem? trash_item = null;
 
 			for (int i = 0; i < internal_elements.size; i++) {
 				var el = internal_elements.get (i);
 				if (el is SeparatorDockItem) {
-					existing_separators.add ((SeparatorDockItem) el);
+					var sep = (SeparatorDockItem) el;
+					if (!sep.is_user_separator ())
+						existing_auto_separators.add (sep);
 				} else if (el is TrashDockItem) {
 					trash_item = (TrashDockItem) el;
 				}
 			}
 
-			// Step 2: Keep existing separators connected so they remain stable and flicker-free
-
-			// Step 3: Anchor Trash permanently at the very end of internal_elements
 			if (trash_item != null && dragging_item == null) {
 				int trash_idx = internal_elements.index_of (trash_item);
 				if (trash_idx >= 0 && trash_idx != internal_elements.size - 1) {
@@ -624,7 +747,6 @@ namespace Plank
 				}
 			}
 
-			// Step 4: Categorized Grouping or Classic Plank Arrangement
 			if (Prefs.CategorizeItems) {
 				var orphan_transients = new Gee.ArrayList<TransientDockItem> ();
 				var folders = new Gee.ArrayList<DockElement> ();
@@ -634,12 +756,22 @@ namespace Plank
 				var other_docklets = new Gee.ArrayList<DockElement> ();
 				var transients = new Gee.ArrayList<DockElement> ();
 				var minimized_items = new Gee.ArrayList<DockElement> ();
+				var pending_user_seps = new Gee.ArrayList<DockElement> ();
 
 				for (int i = 0; i < internal_elements.size; i++) {
 					var el = internal_elements.get (i);
-					if (el is TrashDockItem || el is SeparatorDockItem)
+					if (el is TrashDockItem)
 						continue;
+					if (el is SeparatorDockItem) {
+						var sep = (SeparatorDockItem) el;
+						if (sep.is_user_separator ())
+							pending_user_seps.add (el);
+						continue;
+					}
 					if (el is MinimizedWindowDockItem) {
+						foreach (var s in pending_user_seps)
+							pinned_apps.add (s);
+						pending_user_seps.clear ();
 						minimized_items.add (el);
 					} else if (el is TransientDockItem) {
 						var trans = (TransientDockItem) el;
@@ -648,21 +780,39 @@ namespace Plank
 							orphan_transients.add (trans);
 							continue;
 						}
+						foreach (var s in pending_user_seps)
+							pinned_apps.add (s);
+						pending_user_seps.clear ();
 						if (!Prefs.PinnedOnly)
 							transients.add (el);
 					} else if (el is FileDockItem) {
+						foreach (var s in pending_user_seps)
+							folders.add (s);
+						pending_user_seps.clear ();
 						folders.add (el);
 					} else if (is_docklet_element (el)) {
 						unowned DockItem? item = el as DockItem;
 						if (el is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
+							foreach (var s in pending_user_seps)
+								other_docklets.add (s);
+							pending_user_seps.clear ();
 							preferences_docklet = el;
 						} else {
+							foreach (var s in pending_user_seps)
+								other_docklets.add (s);
+							pending_user_seps.clear ();
 							other_docklets.add (el);
 						}
 					} else {
+						foreach (var s in pending_user_seps)
+							pinned_apps.add (s);
+						pending_user_seps.clear ();
 						pinned_apps.add (el);
 					}
 				}
+				foreach (var s in pending_user_seps)
+					pinned_apps.add (s);
+				pending_user_seps.clear ();
 
 				if (Prefs.SystemMenuAccess == 4 && preferences_docklet == null && dragging_item == null) {
 					ensure_preferences_dockitem ();
@@ -681,75 +831,62 @@ namespace Plank
 					orphan.delete ();
 				}
 
-				// Build ordered non-empty category groups:
-				// Fixed sequence: Folders -> Docklets -> Pinned Apps -> Unpinned Transients -> Trash
 				var groups = new Gee.ArrayList<Gee.ArrayList<DockElement>> ();
-
 				if (folders.size > 0)
 					groups.add (folders);
-
 				if (docklets.size > 0)
 					groups.add (docklets);
-
 				if (pinned_apps.size > 0)
 					groups.add (pinned_apps);
-
 				if (transients.size > 0)
 					groups.add (transients);
-
 				if (minimized_items.size > 0)
 					groups.add (minimized_items);
-
 				if (trash_item != null) {
 					var trash_group = new Gee.ArrayList<DockElement> ();
 					trash_group.add (trash_item);
 					groups.add (trash_group);
 				}
 
-				// Rebuild internal_elements with dynamic separators between adjacent non-empty groups
 				internal_elements.clear ();
 				int sep_pool_idx = 0;
 				for (int g = 0; g < groups.size; g++) {
-					if (g > 0) {
-						SeparatorDockItem sep;
-						if (sep_pool_idx < existing_separators.size) {
-							sep = existing_separators.get (sep_pool_idx++);
-						} else {
-							sep = new SeparatorDockItem ();
-							sep.Container = this;
-							connect_element (sep);
-						}
-						sep.AddTime = 0;
-						sep.RemoveTime = 0;
-						sep.IsAttached = true;
-						internal_elements.add (sep);
-					}
-					foreach (var item in groups.get (g)) {
+					if (g > 0)
+						append_auto_separator_between (groups.get (g - 1), groups.get (g), existing_auto_separators, ref sep_pool_idx);
+					foreach (var item in groups.get (g))
 						internal_elements.add (item);
-					}
 				}
 
-				// Clean up any remaining unused separators in the pool to prevent leaks
-				while (sep_pool_idx < existing_separators.size) {
-					var unused_sep = existing_separators.get (sep_pool_idx++);
+				while (sep_pool_idx < existing_auto_separators.size) {
+					var unused_sep = existing_auto_separators.get (sep_pool_idx++);
 					disconnect_element (unused_sep);
 					unused_sep.Container = null;
 				}
 				return;
 			}
 
-			// Step 4b (Classic / Free Mode): Deterministic grouping of [Preferences] | Pinned | [Transient] | [Trash]
+			// Classic / Free Mode
 			DockElement? preferences_item = null;
 			var pinned = new Gee.ArrayList<DockElement> ();
 			var transients = new Gee.ArrayList<DockElement> ();
 			var minimized_items = new Gee.ArrayList<DockElement> ();
 			var orphan_transients = new Gee.ArrayList<TransientDockItem> ();
+			var pending_user_seps = new Gee.ArrayList<DockElement> ();
 
 			for (int i = 0; i < internal_elements.size; i++) {
 				var el = internal_elements.get (i);
-				if (el is SeparatorDockItem || el is TrashDockItem)
+				if (el is TrashDockItem)
 					continue;
+				if (el is SeparatorDockItem) {
+					var sep = (SeparatorDockItem) el;
+					if (sep.is_user_separator ())
+						pending_user_seps.add (el);
+					continue;
+				}
 				if (el is MinimizedWindowDockItem) {
+					foreach (var s in pending_user_seps)
+						pinned.add (s);
+					pending_user_seps.clear ();
 					minimized_items.add (el);
 				} else if (el is TransientDockItem) {
 					var trans = (TransientDockItem) el;
@@ -758,18 +895,36 @@ namespace Plank
 						orphan_transients.add (trans);
 						continue;
 					}
+					foreach (var s in pending_user_seps)
+						pinned.add (s);
+					pending_user_seps.clear ();
 					if (!Prefs.PinnedOnly)
 						transients.add (el);
 				} else {
 					unowned DockItem? item = el as DockItem;
 					if (el is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
-						if (preferences_item == null)
+						if (preferences_item == null) {
+							foreach (var s in pending_user_seps)
+								pinned.add (s);
+							pending_user_seps.clear ();
 							preferences_item = el;
+						} else {
+							foreach (var s in pending_user_seps)
+								pinned.add (s);
+							pending_user_seps.clear ();
+							pinned.add (el);
+						}
 					} else {
+						foreach (var s in pending_user_seps)
+							pinned.add (s);
+						pending_user_seps.clear ();
 						pinned.add (el);
 					}
 				}
 			}
+			foreach (var s in pending_user_seps)
+				pinned.add (s);
+			pending_user_seps.clear ();
 
 			if (Prefs.SystemMenuAccess == 4 && preferences_item == null && dragging_item == null) {
 				ensure_preferences_dockitem ();
@@ -786,93 +941,56 @@ namespace Plank
 			internal_elements.clear ();
 			int sep_pool_idx = 0;
 
-			// 1. Anchor Preferences strictly at index 0
+			var prefs_group = new Gee.ArrayList<DockElement> ();
+			if (preferences_item != null)
+				prefs_group.add (preferences_item);
+
 			if (preferences_item != null)
 				internal_elements.add (preferences_item);
 
-			// 2. Add separator after Preferences anchor only if there are other items following it
-			if (preferences_item != null && (pinned.size > 0 || transients.size > 0)) {
-				SeparatorDockItem sep;
-				if (sep_pool_idx < existing_separators.size) {
-					sep = existing_separators.get (sep_pool_idx++);
-				} else {
-					sep = new SeparatorDockItem ();
-					sep.Container = this;
-					connect_element (sep);
-				}
-				sep.AddTime = 0;
-				sep.RemoveTime = 0;
-				sep.IsAttached = true;
-				internal_elements.add (sep);
-			}
+			if (preferences_item != null && pinned.size > 0)
+				append_auto_separator_between (prefs_group, pinned, existing_auto_separators, ref sep_pool_idx);
 
-			// 3. Add all user pinned items (preserving free-placement sequence)
 			foreach (var p in pinned)
 				internal_elements.add (p);
 
-			// 4. Core separator between Pinned and Transients (unpinned running apps)
-			if (pinned.size > 0 && transients.size > 0) {
-				SeparatorDockItem sep;
-				if (sep_pool_idx < existing_separators.size) {
-					sep = existing_separators.get (sep_pool_idx++);
-				} else {
-					sep = new SeparatorDockItem ();
-					sep.Container = this;
-					connect_element (sep);
-				}
-				sep.AddTime = 0;
-				sep.RemoveTime = 0;
-				sep.IsAttached = true;
-				internal_elements.add (sep);
-			}
+			if (pinned.size > 0 && transients.size > 0)
+				append_auto_separator_between (pinned, transients, existing_auto_separators, ref sep_pool_idx);
+			else if (preferences_item != null && pinned.size == 0 && transients.size > 0)
+				append_auto_separator_between (prefs_group, transients, existing_auto_separators, ref sep_pool_idx);
 
-			// 5. Add unpinned running apps
 			foreach (var t in transients)
 				internal_elements.add (t);
 
-			// 5b. Core separator between running apps and minimized window previews
-			if (minimized_items.size > 0 && (pinned.size > 0 || transients.size > 0 || preferences_item != null)) {
-				SeparatorDockItem sep;
-				if (sep_pool_idx < existing_separators.size) {
-					sep = existing_separators.get (sep_pool_idx++);
-				} else {
-					sep = new SeparatorDockItem ();
-					sep.Container = this;
-					connect_element (sep);
-				}
-				sep.AddTime = 0;
-				sep.RemoveTime = 0;
-				sep.IsAttached = true;
-				internal_elements.add (sep);
+			var before_min = new Gee.ArrayList<DockElement> ();
+			if (pinned.size > 0)
+				before_min.add_all (pinned);
+			else if (transients.size > 0)
+				before_min.add_all (transients);
+			else if (preferences_item != null)
+				before_min.add (preferences_item);
+
+			if (minimized_items.size > 0 && before_min.size > 0) {
+				var edge = (transients.size > 0) ? transients : (pinned.size > 0 ? pinned : prefs_group);
+				append_auto_separator_between (edge, minimized_items, existing_auto_separators, ref sep_pool_idx);
 			}
 
-			// Add minimized window previews
 			foreach (var m in minimized_items)
 				internal_elements.add (m);
 
-			// 6. Core separator before Trash
-			if (trash_item != null && (pinned.size > 0 || transients.size > 0 || preferences_item != null || minimized_items.size > 0)) {
-				SeparatorDockItem sep;
-				if (sep_pool_idx < existing_separators.size) {
-					sep = existing_separators.get (sep_pool_idx++);
-				} else {
-					sep = new SeparatorDockItem ();
-					sep.Container = this;
-					connect_element (sep);
-				}
-				sep.AddTime = 0;
-				sep.RemoveTime = 0;
-				sep.IsAttached = true;
-				internal_elements.add (sep);
+			if (trash_item != null) {
+				var trash_group = new Gee.ArrayList<DockElement> ();
+				trash_group.add (trash_item);
+				var edge = minimized_items.size > 0 ? minimized_items
+					: (transients.size > 0 ? transients
+					: (pinned.size > 0 ? pinned : prefs_group));
+				if (edge.size > 0)
+					append_auto_separator_between (edge, trash_group, existing_auto_separators, ref sep_pool_idx);
+				internal_elements.add (trash_item);
 			}
 
-			// 7. Add Trash at the end
-			if (trash_item != null)
-				internal_elements.add (trash_item);
-
-			// Clean up any remaining unused separators in the pool to prevent leaks
-			while (sep_pool_idx < existing_separators.size) {
-				var unused_sep = existing_separators.get (sep_pool_idx++);
+			while (sep_pool_idx < existing_auto_separators.size) {
+				var unused_sep = existing_auto_separators.get (sep_pool_idx++);
 				disconnect_element (unused_sep);
 				unused_sep.Container = null;
 			}

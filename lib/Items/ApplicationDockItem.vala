@@ -400,6 +400,21 @@ namespace Plank
 				item.active = !(this is TransientDockItem);
 				item.activate.connect (() => pin_launcher ());
 				items.add (item);
+
+				// User separators: pinned apps only (not transient unpinned icons)
+				if (!(this is TransientDockItem)) {
+					var left_sep = create_literal_menu_item ("在左侧添加分隔符");
+					left_sep.activate.connect (() => {
+						default_provider.insert_user_separator (this, true);
+					});
+					items.add (left_sep);
+
+					var right_sep = create_literal_menu_item ("在右侧添加分隔符");
+					right_sep.activate.connect (() => {
+						default_provider.insert_user_separator (this, false);
+					});
+					items.add (right_sep);
+				}
 			}
 			
 			if (!is_window () && Launcher != "") {

@@ -106,6 +106,8 @@ namespace Plank
 				try { file.delete (); } catch { }
 				return null;
 			}
+			if (SeparatorDockItem.launcher_is_separator (launcher))
+				return new SeparatorDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://trash")
 				return new TrashDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://clock")
@@ -240,7 +242,7 @@ namespace Plank
 						continue;
 
 					unowned DockItem? item = (element as DockItem);
-					if (item != null && item.Launcher != "") {
+					if (item != null && !(item is SeparatorDockItem) && item.Launcher != "") {
 						unowned DockItem? dupe = find_item_for_uri (result, item.Launcher);
 						if (dupe != null) {
 							warning ("The launcher '%s' in dock item '%s' is already managed by dock item '%s'. Removing '%s'.",
@@ -255,7 +257,7 @@ namespace Plank
 			
 			foreach (var element in elements.values) {
 				unowned DockItem? item = (element as DockItem);
-				if (item != null && item.Launcher != "") {
+				if (item != null && !(item is SeparatorDockItem) && item.Launcher != "") {
 					unowned DockItem? dupe = find_item_for_uri (result, item.Launcher);
 					if (dupe != null) {
 						warning ("The launcher '%s' in dock item '%s' is already managed by dock item '%s'. Removing '%s'.",
@@ -365,6 +367,50 @@ namespace Plank
 			debug ("ItemFactory: default items successfully created.");
 		}
 		
+		/**
+		 * Creates a unique user-separator .dockitem (separator-*.dockitem).
+		 */
+		public GLib.File? make_separator_dock_item (File? target_dir = null)
+		{
+			if (target_dir == null)
+				target_dir = launchers_dir;
+
+			if (target_dir != null && !target_dir.query_exists ()) {
+				try {
+					target_dir.make_directory_with_parents (null);
+				} catch { }
+			}
+
+			if (target_dir == null)
+				return null;
+
+			var file = new KeyFile ();
+			file.set_string (typeof (DockItemPreferences).name (), "Launcher", SeparatorDockItem.LAUNCHER_URI);
+
+			try {
+				int64 stamp = new DateTime.now_utc ().to_unix ();
+				int n = 0;
+				string dockitem = "separator-%lld.dockitem".printf (stamp);
+				var dockitem_file = target_dir.get_child (dockitem);
+				while (dockitem_file.query_exists ()) {
+					n++;
+					dockitem = "separator-%lld-%d.dockitem".printf (stamp, n);
+					dockitem_file = target_dir.get_child (dockitem);
+				}
+
+				var stream = new DataOutputStream (dockitem_file.replace (null, false, FileCreateFlags.NONE, null));
+				stream.put_string (file.to_data ());
+				stream.close ();
+
+				debug ("Created user separator dock item '%s'", dockitem_file.get_path ());
+				return dockitem_file;
+			} catch (Error e) {
+				warning ("Failed to create separator dock item: %s", e.message);
+			}
+
+			return null;
+		}
+
 		/**
 		 * Creates a new .dockitem for a uri.
 		 *

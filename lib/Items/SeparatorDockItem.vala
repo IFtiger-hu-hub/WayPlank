@@ -1,6 +1,7 @@
 //
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
+//  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
 //  This file is part of WayPlank.
 //
@@ -21,19 +22,47 @@
 namespace Plank
 {
 	/**
-	 * A non-interactive divider auto-inserted between pinned and temporary items.
+	 * A divider between dock items.
+	 *
+	 * Auto separators (no .dockitem) are inserted between pinned / transient / trash
+	 * groups and are not user-removable. User separators are backed by
+	 * separator-*.dockitem files (Launcher = docklet://separator) so their place
+	 * in FreeDockItems / DockItems survives restart.
 	 */
 	public class SeparatorDockItem : DockItem
 	{
+		public const string LAUNCHER_URI = "docklet://separator";
 		const int THICKNESS = 2;
 		
 		public Color BarColor { get; set; default = Color () { red = 0.0, green = 0.0, blue = 0.0, alpha = 1.0 }; }
 		bool horizontal = true;
+
+		public SeparatorDockItem ()
+		{
+			GLib.Object (Prefs: new DockItemPreferences ());
+		}
+
+		public SeparatorDockItem.with_dockitem_file (GLib.File file)
+		{
+			GLib.Object (Prefs: new DockItemPreferences.with_file (file));
+		}
+
+		public static bool launcher_is_separator (string? launcher)
+		{
+			return launcher != null
+				&& (launcher == LAUNCHER_URI || launcher.has_prefix (LAUNCHER_URI + "/"));
+		}
+
+		public bool is_user_separator ()
+		{
+			return launcher_is_separator (Prefs != null ? Prefs.Launcher : null);
+		}
 		
 		construct
 		{
 			Text = "";
 			Icon = "";
+			Button = PopupButton.RIGHT;
 			notify["BarColor"].connect (() => reset_icon_buffer ());
 		}
 
@@ -87,7 +116,26 @@ namespace Plank
 		 */
 		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
 		{
-			return new Gee.ArrayList<Gtk.MenuItem> ();
+			var items = new Gee.ArrayList<Gtk.MenuItem> ();
+			if (!is_user_separator ())
+				return items;
+
+			unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
+			if (provider != null && provider.Prefs.LockItems)
+				return items;
+
+			var remove_item = create_literal_menu_item ("移除分隔符");
+			remove_item.activate.connect (() => {
+				unowned DockContainer? container = Container;
+				unowned DockController? dock = get_dock ();
+				if (container != null && container.Elements.contains (this))
+					container.remove (this);
+				@delete ();
+				if (dock != null)
+					dock.schedule_serialize_item_positions ();
+			});
+			items.add (remove_item);
+			return items;
 		}
 		
 		/**
@@ -95,7 +143,7 @@ namespace Plank
 		 */
 		public override bool can_be_removed ()
 		{
-			return false;
+			return is_user_separator ();
 		}
 		
 		/**
