@@ -1033,8 +1033,11 @@ namespace Plank
 			if (rect.width > 0 && rect.height > 0) {
 				var matched_windows = WindowManager.get_default ().matching_windows (appitem.Launcher);
 				foreach (var win in matched_windows) {
+					if (!win.CurrentDesktop)
+						continue;
 					KWinPlasmaWindow.set_window_minimized_geometry (win.Id, rect.x, rect.y, rect.width, rect.height);
 				}
+				KWinPlasmaWindow.flush ();
 			}
 		}
 

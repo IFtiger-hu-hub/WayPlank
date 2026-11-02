@@ -21,8 +21,17 @@ static struct org_kde_plasma_window_management *s_plasma_mgmt = NULL;
 static struct wl_surface *s_panel_surface = NULL;
 static GtkWidget *s_dock_widget = NULL;
 
-/* Hash table mapping uuid string -> struct org_kde_plasma_window * */
+/* Hash table mapping uuid string -> PlasmaWindowEntry * */
 static GHashTable *s_window_proxies = NULL;
+static gboolean s_needs_flush = FALSE;
+
+typedef struct {
+	struct org_kde_plasma_window *win;
+	int last_x;
+	int last_y;
+	int last_width;
+	int last_height;
+} PlasmaWindowEntry;
 
 static void dummy_cb (void) {}
 
@@ -49,9 +58,12 @@ static const struct org_kde_plasma_window_listener s_window_listener = {
 
 static void destroy_plasma_window_proxy (gpointer data)
 {
-	struct org_kde_plasma_window *win = (struct org_kde_plasma_window *) data;
-	if (win) {
-		org_kde_plasma_window_destroy (win);
+	PlasmaWindowEntry *entry = (PlasmaWindowEntry *) data;
+	if (entry) {
+		if (entry->win) {
+			org_kde_plasma_window_destroy (entry->win);
+		}
+		g_free (entry);
 	}
 }
 
@@ -212,23 +224,36 @@ void kwin_dock_cleanup_plasma_window_management (void)
 	s_wl_display = NULL;
 }
 
-static struct org_kde_plasma_window *get_or_create_window_proxy (const char *uuid)
+static PlasmaWindowEntry *get_or_create_window_entry (const char *uuid)
 {
 	if (!s_plasma_mgmt || !uuid || !uuid[0])
 		return NULL;
 
-	struct org_kde_plasma_window *win = g_hash_table_lookup (s_window_proxies, uuid);
-	if (win)
-		return win;
+	PlasmaWindowEntry *entry = g_hash_table_lookup (s_window_proxies, uuid);
+	if (entry)
+		return entry;
 
-	win = org_kde_plasma_window_management_get_window_by_uuid (s_plasma_mgmt, uuid);
+	struct org_kde_plasma_window *win = org_kde_plasma_window_management_get_window_by_uuid (s_plasma_mgmt, uuid);
 	if (!win)
 		return NULL;
 
-	char *uuid_key = g_strdup (uuid);
 	org_kde_plasma_window_add_listener (win, &s_window_listener, NULL);
-	g_hash_table_insert (s_window_proxies, uuid_key, win);
-	return win;
+	entry = g_new0 (PlasmaWindowEntry, 1);
+	entry->win = win;
+	entry->last_x = -1;
+	entry->last_y = -1;
+	entry->last_width = -1;
+	entry->last_height = -1;
+	g_hash_table_insert (s_window_proxies, g_strdup (uuid), entry);
+	return entry;
+}
+
+void kwin_dock_flush (void)
+{
+	if (s_needs_flush && s_wl_display) {
+		wl_display_flush (s_wl_display);
+		s_needs_flush = FALSE;
+	}
 }
 
 void kwin_dock_prune_window_proxies (const char **active_uuids, int count)
@@ -255,10 +280,15 @@ void kwin_dock_prune_window_proxies (const char **active_uuids, int count)
 		}
 	}
 
-	for (GList *l = to_remove; l != NULL; l = l->next) {
-		g_hash_table_remove (s_window_proxies, l->data);
+	if (to_remove != NULL) {
+		for (GList *l = to_remove; l != NULL; l = l->next) {
+			g_hash_table_remove (s_window_proxies, l->data);
+		}
+		g_list_free (to_remove);
+		s_needs_flush = TRUE;
 	}
-	g_list_free (to_remove);
+
+	kwin_dock_flush ();
 }
 
 void kwin_dock_set_window_minimized_geometry (const char *uuid, int x, int y, int width, int height)
@@ -270,16 +300,23 @@ void kwin_dock_set_window_minimized_geometry (const char *uuid, int x, int y, in
 	if (!uuid || !uuid[0] || width <= 0 || height <= 0)
 		return;
 
-	struct org_kde_plasma_window *win = get_or_create_window_proxy (uuid);
-	if (!win)
+	PlasmaWindowEntry *entry = get_or_create_window_entry (uuid);
+	if (!entry || !entry->win)
 		return;
 
-	org_kde_plasma_window_set_minimized_geometry (win, panel_surf,
+	if (entry->last_x == x && entry->last_y == y &&
+	    entry->last_width == width && entry->last_height == height)
+		return;
+
+	entry->last_x = x;
+	entry->last_y = y;
+	entry->last_width = width;
+	entry->last_height = height;
+
+	org_kde_plasma_window_set_minimized_geometry (entry->win, panel_surf,
 	                                             (uint32_t) x, (uint32_t) y,
 	                                             (uint32_t) width, (uint32_t) height);
-	if (s_wl_display) {
-		wl_display_flush (s_wl_display);
-	}
+	s_needs_flush = TRUE;
 }
 
 void kwin_dock_unset_window_minimized_geometry (const char *uuid)
@@ -288,12 +325,18 @@ void kwin_dock_unset_window_minimized_geometry (const char *uuid)
 	if (!panel_surf || !uuid || !uuid[0])
 		return;
 
-	struct org_kde_plasma_window *win = get_or_create_window_proxy (uuid);
-	if (!win)
+	PlasmaWindowEntry *entry = get_or_create_window_entry (uuid);
+	if (!entry || !entry->win)
 		return;
 
-	org_kde_plasma_window_unset_minimized_geometry (win, panel_surf);
+	entry->last_x = -1;
+	entry->last_y = -1;
+	entry->last_width = -1;
+	entry->last_height = -1;
+
+	org_kde_plasma_window_unset_minimized_geometry (entry->win, panel_surf);
 	if (s_wl_display) {
 		wl_display_flush (s_wl_display);
+		s_needs_flush = FALSE;
 	}
 }

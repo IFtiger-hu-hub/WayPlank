@@ -41,7 +41,7 @@ namespace Plank
 
 		uint dismiss_timer_id = 0U;
 		uint refresh_draw_timer_id = 0U;
-		uint thumbs_start_timer_id = 0U;
+		Gee.ArrayList<uint> card_thumb_timers = new Gee.ArrayList<uint> ();
 		bool pointer_inside = false;
 
 		static Pango.FontDescription? cached_font_title = null;
@@ -233,15 +233,21 @@ namespace Plank
 			return base.draw (cr);
 		}
 
+		void cancel_card_thumb_timers ()
+		{
+			foreach (uint tid in card_thumb_timers) {
+				if (tid > 0U)
+					Source.remove (tid);
+			}
+			card_thumb_timers.clear ();
+		}
+
 		public void show_for_item (ApplicationDockItem item)
 		{
 			TargetItem = item;
 			pointer_inside = false;
 			cancel_dismiss_timer ();
-			if (thumbs_start_timer_id > 0U) {
-				Source.remove (thumbs_start_timer_id);
-				thumbs_start_timer_id = 0U;
-			}
+			cancel_card_thumb_timers ();
 
 			populate_cards ();
 			show_all ();
@@ -264,13 +270,10 @@ namespace Plank
 		public void close_cards ()
 		{
 			cancel_dismiss_timer ();
+			cancel_card_thumb_timers ();
 			if (refresh_draw_timer_id > 0U) {
 				Source.remove (refresh_draw_timer_id);
 				refresh_draw_timer_id = 0U;
-			}
-			if (thumbs_start_timer_id > 0U) {
-				Source.remove (thumbs_start_timer_id);
-				thumbs_start_timer_id = 0U;
 			}
 			hide ();
 			TargetItem = null;
@@ -303,6 +306,7 @@ namespace Plank
 
 		void populate_cards ()
 		{
+			cancel_card_thumb_timers ();
 			foreach (var child in cards_box.get_children ())
 				cards_box.remove (child);
 
@@ -391,7 +395,9 @@ namespace Plank
 				// Wait for cards to map + idle, then stagger ScreenShot2 (icon fallback until ready)
 				uint delay_ms = 180U + (uint) (stagger_idx * 90);
 				string win_id_copy = win.Id;
-				Timeout.add (delay_ms, () => {
+				uint tid = 0U;
+				tid = Timeout.add (delay_ms, () => {
+					card_thumb_timers.remove (tid);
 					if (!get_visible () || TargetItem == null)
 						return false;
 					KWinThumbnailService.get_default ().request_thumbnail (win_id_copy, prev_w, prev_h, (pix) => {
@@ -402,6 +408,7 @@ namespace Plank
 					});
 					return false;
 				});
+				card_thumb_timers.add (tid);
 			}
 
 			da.draw.connect ((cr) => {
@@ -615,6 +622,7 @@ namespace Plank
 				if (event.button == Gdk.BUTTON_PRIMARY) {
 					if (is_close_click) {
 						WindowControl.queue_command (win.Id, "close");
+						KWinThumbnailService.get_default ().remove_cached (win.Id);
 						cards_box.remove (eb);
 						eb.destroy ();
 						if (cards_box.get_children ().length () == 0) {

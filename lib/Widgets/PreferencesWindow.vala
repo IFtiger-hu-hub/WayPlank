@@ -814,8 +814,12 @@ namespace Plank
 		{
 			var enabled = ((Gtk.Switch) widget).get_active ();
 			var autostart_dir = Path.build_filename (Environment.get_user_config_dir (), "autostart");
-			var autostart_path = Path.build_filename (autostart_dir, "wayplank.desktop");
+			var autostart_path = Path.build_filename (autostart_dir, "kde-dockbar.desktop");
+			var legacy_autostart_path = Path.build_filename (autostart_dir, "wayplank.desktop");
 			var success = true;
+
+			if (FileUtils.test (legacy_autostart_path, FileTest.EXISTS))
+				FileUtils.remove (legacy_autostart_path);
 
 			if (enabled) {
 				if (DirUtils.create_with_parents (autostart_dir, 0755) != 0) {
@@ -825,14 +829,21 @@ namespace Plank
 					try {
 						FileUtils.set_contents (autostart_path,
 							"[Desktop Entry]\n" +
-							"Type=Application\n" +
-							"Name=WayPlank\n" +
-							"Comment=Stupidly simple dock for Wayland\n" +
-							"Exec=wayplank\n" +
-							"Icon=plank\n" +
+							"Name=KDE Dockbar\n" +
+							"Name[zh_CN]=KDE 任务栏 (Dock)\n" +
+							"Comment=Modern native dock for KDE Plasma Wayland\n" +
+							"Comment[zh_CN]=专为 KDE Plasma Wayland 量身打造的高性能原生 Dock 栏\n" +
+							"GenericName=Dock\n" +
+							"GenericName[zh_CN]=任务栏\n" +
+							"Exec=kde-dockbar\n" +
+							"Icon=kde-dockbar\n" +
 							"Terminal=false\n" +
-							"X-GNOME-Autostart-enabled=true\n" +
-							"X-GNOME-Autostart-Delay=2\n" +
+							"Type=Application\n" +
+							"Categories=Utility;\n" +
+							"OnlyShowIn=KDE;\n" +
+							"StartupNotify=false\n" +
+							"X-KDE-autostart-phase=2\n" +
+							"X-KDE-autostart-after=kwin_wayland\n" +
 							"X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2\n");
 					} catch (FileError e) {
 						warning ("Unable to create autostart entry '%s': %s", autostart_path, e.message);
@@ -1382,7 +1393,7 @@ namespace Plank
 			sw_workspace_only.sensitive = false;
 			sw_workspace_only.tooltip_text = "Wayland 环境下暂不支持工作区过滤";
 			sw_autostart.set_active (FileUtils.test (
-				Path.build_filename (Environment.get_user_config_dir (), "autostart", "wayplank.desktop"),
+				Path.build_filename (Environment.get_user_config_dir (), "autostart", "kde-dockbar.desktop"),
 				FileTest.IS_REGULAR));
 			sw_show_unpinned.set_active (!prefs.PinnedOnly);
 			sw_scroll_overflow.set_active (prefs.ScrollOverflow);

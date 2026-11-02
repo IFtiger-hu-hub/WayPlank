@@ -60,15 +60,15 @@ namespace Plank
 			+ "        var resName = (client.resourceName ? String(client.resourceName).toLowerCase() : \"\");\n"
 			+ "        var capt = (client.caption ? String(client.caption).toLowerCase() : \"\");\n"
 			+ "        var dName = (client.desktopFileName ? String(client.desktopFileName).toLowerCase() : \"\");\n"
-			+ "        if (resClass === \"wayplank\" || resClass === \"plank\" ||\n"
-			+ "            resName === \"wayplank\" || resName === \"plank\" ||\n"
-			+ "            dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
-			+ "            capt === \"wayplank\" || capt === \"wayplank-hover\" ||\n"
+			+ "        if (resClass === \"kde-dockbar\" || resClass === \"wayplank\" || resClass === \"plank\" ||\n"
+			+ "            resName === \"kde-dockbar\" || resName === \"wayplank\" || resName === \"plank\" ||\n"
+			+ "            dName === \"kde-dockbar\" || dName === \"kde-dockbar.desktop\" || dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
+			+ "            capt === \"kde-dockbar\" || capt === \"wayplank\" || capt === \"wayplank-hover\" ||\n"
 			+ "            resClass === \"xwaylandvideobridge\" || resName === \"xwaylandvideobridge\" ||\n"
 			+ "            dName === \"xwaylandvideobridge\" || dName === \"org.kde.xwaylandvideobridge\" ||\n"
 			+ "            capt.indexOf(\"xwaylandvideobridge\") !== -1) {\n"
 			+ "            try {\n"
-			+ "                if (resClass.indexOf(\"wayplank\") !== -1 || resClass.indexOf(\"plank\") !== -1) {\n"
+			+ "                if (resClass.indexOf(\"kde-dockbar\") !== -1 || resClass.indexOf(\"wayplank\") !== -1 || resClass.indexOf(\"plank\") !== -1) {\n"
 			+ "                    client.onAllDesktops = true;\n"
 			+ "                    client.skipTaskbar = true;\n"
 			+ "                    client.skipPager = true;\n"
@@ -158,10 +158,10 @@ namespace Plank
 			+ "    var resName = (window.resourceName ? String(window.resourceName).toLowerCase() : \"\");\n"
 			+ "    var capt = (window.caption ? String(window.caption).toLowerCase() : \"\");\n"
 			+ "    var dName = (window.desktopFileName ? String(window.desktopFileName).toLowerCase() : \"\");\n"
-			+ "    if (resClass === \"wayplank\" || resClass === \"plank\" ||\n"
-			+ "        resName === \"wayplank\" || resName === \"plank\" ||\n"
-			+ "        dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
-			+ "        capt === \"wayplank\" || capt === \"wayplank-hover\" ||\n"
+			+ "    if (resClass === \"kde-dockbar\" || resClass === \"wayplank\" || resClass === \"plank\" ||\n"
+			+ "        resName === \"kde-dockbar\" || resName === \"wayplank\" || resName === \"plank\" ||\n"
+			+ "        dName === \"kde-dockbar\" || dName === \"kde-dockbar.desktop\" || dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
+			+ "        capt === \"kde-dockbar\" || capt === \"wayplank\" || capt === \"wayplank-hover\" ||\n"
 			+ "        resClass === \"xwaylandvideobridge\" || resName === \"xwaylandvideobridge\" ||\n"
 			+ "        dName === \"xwaylandvideobridge\" || dName === \"org.kde.xwaylandvideobridge\" ||\n"
 			+ "        capt.indexOf(\"xwaylandvideobridge\") !== -1)\n"
@@ -420,10 +420,10 @@ namespace Plank
 					var res_name_chk = json.has_member ("resourceName") ? json.get_string_member ("resourceName").down () : "";
 					var capt_chk = json.has_member ("caption") ? json.get_string_member ("caption").down () : "";
 					var dname_chk = json.has_member ("desktopFileName") ? json.get_string_member ("desktopFileName").down () : "";
-					if (res_class_chk == "wayplank" || res_class_chk == "plank" ||
-					    res_name_chk == "wayplank" || res_name_chk == "plank" ||
-					    dname_chk == "wayplank" || dname_chk == "plank" || dname_chk == "wayplank.desktop" || dname_chk == "plank.desktop" ||
-					    capt_chk == "wayplank" || capt_chk == "wayplank-hover")
+					if (res_class_chk == "kde-dockbar" || res_class_chk == "wayplank" || res_class_chk == "plank" ||
+					    res_name_chk == "kde-dockbar" || res_name_chk == "wayplank" || res_name_chk == "plank" ||
+					    dname_chk == "kde-dockbar" || dname_chk == "kde-dockbar.desktop" || dname_chk == "wayplank" || dname_chk == "plank" || dname_chk == "wayplank.desktop" || dname_chk == "plank.desktop" ||
+					    capt_chk == "kde-dockbar" || capt_chk == "wayplank" || capt_chk == "wayplank-hover")
 						continue;
 					var info = new WindowInfo ();
 					info.Id = json.get_string_member ("uuid");
@@ -440,6 +440,8 @@ namespace Plank
 					info.Active = json.has_member ("active") && json.get_boolean_member ("active");
 					info.Maximized = json.has_member ("maximized") && json.get_boolean_member ("maximized");
 					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
+					info.Normal = !json.has_member ("normal") || json.get_boolean_member ("normal");
+					info.Visible = !json.has_member ("visible") || json.get_boolean_member ("visible");
 					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
 					info.MinimizedSequence = json.has_member ("minimizedSequence") ? json.get_int_member ("minimizedSequence") : 0;
 					info.Caption = json.has_member ("caption") ? json.get_string_member ("caption") : "";
@@ -718,42 +720,24 @@ namespace Plank
 
 		static bool window_intersects (Gdk.Rectangle dock_rect, bool active_only, bool maximized_only)
 		{
-			if (window_state == null)
-				return false;
+			foreach (var window in window_infos) {
+				if (window.Minimized)
+					continue;
+				if (!window.Normal)
+					continue;
+				if (!window.Visible)
+					continue;
+				if (!window.CurrentDesktop)
+					continue;
+				if (active_only && !window.Active)
+					continue;
+				if (maximized_only && !window.Maximized)
+					continue;
+				if (window.Geometry.width <= 0 || window.Geometry.height <= 0)
+					continue;
 
-			try {
-				var parser = new Json.Parser ();
-				parser.load_from_data (window_state);
-				var root = parser.get_root ().get_array ();
-				foreach (var node in root.get_elements ()) {
-					var window = node.get_object ();
-					if (window.has_member ("resourceClass")
-						&& window.get_string_member ("resourceClass").down () == "wayplank")
-						continue;
-					if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
-						continue;
-					if (window.has_member ("normal") && !window.get_boolean_member ("normal"))
-						continue;
-					if (window.has_member ("visible") && !window.get_boolean_member ("visible"))
-						continue;
-					if (window.has_member ("currentDesktop") && !window.get_boolean_member ("currentDesktop"))
-						continue;
-					if (active_only && (!window.has_member ("active") || !window.get_boolean_member ("active")))
-						continue;
-					if (maximized_only && (!window.has_member ("maximized") || !window.get_boolean_member ("maximized")))
-						continue;
-
-					Gdk.Rectangle window_rect = {
-						(int) window.get_double_member ("x"),
-						(int) window.get_double_member ("y"),
-						(int) window.get_double_member ("width"),
-						(int) window.get_double_member ("height")
-					};
-					if (window_rect.intersect (dock_rect, null))
-						return true;
-				}
-			} catch (Error e) {
-				debug ("Unable to parse KWin window state: %s", e.message);
+				if (window.Geometry.intersect (dock_rect, null))
+					return true;
 			}
 
 			return false;
@@ -761,45 +745,33 @@ namespace Plank
 
 		public static bool has_maximized_window_on_current_desktop (Gdk.Rectangle? mon_geom = null)
 		{
-			if (window_state == null)
-				return false;
+			foreach (var window in window_infos) {
+				if (window.Minimized)
+					continue;
+				if (!window.Normal)
+					continue;
+				if (!window.Visible)
+					continue;
+				if (!window.CurrentDesktop)
+					continue;
 
-			try {
-				var parser = new Json.Parser ();
-				parser.load_from_data (window_state);
-				var root = parser.get_root ().get_array ();
-				foreach (var node in root.get_elements ()) {
-					var window = node.get_object ();
-					if (window.has_member ("resourceClass")
-						&& window.get_string_member ("resourceClass").down () == "wayplank")
+				if (mon_geom != null && mon_geom.width > 0) {
+					int wx = window.Geometry.x;
+					int ww = window.Geometry.width;
+					int wy = window.Geometry.y;
+					int wh = window.Geometry.height;
+					if (wx + ww <= mon_geom.x || wx >= mon_geom.x + mon_geom.width ||
+						wy + wh <= mon_geom.y || wy >= mon_geom.y + mon_geom.height) {
 						continue;
-					if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
-						continue;
-					if (window.has_member ("normal") && !window.get_boolean_member ("normal"))
-						continue;
-					if (window.has_member ("visible") && !window.get_boolean_member ("visible"))
-						continue;
-					if (window.has_member ("currentDesktop") && !window.get_boolean_member ("currentDesktop"))
-						continue;
-
-					if (mon_geom != null && mon_geom.width > 0) {
-						double wx = window.has_member ("x") ? window.get_double_member ("x") : 0.0;
-						double ww = window.has_member ("width") ? window.get_double_member ("width") : 0.0;
-						double wy = window.has_member ("y") ? window.get_double_member ("y") : 0.0;
-						double wh = window.has_member ("height") ? window.get_double_member ("height") : 0.0;
-						if (wx + ww <= mon_geom.x || wx >= mon_geom.x + mon_geom.width ||
-							wy + wh <= mon_geom.y || wy >= mon_geom.y + mon_geom.height) {
-							continue;
-						}
 					}
-
-					bool is_max = window.has_member ("maximized") && window.get_boolean_member ("maximized");
-					double y = window.has_member ("y") ? window.get_double_member ("y") : 999.0;
-					double mon_top = (mon_geom != null) ? mon_geom.y : 0.0;
-					if (is_max || (y <= mon_top + 36.0 && y >= mon_top))
-						return true;
 				}
-			} catch (Error e) { }
+
+				bool is_max = window.Maximized;
+				double y = window.Geometry.y;
+				double mon_top = (mon_geom != null) ? mon_geom.y : 0.0;
+				if (is_max || (y <= mon_top + 36.0 && y >= mon_top))
+					return true;
+			}
 
 			return false;
 		}

@@ -122,7 +122,7 @@ namespace Plank
 					string comm = "";
 					if (GLib.FileUtils.get_contents (comm_path, out comm)) {
 						comm = comm.strip ();
-						if (comm != "" && comm != "wayplank") {
+						if (comm != "" && comm != "kde-dockbar" && comm != "wayplank" && comm != "plank") {
 							// Check common desktop file ID patterns generically
 							string[] possible_ids = {
 								comm + ".desktop",

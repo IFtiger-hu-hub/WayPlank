@@ -334,12 +334,14 @@ namespace Plank
 
 		static Gdk.Pixbuf? capture_window_kwin (string win_id, int target_w, int target_h)
 		{
+			int read_fd = -1;
 			try {
 				int pipefd[2];
 				if (Posix.pipe (pipefd) != 0) {
 					warning ("KWinThumbnailService: pipe() failed: %s", Posix.strerror (Posix.errno));
 					return null;
 				}
+				read_fd = pipefd[0];
 
 				var fd_list = new UnixFDList ();
 				int fd_idx = fd_list.append (pipefd[1]);
@@ -370,13 +372,15 @@ namespace Plank
 				var reply = conn.send_message_with_reply_sync (msg, DBusSendMessageFlags.NONE, 2500, null);
 				if (reply == null) {
 					warning ("KWinThumbnailService: D-Bus reply NULL for '%s'", win_id);
-					Posix.close (pipefd[0]);
+					Posix.close (read_fd);
+					read_fd = -1;
 					return null;
 				}
 				if (reply.get_message_type () == DBusMessageType.ERROR) {
 					Logger.verbose ("KWinThumbnailService: D-Bus ERROR for '%s': %s",
 						win_id, reply.get_error_name ());
-					Posix.close (pipefd[0]);
+					Posix.close (read_fd);
+					read_fd = -1;
 					return null;
 				}
 
@@ -392,7 +396,8 @@ namespace Plank
 					width, height, stride, target_w, target_h);
 
 				if (width == 0 || height == 0 || stride == 0) {
-					Posix.close (pipefd[0]);
+					Posix.close (read_fd);
+					read_fd = -1;
 					return null;
 				}
 
@@ -401,43 +406,41 @@ namespace Plank
 				size_t read_bytes = 0;
 				while (read_bytes < total_bytes) {
 					Posix.pollfd pfd[1];
-					pfd[0].fd = pipefd[0];
+					pfd[0].fd = read_fd;
 					pfd[0].events = Posix.POLLIN;
 					pfd[0].revents = 0;
 					int pr = Posix.poll (pfd, 500);
 					if (pr <= 0)
 						break;
-					ssize_t n = Posix.read (pipefd[0], (uint8*) buffer + read_bytes, total_bytes - read_bytes);
+					ssize_t n = Posix.read (read_fd, (uint8*) buffer + read_bytes, total_bytes - read_bytes);
 					if (n <= 0) break;
 					read_bytes += n;
 				}
-				Posix.close (pipefd[0]);
+				Posix.close (read_fd);
+				read_fd = -1;
 
 				if (read_bytes < total_bytes)
 					return null;
-
-				/* BGRA -> RGBA in place */
-				for (size_t i = 0; i < total_bytes; i += 4) {
-					uint8 b = buffer[i];
-					buffer[i] = buffer[i + 2];
-					buffer[i + 2] = b;
-					buffer[i + 3] = 255;
-				}
 
 				int out_w = target_w;
 				int out_h = target_h;
 				clamp_target_size (ref out_w, ref out_h);
 
-				/* Box-downsample into a small owning buffer, then free the
-				 * full-resolution ScreenShot2 mmap immediately. Never keep a
-				 * full-res Gdk.Pixbuf around (was a major RSS spike source). */
-				int small_stride = out_w * 4;
-				uint8[] small = new uint8[small_stride * out_h];
+				/* Box-downsample BGRA directly into the owning RGBA Gdk.Pixbuf,
+				 * avoiding both the full-res BGRA->RGBA pass and intermediate buffers. */
+				var owned = new Gdk.Pixbuf (Gdk.Colorspace.RGB, true, 8, out_w, out_h);
+				if (owned == null)
+					return null;
+
+				uint8* dst_pixels = owned.get_pixels ();
+				int dst_stride = owned.get_rowstride ();
+
 				for (int dy = 0; dy < out_h; dy++) {
 					int sy0 = (int) ((int64) dy * (int64) height / out_h);
 					int sy1 = (int) ((int64) (dy + 1) * (int64) height / out_h);
 					if (sy1 <= sy0) sy1 = sy0 + 1;
 					if (sy1 > (int) height) sy1 = (int) height;
+					uint8* dst_row = dst_pixels + dy * dst_stride;
 					for (int dx = 0; dx < out_w; dx++) {
 						int sx0 = (int) ((int64) dx * (int64) width / out_w);
 						int sx1 = (int) ((int64) (dx + 1) * (int64) width / out_w);
@@ -448,40 +451,26 @@ namespace Plank
 							size_t row = (size_t) sy * stride;
 							for (int sx = sx0; sx < sx1; sx++) {
 								size_t off = row + (size_t) sx * 4;
-								sum_r += buffer[off];
+								sum_b += buffer[off];
 								sum_g += buffer[off + 1];
-								sum_b += buffer[off + 2];
+								sum_r += buffer[off + 2];
 								count++;
 							}
 						}
 						if (count == 0) count = 1;
-						int dst = dy * small_stride + dx * 4;
-						small[dst] = (uint8) (sum_r / count);
-						small[dst + 1] = (uint8) (sum_g / count);
-						small[dst + 2] = (uint8) (sum_b / count);
-						small[dst + 3] = 255;
+						int dst = dx * 4;
+						dst_row[dst] = (uint8) (sum_r / count);
+						dst_row[dst + 1] = (uint8) (sum_g / count);
+						dst_row[dst + 2] = (uint8) (sum_b / count);
+						dst_row[dst + 3] = 255;
 					}
 				}
 				buffer = {};
 				PlankCompat.malloc_trim ();
-
-				var scaled = new Gdk.Pixbuf.from_data (
-					small,
-					Gdk.Colorspace.RGB,
-					true,
-					8,
-					out_w,
-					out_h,
-					small_stride,
-					null
-				);
-				/* Detach: copy into an owning pixbuf so `small` can be dropped. */
-				Gdk.Pixbuf? owned = (scaled != null) ? scaled.copy () : null;
-				scaled = null;
-				small = {};
-				PlankCompat.malloc_trim ();
 				return owned;
 			} catch (Error e) {
+				if (read_fd >= 0)
+					Posix.close (read_fd);
 				return null;
 			}
 		}

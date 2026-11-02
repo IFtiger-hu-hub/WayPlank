@@ -963,11 +963,11 @@ namespace Plank
 					var res_name = window.ResourceName.down ();
 					var desk_name = window.DesktopFileName.down ();
 					var caption = window.Caption.down ();
-					if (app_id == "wayplank" || app_id == "plank" ||
-					    res_class == "wayplank" || res_class == "plank" ||
-					    res_name == "wayplank" || res_name == "plank" ||
-					    desk_name == "wayplank.desktop" || desk_name == "plank.desktop" || desk_name == "wayplank" || desk_name == "plank" ||
-					    caption == "wayplank" || caption == "wayplank-hover")
+					if (app_id == "kde-dockbar" || app_id == "wayplank" || app_id == "plank" ||
+					    res_class == "kde-dockbar" || res_class == "wayplank" || res_class == "plank" ||
+					    res_name == "kde-dockbar" || res_name == "wayplank" || res_name == "plank" ||
+					    desk_name == "kde-dockbar.desktop" || desk_name == "wayplank.desktop" || desk_name == "plank.desktop" || desk_name == "kde-dockbar" || desk_name == "wayplank" || desk_name == "plank" ||
+					    caption == "kde-dockbar" || caption == "wayplank" || caption == "wayplank-hover")
 						continue;
 
 					if (window.Minimized)

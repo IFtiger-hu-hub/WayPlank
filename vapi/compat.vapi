@@ -77,6 +77,9 @@ namespace KWinPlasmaWindow
 
 	[CCode (cname = "kwin_dock_invalidate_surface")]
 	public void invalidate_surface ();
+
+	[CCode (cname = "kwin_dock_flush")]
+	public void flush ();
 }
 
 

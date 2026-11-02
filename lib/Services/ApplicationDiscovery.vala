@@ -129,6 +129,7 @@ namespace Plank
 				return false;
 			var lower = app_id.down ();
 			return lower.contains ("xwaylandvideobridge")
+				|| lower == "kde-dockbar"
 				|| lower == "wayplank"
 				|| lower == "plank";
 		}
@@ -268,7 +269,11 @@ namespace Plank
 				folders.add (folder.get_child ("applications"));
 
 			// Also discover any drawer / folder launchers configured on any dock
-			var dock_config_dir = Paths.ConfigHomeFolder.get_child ("wayplank");
+			var dock_config_dir = (Paths.AppConfigFolder != null && Paths.AppConfigFolder.query_exists ())
+				? Paths.AppConfigFolder
+				: Paths.ConfigHomeFolder.get_child ("kde-dockbar");
+			if (!dock_config_dir.query_exists ())
+				dock_config_dir = Paths.ConfigHomeFolder.get_child ("wayplank");
 			if (dock_config_dir.query_exists ()) {
 				try {
 					var d_enum = dock_config_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);

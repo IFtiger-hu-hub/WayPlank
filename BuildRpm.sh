@@ -62,6 +62,7 @@ mkdir -p "$RPM_TOPDIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 
 echo "📦 Preparing RPM source payloads..."
 cp "${OUT_DIR}/kde-dockbar" "${RPM_TOPDIR}/SOURCES/kde-dockbar"
+cp "${OUT_DIR}/libwl_flush_retry.so" "${RPM_TOPDIR}/SOURCES/libwl_flush_retry.so"
 cp -r "${BASE_DIR}/data/themes" "${RPM_TOPDIR}/SOURCES/"
 cp -r "${BASE_DIR}/data/icons" "${RPM_TOPDIR}/SOURCES/"
 cp "${BASE_DIR}/data/kde-dockbar.svg" "${RPM_TOPDIR}/SOURCES/kde-dockbar.svg"
@@ -89,6 +90,8 @@ for KDE Plasma on Wayland using native GtkLayerShell and KWin D-Bus integration.
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_libdir}/kde-dockbar
+mkdir -p %{buildroot}%{_prefix}/lib/systemd/user
 mkdir -p %{buildroot}%{_datadir}/applications
 mkdir -p %{buildroot}%{_datadir}/kde-dockbar/themes
 mkdir -p %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
@@ -96,6 +99,30 @@ mkdir -p %{buildroot}%{_datadir}/glib-2.0/schemas
 mkdir -p %{buildroot}%{_datadir}/doc/kde-dockbar
 
 cp %{_sourcedir}/kde-dockbar %{buildroot}%{_bindir}/kde-dockbar
+install -m755 %{_sourcedir}/libwl_flush_retry.so %{buildroot}%{_libdir}/kde-dockbar/libwl_flush_retry.so
+
+cat << 'SERVICE_EOF' > %{buildroot}%{_prefix}/lib/systemd/user/kde-dockbar.service
+[Unit]
+Description=KDE Dockbar (Wayland)
+Documentation=https://github.com/IFtiger-hu-hub/WayPlank/blob/kde-plasma/README.md
+PartOf=graphical-session.target
+After=graphical-session.target
+StartLimitIntervalSec=30
+StartLimitBurst=8
+
+[Service]
+Type=simple
+ExecStart=%{_bindir}/kde-dockbar
+Environment=LD_PRELOAD=%{_libdir}/kde-dockbar/libwl_flush_retry.so
+Environment=KDE_DOCKBAR_FLUSH_RETRY_MS=400
+Restart=on-failure
+RestartSec=2
+KillMode=process
+TimeoutStopSec=5
+
+[Install]
+WantedBy=graphical-session.target
+SERVICE_EOF
 
 cp -r %{_sourcedir}/themes/* %{buildroot}%{_datadir}/kde-dockbar/themes/
 cp -r %{_sourcedir}/icons/* %{buildroot}%{_datadir}/icons/hicolor/
@@ -128,6 +155,8 @@ fi
 
 %files
 %{_bindir}/kde-dockbar
+%{_libdir}/kde-dockbar/libwl_flush_retry.so
+%{_prefix}/lib/systemd/user/kde-dockbar.service
 %{_datadir}/applications/kde-dockbar.desktop
 %{_datadir}/kde-dockbar
 %{_datadir}/icons/hicolor/*

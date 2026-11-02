@@ -38,6 +38,8 @@ namespace Plank
 		public bool Active { get; set; default = false; }
 		public bool Maximized { get; set; default = false; }
 		public bool DemandsAttention { get; set; default = false; }
+		public bool Normal { get; set; default = true; }
+		public bool Visible { get; set; default = true; }
 		public bool CurrentDesktop { get; set; default = true; }
 		public int64 MinimizedSequence { get; set; default = 0; }
 		public Gdk.Rectangle Geometry { get; set; default = {}; }

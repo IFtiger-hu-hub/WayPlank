@@ -22,6 +22,7 @@ void kwin_dock_set_window_minimized_geometry (const char *uuid, int x, int y, in
 void kwin_dock_unset_window_minimized_geometry (const char *uuid);
 void kwin_dock_prune_window_proxies (const char **active_uuids, int count);
 void kwin_dock_invalidate_surface (void);
+void kwin_dock_flush (void);
 
 G_END_DECLS
 
