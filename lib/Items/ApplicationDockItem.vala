@@ -373,7 +373,12 @@ namespace Plank
 						} catch (Error e2) {
 							label = rf.get_basename () ?? recent_uri;
 						}
-						var recent_item = create_literal_menu_item (label, "document-open", false);
+						string icon_name = "document-open";
+						try {
+							if (rf.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
+								icon_name = "folder";
+						} catch {}
+						var recent_item = create_literal_menu_item (label, icon_name, false);
 						string uri_copy = recent_uri;
 						recent_item.activate.connect (() => {
 							File? app_file = null;
@@ -687,6 +692,15 @@ namespace Plank
 							var exec_str = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC);
 							if (exec_str.contains ("%f") || exec_str.contains ("%F") || 
 							    exec_str.contains ("%u") || exec_str.contains ("%U")) {
+								accepts_payload = true;
+							}
+						}
+						if (!accepts_payload && kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_CATEGORIES)) {
+							var cats = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_CATEGORIES);
+							if (cats != null && (cats.contains ("Development") || cats.contains ("IDE") ||
+							    cats.contains ("TextEditor") || cats.contains ("Viewer") ||
+							    cats.contains ("Graphics") || cats.contains ("AudioVideo") ||
+							    cats.contains ("Office") || cats.contains ("FileManager"))) {
 								accepts_payload = true;
 							}
 						}

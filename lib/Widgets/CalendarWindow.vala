@@ -61,7 +61,7 @@ namespace Plank
 
 		construct
 		{
-			title = _("Calendar");
+			title = _("日历");
 			set_role ("help");
 			set_default_size (280, 220);
 			window_position = Gtk.WindowPosition.MOUSE;

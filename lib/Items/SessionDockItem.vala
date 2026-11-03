@@ -96,7 +96,7 @@ namespace Plank
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var session_win_item = create_menu_item (_("Session _Dialog..."), "system-shutdown-symbolic", true);
+			var session_win_item = create_menu_item (_("会话管理窗口(_D)..."), "system-shutdown-symbolic", true);
 			session_win_item.activate.connect (() => { SessionWindow.toggle_window (Gtk.get_current_event_time ()); });
 			items.add (session_win_item);
 
@@ -314,7 +314,7 @@ namespace Plank
 		{
 			debug ("SessionDockItem: logout requested (prompt=%s)", prompt_if_needed.to_string ());
 
-			if (prompt_if_needed && !confirm_dialog (_("Log Out"), _("Are you sure you want to log out of this session?"), _("Log Out"))) {
+			if (prompt_if_needed && !confirm_dialog (_("注销"), _("确定要退出此会话吗？"), _("注销"))) {
 				return;
 			}
 
@@ -360,7 +360,7 @@ namespace Plank
 		{
 			debug ("SessionDockItem: restart requested (prompt=%s)", prompt_if_needed.to_string ());
 
-			if (prompt_if_needed && !confirm_dialog (_("Restart System"), _("Are you sure you want to restart your computer?"), _("Restart"))) {
+			if (prompt_if_needed && !confirm_dialog (_("重启系统"), _("确定要重启计算机吗？"), _("重启"))) {
 				return;
 			}
 
@@ -402,7 +402,7 @@ namespace Plank
 		{
 			debug ("SessionDockItem: shutdown requested (prompt=%s)", prompt_if_needed.to_string ());
 
-			if (prompt_if_needed && !confirm_dialog (_("Shut Down System"), _("Are you sure you want to shut down your computer?"), _("Shut Down"), true)) {
+			if (prompt_if_needed && !confirm_dialog (_("关闭计算机"), _("确定要关闭计算机吗？"), _("关机"), true)) {
 				return;
 			}
 
@@ -457,7 +457,7 @@ namespace Plank
 			dialog.skip_taskbar_hint = true;
 			dialog.set_keep_above (true);
 
-			var cancel_btn = dialog.add_button (_("Cancel"), Gtk.ResponseType.CANCEL);
+			var cancel_btn = dialog.add_button (_("取消"), Gtk.ResponseType.CANCEL);
 			cancel_btn.set_can_default (true);
 
 			var act_btn = dialog.add_button (action_label, Gtk.ResponseType.ACCEPT);

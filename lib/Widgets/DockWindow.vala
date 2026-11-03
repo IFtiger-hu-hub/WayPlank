@@ -47,7 +47,7 @@ namespace Plank
 		/**
 		 * The item which "received" the button-pressed signal (if any).
 		 */
-		unowned DockItem? ClickedItem { get; private set; }
+		DockItem? ClickedItem { get; private set; }
 
 		/**
 		 * The popup menu for this dock.
@@ -1196,19 +1196,19 @@ namespace Plank
 		{
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var shortcuts_item = DockElement.create_menu_item (_("_Shortcuts & Gestures..."), "help-browser", true);
+			var shortcuts_item = DockElement.create_menu_item (_("快捷键与手势(_S)..."), "help-browser", true);
 			shortcuts_item.activate.connect (() => {
 				Application.get_default ().activate_action ("shortcuts", null);
 			});
 			items.add (shortcuts_item);
 
-			var pref_item = DockElement.create_menu_item (_("_Preferences..."), "preferences-system", true);
+			var pref_item = DockElement.create_menu_item (_("首选项(_P)..."), "preferences-system", true);
 			pref_item.activate.connect (() => {
 				Application.get_default ().activate_action ("preferences", null);
 			});
 			items.add (pref_item);
 
-			var quit_item = DockElement.create_menu_item (_("_Quit"), "application-exit", true);
+			var quit_item = DockElement.create_menu_item (_("退出(_Q)"), "application-exit", true);
 			quit_item.activate.connect (() => {
 				Application.get_default ().activate_action ("quit", null);
 			});

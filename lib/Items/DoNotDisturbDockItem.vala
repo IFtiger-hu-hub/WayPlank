@@ -105,7 +105,7 @@ namespace Plank
 			if (is_dnd_active != active || Icon == "") {
 				is_dnd_active = active;
 				Icon = is_dnd_active ? ICON_MUTED : ICON_ACTIVE;
-				Text = is_dnd_active ? _("Notifications: Silenced (Do Not Disturb)") : _("Notifications: Active");
+				Text = is_dnd_active ? _("通知: 已静音 (请勿打扰模式)") : _("通知: 正常接收");
 			}
 		}
 
@@ -341,21 +341,21 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 
-			var header_item = new Gtk.MenuItem.with_label (_("Do Not Disturb"));
+			var header_item = new Gtk.MenuItem.with_label (_("请勿打扰"));
 			header_item.sensitive = false;
 			items.add (header_item);
 
 			items.add (new Gtk.SeparatorMenuItem ());
 
 			var toggle_item = create_menu_item (
-				is_dnd_active ? _("Resume Notifications") : _("Silence Notifications"),
+				is_dnd_active ? _("恢复接收通知") : _("静音桌面通知"),
 				is_dnd_active ? "notifications" : "notifications-disabled",
 				true
 			);
 			toggle_item.activate.connect (toggle_dnd);
 			items.add (toggle_item);
 
-			var settings_item = create_menu_item (_("_Notification Settings..."), "preferences-system-notifications", true);
+			var settings_item = create_menu_item (_("通知设置(_N)..."), "preferences-system-notifications", true);
 			settings_item.activate.connect (open_settings);
 			items.add (settings_item);
 

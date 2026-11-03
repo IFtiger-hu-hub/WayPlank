@@ -108,8 +108,12 @@ namespace Plank
 		 */
 		public void animated_draw ()
 		{
-			if (is_updating || !widget.get_realized ())
+			if (!widget.get_realized ())
 				return;
+			
+			if (is_updating) {
+				return;
+			}
 			
 			force_frame_time_update ();
 			initialize_frame (frame_time);
@@ -121,6 +125,19 @@ namespace Plank
 				frame_clock.begin_updating ();
 				is_updating = true;
 			}
+		}
+
+		/**
+		 * Immediately synchronizes frame items/positions even when an animation tick is already active.
+		 * Prevents stale item lists between structural dock changes and the next widget draw.
+		 */
+		public void sync_frame ()
+		{
+			if (!widget.get_realized ())
+				return;
+			force_frame_time_update ();
+			initialize_frame (frame_time);
+			widget.queue_draw ();
 		}
 		
 		protected virtual void animation_finished ()

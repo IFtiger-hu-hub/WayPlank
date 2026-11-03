@@ -58,7 +58,7 @@ namespace Plank
 		public string country_name { get; private set; default = ""; }
 		public double current_temp { get; private set; default = 0.0; }
 		public double feels_like_temp { get; private set; default = 0.0; }
-		public string condition_desc { get; private set; default = _("Checking weather..."); }
+		public string condition_desc { get; private set; default = _("正在获取天气..."); }
 		public int humidity { get; private set; default = 0; }
 		public double wind_speed { get; private set; default = 0.0; }
 		public string units { get; private set; default = "C"; }
@@ -88,7 +88,7 @@ namespace Plank
 			weather_prefs = (WeatherDockItemPreferences) Prefs;
 			units = (weather_prefs.Units.up () == "F") ? "F" : "C";
 
-			Text = _("Weather");
+			Text = _("天气");
 			Icon = DEFAULT_ICON;
 			Button = PopupButton.RIGHT;
 			forecast_days = new WeatherForecastDay[0];
@@ -132,9 +132,9 @@ namespace Plank
 			weather_prefs.City = new_city;
 			weather_prefs.Units = new_units;
 			units = (new_units.up () == "F") ? "F" : "C";
-			city_name = (new_city.length > 0) ? new_city : _("Detecting location...");
+			city_name = (new_city.length > 0) ? new_city : _("正在定位...");
 			country_name = "";
-			condition_desc = _("Updating weather...");
+			condition_desc = _("正在更新天气...");
 			WeatherWindow.update_if_open ();
 			refresh_weather ();
 		}
@@ -144,7 +144,7 @@ namespace Plank
 			Gtk.Window? dlg_parent = parent != null ? parent : WeatherWindow.active_instance;
 			var dlg = new WeatherCityDialog (this, dlg_parent);
 			string initial_city = weather_prefs.City.strip ();
-			if (initial_city.length == 0 && city_name.length > 0 && city_name != _("Offline") && city_name != _("Checking weather...")) {
+			if (initial_city.length == 0 && city_name.length > 0 && city_name != _("离线") && city_name != _("正在获取天气...")) {
 				initial_city = (country_name.length > 0) ? "%s, %s".printf (city_name, country_name) : city_name;
 			}
 			dlg.init_values (initial_city, weather_prefs.Units);
@@ -161,7 +161,7 @@ namespace Plank
 		{
 			if (yr_location_id.length == 0) {
 				string query = city_name;
-				if (query.length > 0 && query != _("Detecting location...") && query != _("Offline") && query != _("Checking weather...")) {
+				if (query.length > 0 && query != _("正在定位...") && query != _("离线") && query != _("正在获取天气...")) {
 					resolve_yr_direct_url (query, 0.0, 0.0);
 				}
 			}
@@ -176,7 +176,7 @@ namespace Plank
 			string query = city_name;
 			if (country_name.length > 0)
 				query += " " + country_name;
-			if (query.length == 0 || query == _("Detecting location...") || query == _("Offline") || query == _("Checking weather..."))
+			if (query.length == 0 || query == _("正在定位...") || query == _("离线") || query == _("正在获取天气..."))
 				query = "weather";
 			return "https://www.yr.no/en/search?q=" + GLib.Uri.escape_string (query);
 		}
@@ -237,7 +237,7 @@ namespace Plank
 					// Custom city was configured but geocoding could not resolve it!
 					city_name = configured_city;
 					country_name = "";
-					condition_desc = _("Location not found");
+					condition_desc = _("未找到位置");
 					current_code = -1;
 					forecast_days = new WeatherForecastDay[0];
 
@@ -286,9 +286,9 @@ namespace Plank
 
 			// If network failed completely (offline / no internet):
 			if (lat == 0.0 && lon == 0.0) {
-				city_name = (configured_city.length > 0) ? configured_city : _("Offline");
+				city_name = (configured_city.length > 0) ? configured_city : _("离线");
 				country_name = "";
-				condition_desc = _("No internet connection");
+				condition_desc = _("无网络连接");
 				current_code = -1;
 				forecast_days = new WeatherForecastDay[0];
 
@@ -385,7 +385,7 @@ namespace Plank
 
 		private void resolve_yr_direct_url (string query, double target_lat, double target_lon)
 		{
-			if (query.length == 0 || query == _("Detecting location...") || query == _("Offline") || query == _("Checking weather..."))
+			if (query.length == 0 || query == _("正在定位...") || query == _("离线") || query == _("正在获取天气..."))
 				return;
 
 			string yr_search_cmd = "curl -s --max-time 4 'https://www.yr.no/api/v0/locations/search?q=%s'".printf (GLib.Uri.escape_string (query));
@@ -457,19 +457,19 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 
-			var refresh_item = create_menu_item (_("Refresh Weather"), "view-refresh", true);
+			var refresh_item = create_menu_item (_("刷新天气"), "view-refresh", true);
 			refresh_item.activate.connect (() => {
 				refresh_weather ();
 			});
 			items.add (refresh_item);
 
-			var location_item = create_menu_item (_("Set Location..."), "preferences-system", true);
+			var location_item = create_menu_item (_("设置城市位置..."), "preferences-system", true);
 			location_item.activate.connect (() => {
 				open_location_dialog ();
 			});
 			items.add (location_item);
 
-			string toggle_unit_label = (units == "C") ? _("Switch to Fahrenheit (°F)") : _("Switch to Celsius (°C)");
+			string toggle_unit_label = (units == "C") ? _("切换到华氏度 (°F)") : _("切换到摄氏度 (°C)");
 			var unit_item = create_menu_item (toggle_unit_label, "weather-clear", true);
 			unit_item.activate.connect (() => {
 				string new_units = (units == "C") ? "F" : "C";
@@ -491,35 +491,35 @@ namespace Plank
 		public static string code_to_description (int code)
 		{
 			switch (code) {
-				case 0: return _("Clear sky");
-				case 1: return _("Mainly clear");
-				case 2: return _("Partly cloudy");
-				case 3: return _("Overcast");
+				case 0: return _("晴朗");
+				case 1: return _("晴间多云");
+				case 2: return _("多云");
+				case 3: return _("阴天");
 				case 45:
-				case 48: return _("Foggy");
+				case 48: return _("有雾");
 				case 51:
 				case 53:
-				case 55: return _("Drizzle");
+				case 55: return _("毛毛雨");
 				case 56:
-				case 57: return _("Freezing drizzle");
+				case 57: return _("冻毛毛雨");
 				case 61:
-				case 63: return _("Rain");
-				case 65: return _("Heavy rain");
+				case 63: return _("降雨");
+				case 65: return _("大雨");
 				case 66:
-				case 67: return _("Freezing rain");
+				case 67: return _("冻雨");
 				case 71:
-				case 73: return _("Snow");
-				case 75: return _("Heavy snow");
-				case 77: return _("Snow grains");
+				case 73: return _("降雪");
+				case 75: return _("大雪");
+				case 77: return _("雪粒");
 				case 80:
-				case 81: return _("Rain showers");
-				case 82: return _("Violent rain showers");
+				case 81: return _("阵雨");
+				case 82: return _("狂暴阵雨");
 				case 85:
-				case 86: return _("Snow showers");
-				case 95: return _("Thunderstorm");
+				case 86: return _("阵雪");
+				case 95: return _("雷阵雨");
 				case 96:
-				case 99: return _("Thunderstorm with hail");
-				default: return _("Partly cloudy");
+				case 99: return _("雷阵雨伴有冰雹");
+				default: return _("多云");
 			}
 		}
 

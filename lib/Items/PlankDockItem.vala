@@ -133,7 +133,7 @@ namespace Plank
 				}
 			}
 			
-			item = create_menu_item (_("_Preferences"), "preferences-system", true);
+			item = create_menu_item (_("首选项(_P)"), "preferences-system", true);
 			item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));
 			items.add (item);
 

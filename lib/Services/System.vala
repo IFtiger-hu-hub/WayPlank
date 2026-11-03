@@ -339,15 +339,61 @@ namespace Plank
 
 			// When opening files/URIs, prefer gio launch under kstart so %F/%U substitution is reliable.
 			if (extra_args != null && extra_args.length > 0) {
+				var norm_args = new Gee.ArrayList<string> ();
+				foreach (var arg in extra_args) {
+					if (arg.has_prefix ("file://")) {
+						var p = File.new_for_uri (arg).get_path ();
+						norm_args.add (p ?? arg);
+					} else {
+						norm_args.add (arg);
+					}
+				}
+
+				// Check if the .desktop Exec line lacks %f/%F/%u/%U placeholders (e.g. OpenIDEA.desktop).
+				// If so, gio launch would drop the arguments; invoke the Exec binary directly with the paths.
+				bool has_placeholder = true;
+				string? raw_exec = null;
 				try {
-					var gio_args = new Gee.ArrayList<string> ();
+					var kf = new KeyFile ();
+					if (load_keyfile_safe (kf, launcher_path, KeyFileFlags.NONE) &&
+					    kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
+						raw_exec = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC);
+						has_placeholder = raw_exec.contains ("%f") || raw_exec.contains ("%F") ||
+						                  raw_exec.contains ("%u") || raw_exec.contains ("%U");
+					}
+				} catch {}
+
+				if (!has_placeholder && raw_exec != null && raw_exec.strip () != "") {
+					try {
+						string clean_exec = sanitize_exec_command (raw_exec);
+						string[] exec_argv;
+						if (Shell.parse_argv (clean_exec, out exec_argv)) {
+							var direct_args = new Gee.ArrayList<string?> ();
+							direct_args.add ("kstart");
+							direct_args.add ("--");
+							foreach (var ea in exec_argv)
+								direct_args.add (ea);
+							foreach (var na in norm_args)
+								direct_args.add (na);
+							direct_args.add (null);
+							Process.spawn_async (null, direct_args.to_array (), null, SpawnFlags.SEARCH_PATH, null, null);
+							return;
+						}
+					} catch (Error e) {
+						warning ("kstart direct exec failed for '%s': %s", launcher_path, e.message);
+					}
+				}
+
+				try {
+					var gio_args = new Gee.ArrayList<string?> ();
 					gio_args.add ("kstart");
 					gio_args.add ("--");
 					gio_args.add ("gio");
 					gio_args.add ("launch");
 					gio_args.add (launcher_path);
-					foreach (var arg in extra_args)
+					foreach (var arg in norm_args)
 						gio_args.add (arg);
+					gio_args.add (null);
 					Process.spawn_async (null, gio_args.to_array (), null, SpawnFlags.SEARCH_PATH, null, null);
 					return;
 				} catch (Error e) {
@@ -357,7 +403,7 @@ namespace Plank
 
 			// 1. 优先使用 KDE 原生 kstart --application 启动（Plasma 6 官方隔离网关）
 			try {
-				var kstart_args = new Gee.ArrayList<string> ();
+				var kstart_args = new Gee.ArrayList<string?> ();
 				kstart_args.add ("kstart");
 				kstart_args.add ("--application");
 				kstart_args.add (app_id);
@@ -365,6 +411,7 @@ namespace Plank
 					kstart_args.add ("--url");
 					kstart_args.add (arg);
 				}
+				kstart_args.add (null);
 				Process.spawn_async (null, kstart_args.to_array (), null, SpawnFlags.SEARCH_PATH, null, null);
 				return;
 			} catch (Error e) {
@@ -373,7 +420,7 @@ namespace Plank
 
 			// 2. 使用 kstart -- gtk-launch 启动
 			try {
-				var gtk_args = new Gee.ArrayList<string> ();
+				var gtk_args = new Gee.ArrayList<string?> ();
 				gtk_args.add ("kstart");
 				gtk_args.add ("--");
 				gtk_args.add ("gtk-launch");
@@ -381,6 +428,7 @@ namespace Plank
 				foreach (var arg in extra_args) {
 					gtk_args.add (arg);
 				}
+				gtk_args.add (null);
 				Process.spawn_async (null, gtk_args.to_array (), null, SpawnFlags.SEARCH_PATH, null, null);
 				return;
 			} catch (Error e) {
@@ -389,7 +437,7 @@ namespace Plank
 
 			// 3. 回退到 systemd-run gio launch
 			try {
-				var sys_args = new Gee.ArrayList<string> ();
+				var sys_args = new Gee.ArrayList<string?> ();
 				sys_args.add ("systemd-run");
 				sys_args.add ("--user");
 				sys_args.add ("--slice=app.slice");
@@ -399,6 +447,7 @@ namespace Plank
 				foreach (var arg in extra_args) {
 					sys_args.add (arg);
 				}
+				sys_args.add (null);
 				Process.spawn_async (null, sys_args.to_array (), null, SpawnFlags.SEARCH_PATH, null, null);
 				return;
 			} catch (Error e) {

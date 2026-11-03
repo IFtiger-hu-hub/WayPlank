@@ -105,7 +105,7 @@ namespace Plank
 
 		construct
 		{
-			title = _("Session & Power");
+			title = _("电源与会话");
 			set_role ("help");
 			set_decorated (true);
 			set_destroy_with_parent (false);
@@ -132,7 +132,7 @@ namespace Plank
 			// Header info area
 			var header_box = new Gtk.Box (Gtk.Orientation.VERTICAL, 4);
 			var title_label = new Gtk.Label (null);
-			title_label.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Session &amp; Power")));
+			title_label.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("电源与会话")));
 			title_label.halign = Gtk.Align.START;
 
 			string user = Environment.get_real_name ();
@@ -141,7 +141,7 @@ namespace Plank
 			string host = Environment.get_host_name ();
 
 			var subtitle_label = new Gtk.Label (null);
-			subtitle_label.set_markup ("<span color='#888888'>%s <b>%s</b> @ <b>%s</b></span>".printf (_("Logged in as"), user, host));
+			subtitle_label.set_markup ("<span color='#888888'>%s <b>%s</b> @ <b>%s</b></span>".printf (_("当前登录用户"), user, host));
 			subtitle_label.halign = Gtk.Align.START;
 
 			header_box.pack_start (title_label, false, false, 0);
@@ -161,40 +161,40 @@ namespace Plank
 			grid.vexpand = true;
 
 			// Col 0, Row 0: Lock Screen (direct)
-			var btn_lock = create_action_button ("锁定屏幕", "system-lock-screen", _("Lock the current session"), () => {
+			var btn_lock = create_action_button ("锁定屏幕", "system-lock-screen", _("锁定当前桌面会话"), () => {
 				destroy ();
 				SessionDockItem.lock_screen ();
 			});
 			grid.attach (btn_lock, 0, 0, 1, 1);
 
 			// Col 1, Row 0: Switch User (direct)
-			var btn_switch = create_action_button (_("Switch User"), "system-users", _("Switch to another user or login screen"), () => {
+			var btn_switch = create_action_button (_("切换用户"), "system-users", _("切换到其他系统用户或锁屏登录界面"), () => {
 				destroy ();
 				SessionDockItem.switch_user ();
 			});
 			grid.attach (btn_switch, 1, 0, 1, 1);
 
 			// Col 2, Row 0: Log Out (asks confirmation)
-			var btn_logout = create_action_button ("注销登录", "system-log-out", _("Log out of the current session"), () => {
+			var btn_logout = create_action_button ("注销登录", "system-log-out", _("退出并注销当前用户会话"), () => {
 				show_confirmation (ConfirmAction.LOGOUT);
 			});
 			grid.attach (btn_logout, 2, 0, 1, 1);
 
 			// Col 0, Row 1: Suspend (direct)
-			var btn_suspend = create_action_button ("睡眠", "system-suspend", _("Put computer into low-power sleep mode"), () => {
+			var btn_suspend = create_action_button ("睡眠", "system-suspend", _("将计算机置于低功耗睡眠待机状态"), () => {
 				destroy ();
 				SessionDockItem.suspend ();
 			});
 			grid.attach (btn_suspend, 0, 1, 1, 1);
 
 			// Col 1, Row 1: Restart (asks confirmation)
-			var btn_restart = create_action_button ("重启计算机", "system-reboot", _("Reboot the operating system"), () => {
+			var btn_restart = create_action_button ("重启计算机", "system-reboot", _("重启操作系统"), () => {
 				show_confirmation (ConfirmAction.RESTART);
 			});
 			grid.attach (btn_restart, 1, 1, 1, 1);
 
 			// Col 2, Row 1: Shut Down (asks confirmation, Destructive styling)
-			var btn_shutdown = create_action_button ("关机", "system-shutdown", _("Power off the computer"), () => {
+			var btn_shutdown = create_action_button ("关机", "system-shutdown", _("彻底关闭计算机电源"), () => {
 				show_confirmation (ConfirmAction.SHUTDOWN);
 			}, true);
 			grid.attach (btn_shutdown, 2, 1, 1, 1);
@@ -254,7 +254,7 @@ namespace Plank
 			confirm_cancel_btn.set_can_default (true);
 			confirm_cancel_btn.width_request = 110;
 			confirm_cancel_btn.clicked.connect (() => {
-				title = _("Session & Power");
+				title = _("电源与会话");
 				stack.set_visible_child_name ("actions");
 				actions_cancel_btn.grab_focus ();
 			});
@@ -290,7 +290,7 @@ namespace Plank
 			key_press_event.connect ((w, e) => {
 				if (e.keyval == Gdk.Key.Escape) {
 					if (stack.visible_child_name == "confirm") {
-						title = _("Session & Power");
+						title = _("电源与会话");
 						stack.set_visible_child_name ("actions");
 						actions_cancel_btn.grab_focus ();
 						return Gdk.EVENT_STOP;
@@ -317,29 +317,29 @@ namespace Plank
 		void show_confirmation (ConfirmAction action)
 		{
 			current_confirm_action = action;
-			title = _("Confirm Session Action");
+			title = _("确认会话操作");
 
 			switch (action) {
 				case ConfirmAction.LOGOUT:
 					confirm_icon.set_from_icon_name ("system-log-out", Gtk.IconSize.DIALOG);
-					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Log Out of Session?")));
-					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to log out of your current session?")));
+					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("注销当前用户会话？")));
+					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("确定要注销当前会话吗？")));
 					confirm_action_btn.label = "注销登录";
 					confirm_action_btn.get_style_context ().remove_class ("suggested-action");
 					confirm_action_btn.get_style_context ().add_class ("destructive-action");
 					break;
 				case ConfirmAction.RESTART:
 					confirm_icon.set_from_icon_name ("system-reboot", Gtk.IconSize.DIALOG);
-					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Restart System?")));
-					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to restart your computer? Unsaved changes will be lost.")));
+					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("重启计算机系统？")));
+					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("确定要重启计算机吗？未保存的更改将会丢失。")));
 					confirm_action_btn.label = "重启计算机";
 					confirm_action_btn.get_style_context ().remove_class ("destructive-action");
 					confirm_action_btn.get_style_context ().add_class ("suggested-action");
 					break;
 				case ConfirmAction.SHUTDOWN:
 					confirm_icon.set_from_icon_name ("system-shutdown", Gtk.IconSize.DIALOG);
-					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Shut Down Computer?")));
-					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to turn off your computer? Unsaved changes will be lost.")));
+					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("关闭计算机？")));
+					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("确定要关闭计算机吗？未保存的更改将会丢失。")));
 					confirm_action_btn.label = "关机";
 					confirm_action_btn.get_style_context ().remove_class ("suggested-action");
 					confirm_action_btn.get_style_context ().add_class ("destructive-action");

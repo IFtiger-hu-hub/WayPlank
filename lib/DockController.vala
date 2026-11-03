@@ -52,7 +52,9 @@ namespace Plank
 		
 		DBusManager dbus_manager;
 		Gee.ArrayList<unowned DockItem> visible_items;
+		Gee.ArrayList<DockItem> visible_items_owned;
 		Gee.ArrayList<unowned DockItem> items;
+		Gee.ArrayList<DockItem> items_owned;
 		DockItem? dock_itself_item;
 		uint serialize_item_positions_timer_id = 0U;
 		uint states_draw_timer_id = 0U;
@@ -110,7 +112,9 @@ namespace Plank
 			Factory.item_factory.launchers_dir = launchers_folder;
 			
 			items = new Gee.ArrayList<unowned DockItem> ();
+			items_owned = new Gee.ArrayList<DockItem> ();
 			visible_items = new Gee.ArrayList<unowned DockItem> ();
+			visible_items_owned = new Gee.ArrayList<DockItem> ();
 
 			minimize_transitions = new Gee.HashMap<string, WindowMinimizeTransition> ();
 			transition_timer_ids = new Gee.HashMap<string, uint> ();
@@ -498,6 +502,7 @@ namespace Plank
 			Logger.verbose ("DockController.update_visible_items ()");
 			
 			visible_items.clear ();
+			visible_items_owned.clear ();
 			
 			var current_position = 0;
 			update_visible_items_recursive (this, ref current_position);
@@ -542,6 +547,7 @@ namespace Plank
 			current_position++;
 			
 			visible_items.add (item);
+			visible_items_owned.add (item);
 		}
 		
 		public void update_items ()
@@ -549,6 +555,7 @@ namespace Plank
 			Logger.verbose ("DockController.update_items ()");
 			
 			items.clear ();
+			items_owned.clear ();
 			
 			unowned DockItem? item = null;
 			unowned DockContainer? container = null;
@@ -557,6 +564,7 @@ namespace Plank
 				item = (element as DockItem);
 				if (item != null) {
 					items.add (item);
+					items_owned.add (item);
 					continue;
 				}
 				
@@ -569,6 +577,7 @@ namespace Plank
 					if (item == null)
 						continue;
 					items.add (item);
+					items_owned.add (item);
 				}
 			}
 		}
@@ -585,6 +594,8 @@ namespace Plank
 			if (added.size != removed.size)
 				position_manager.update (renderer.theme);
 			
+			renderer.sync_frame ();
+			renderer.animated_draw ();
 			window.update_icon_regions ();
 			
 			schedule_serialize_item_positions ();
@@ -605,6 +616,7 @@ namespace Plank
 				if (app_item != null)
 					window.update_icon_region (app_item);
 			}
+			renderer.sync_frame ();
 			renderer.animated_draw ();
 
 			schedule_serialize_item_positions ();
@@ -628,6 +640,7 @@ namespace Plank
 		{
 			update_visible_elements ();
 			update_items ();
+			renderer.sync_frame ();
 			window.update_icon_regions ();
 			renderer.animated_draw ();
 		}

@@ -1103,7 +1103,7 @@ namespace Plank
 						"超出滚动已生效：保持 %dpx".printf (current_val)));
 				}
 
-				string tt = _("Target icon size: %dpx.\n'Scroll on Overflow' is enabled in Behaviour: icons will never shrink, and the dock smoothly scrolls with mouse wheel when items exceed screen space.").printf (current_val);
+				string tt = _("目标图标大小: %dpx。\n行为设置中已启用 '超限平滑翻页'：图标绝不会被动缩小，当项目超出屏幕空间时可通过滚轮平滑浏览。").printf (current_val);
 				s_iconsize.tooltip_text = tt;
 				sp_iconsize.tooltip_text = tt;
 				return;
@@ -1116,7 +1116,7 @@ namespace Plank
 						"<small><span foreground='#e01b24'><b>%s</b></span></small>".printf (
 							"⚠️ 受屏幕宽度限制缩减为 %dpx".printf (fit_size)));
 				}
-				string tt = _("⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\nIcons will auto-shrink to fit on screen.\nTo unlock larger sizes without shrinking, enable 'Scroll on Overflow' in Behaviour.").printf (current_val, fit_size);
+				string tt = _("⚠️ 图标大小设定为 %dpx，但因屏幕空间不足被强制约束在 %dpx。\n图标会自动缩小以容纳在屏幕内。\n若要无视屏幕限制解锁更大图标尺寸，请在 '行为' 中启用 '超限平滑翻页'。").printf (current_val, fit_size);
 				s_iconsize.tooltip_text = tt;
 				sp_iconsize.tooltip_text = tt;
 			} else {
@@ -1126,7 +1126,7 @@ namespace Plank
 						"<small><span alpha='75%'>%s</span></small>".printf (
 							"完全容纳在屏幕内无需缩减（上限: %dpx）".printf (fit_size)));
 				}
-				string tt = _("Target icon size: %dpx.\nFits comfortably on screen (screen capacity limit: %dpx before auto-shrinking activates).").printf (current_val, fit_size);
+				string tt = _("目标图标大小: %dpx。\n完全舒适适应屏幕 (触发自动缩小的临界上限为 %dpx)。").printf (current_val, fit_size);
 				s_iconsize.tooltip_text = tt;
 				sp_iconsize.tooltip_text = tt;
 			}

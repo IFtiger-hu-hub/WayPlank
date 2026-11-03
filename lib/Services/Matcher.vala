@@ -289,10 +289,28 @@ namespace Plank
 						continue;
 
 					string comm = "";
-					string cmdline = "";
 					GLib.FileUtils.get_contents ("/proc/%s/comm".printf (name), out comm);
-					GLib.FileUtils.get_contents ("/proc/%s/cmdline".printf (name), out cmdline);
 					comm = comm.strip ().down ();
+
+					if (specific_arg == null || specific_arg == "") {
+						foreach (var candidate in candidates) {
+							if (candidate != "" && (comm == candidate || (comm.length >= 15 && candidate.has_prefix (comm))))
+								return true;
+						}
+						// Only inspect cmdline when comm is an interpreter/wrapper or truncated
+						bool needs_cmdline = (comm.length >= 15 ||
+							comm.has_prefix ("python") || comm == "node" || comm == "java" ||
+							comm == "sh" || comm == "bash" || comm == "electron" ||
+							comm == "dotnet" || comm == "perl" || comm == "ruby");
+						if (!needs_cmdline)
+							continue;
+					}
+
+					if (is_pid_mmap_blocked (pid))
+						continue;
+
+					string cmdline = "";
+					GLib.FileUtils.get_contents ("/proc/%s/cmdline".printf (name), out cmdline);
 					var cmdline_down = cmdline.replace ("\0", " ").strip ().down ();
 
 					if (specific_arg != null && specific_arg != "") {
@@ -316,6 +334,35 @@ namespace Plank
 				debug ("Unable to match launcher process '%s': %s", launcher_uri, e.message);
 			}
 
+			return false;
+		}
+
+		/**
+		 * Checks whether any thread of a process is stuck in a kernel VMA / mmap_lock wait
+		 * by inspecting /proc/<pid>/task/<tid>/wchan (which does not acquire mm->mmap_lock).
+		 * Reading /proc/<pid>/cmdline on such a process would block the caller in kernel D-state.
+		 */
+		public static bool is_pid_mmap_blocked (int pid)
+		{
+			if (pid <= 0)
+				return false;
+			try {
+				string task_dir_path = "/proc/%d/task".printf (pid);
+				var task_dir = GLib.Dir.open (task_dir_path, 0);
+				string? tid = null;
+				while ((tid = task_dir.read_name ()) != null) {
+					if (tid[0] < '0' || tid[0] > '9')
+						continue;
+					string wchan = "";
+					if (GLib.FileUtils.get_contents ("%s/%s/wchan".printf (task_dir_path, tid), out wchan)) {
+						string w = wchan.strip ();
+						if (w != "" && w != "0" &&
+						    (w.contains ("vma") || w.contains ("mmap") || w.contains ("rwsem"))) {
+							return true;
+						}
+					}
+				}
+			} catch {}
 			return false;
 		}
 

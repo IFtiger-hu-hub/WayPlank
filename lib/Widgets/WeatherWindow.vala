@@ -107,7 +107,7 @@ namespace Plank
 
 		construct
 		{
-			title = _("Weather Forecast");
+			title = _("天气预报");
 			set_role ("help");
 			set_decorated (true);
 			set_destroy_with_parent (false);
@@ -153,7 +153,7 @@ namespace Plank
 			// 1. Header Location
 			lbl_location = new Gtk.Label ("");
 			lbl_location.use_markup = true;
-			lbl_location.set_markup ("<span size='x-large' weight='bold'>📍 %s</span>".printf (_("Loading weather...")));
+			lbl_location.set_markup ("<span size='x-large' weight='bold'>📍 %s</span>".printf (_("正在加载天气...")));
 			main_vbox.pack_start (lbl_location, false, false, 0);
 
 			// 2. Current Weather Card
@@ -217,7 +217,7 @@ namespace Plank
 			main_vbox.pack_start (new Gtk.Separator (Gtk.Orientation.HORIZONTAL), false, false, 0);
 
 			// 4. 3-Day Forecast Section
-			var lbl_forecast_header = new Gtk.Label (_("3-Day Forecast"));
+			var lbl_forecast_header = new Gtk.Label (_("未来3天天气预报"));
 			lbl_forecast_header.xalign = 0.0f;
 			lbl_forecast_header.get_style_context ().add_class ("dim-label");
 			main_vbox.pack_start (lbl_forecast_header, false, false, 0);
@@ -230,21 +230,21 @@ namespace Plank
 			var btn_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10);
 			btn_box.margin_top = 8;
 
-			var refresh_btn = new Gtk.Button.with_label (_("🔄 Refresh"));
+			var refresh_btn = new Gtk.Button.with_label (_("🔄 刷新"));
 			refresh_btn.clicked.connect (() => {
 				if (weather_item != null)
 					weather_item.refresh_weather ();
 			});
 			btn_box.pack_start (refresh_btn, false, false, 0);
 
-			var location_btn = new Gtk.Button.with_label (_("⚙️ Location..."));
+			var location_btn = new Gtk.Button.with_label (_("⚙️ 设置城市..."));
 			location_btn.clicked.connect (() => {
 				if (weather_item != null)
 					weather_item.open_location_dialog (this);
 			});
 			btn_box.pack_start (location_btn, false, false, 0);
 
-			var close_btn = new Gtk.Button.with_label (_("Close"));
+			var close_btn = new Gtk.Button.with_label (_("关闭"));
 			close_btn.clicked.connect (() => {
 				destroy ();
 			});
@@ -263,7 +263,7 @@ namespace Plank
 			string loc_str = weather_item.city_name;
 			if (weather_item.country_name.length > 0)
 				loc_str += ", " + weather_item.country_name;
-			if (loc_str.length == 0) loc_str = _("Detecting location...");
+			if (loc_str.length == 0) loc_str = _("正在定位...");
 
 			lbl_location.set_markup ("<span size='x-large' weight='bold'>📍 %s</span>".printf (GLib.Markup.escape_text (loc_str)));
 
@@ -273,7 +273,7 @@ namespace Plank
 			if (weather_item.current_code == -1) {
 				lbl_temp.set_markup ("<span size='xx-large' weight='bold'>--</span>");
 				lbl_desc.set_markup ("<span size='medium' weight='semibold' color='#e05555'>%s</span>".printf (GLib.Markup.escape_text (weather_item.condition_desc)));
-				lbl_details.set_markup (_("Please verify internet connection or location in Settings."));
+				lbl_details.set_markup (_("请在设置中检查网络连接或城市位置是否正确。"));
 			} else {
 				string temp_markup = "<span size='xx-large' weight='bold'>%d%s</span>".printf ((int) Math.round (weather_item.current_temp), unit_symbol);
 				if (weather_item.has_today_minmax) {
@@ -286,11 +286,11 @@ namespace Plank
 				var now = new GLib.DateTime.now_local ();
 				string today_day = format_weekday (now);
 				lbl_desc.set_markup ("<span size='medium' weight='semibold'>%s, %s — %s</span>".printf (
-					_("Today"),
+					_("今天"),
 					today_day,
 					GLib.Markup.escape_text (weather_item.condition_desc)
 				));
-				string feels_like_str = _("Feels like %d%s").printf ((int) Math.round (weather_item.feels_like_temp), unit_symbol);
+				string feels_like_str = _("体感温度 %d%s").printf ((int) Math.round (weather_item.feels_like_temp), unit_symbol);
 				lbl_details.set_markup ("%s   •   💧 %d%%   •   💨 %.1f %s".printf (
 					feels_like_str,
 					weather_item.humidity,

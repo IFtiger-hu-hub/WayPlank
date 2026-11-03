@@ -91,6 +91,9 @@ if valac -g \
     "${C_SOURCES[@]}" \
     -o "${OUT_DIR}/kde-dockbar"; then
     rm -f "${BASE_DIR}/lib/resources.c"
+    if [ -f "${HOME}/.local/bin/kde-dockbar" ]; then
+        install -m755 "${OUT_DIR}/kde-dockbar" "${HOME}/.local/bin/kde-dockbar"
+    fi
     echo "✅ Binary ready: ${OUT_DIR}/kde-dockbar"
     if [ -t 0 ] && [ -z "${DOCKBAR_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
         read -rp "👋 Press Enter to close..."

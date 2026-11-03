@@ -80,6 +80,7 @@ namespace Plank
 		double dynamic_animation_offset = 0.0;
 		
 		Gee.ArrayList<unowned DockItem> current_items;
+		Gee.ArrayList<DockItem> current_items_owned;
 		Gee.HashSet<DockItem> transient_items;
 #if BENCHMARK
 		Gee.ArrayList<string> benchmark;
@@ -100,6 +101,7 @@ namespace Plank
 		{
 			transient_items = new Gee.HashSet<DockItem> ();
 			current_items = new Gee.ArrayList<unowned DockItem> ();
+			current_items_owned = new Gee.ArrayList<DockItem> ();
 #if BENCHMARK
 			benchmark = new Gee.ArrayList<string> ();
 #endif
@@ -346,7 +348,10 @@ namespace Plank
 			
 			// Update *ordered* list of items
 			current_items.clear ();
+			current_items_owned.clear ();
 			current_items.add_all (new_items);
+			foreach (unowned DockItem item in new_items)
+				current_items_owned.add (item);
 			
 			if (screen_is_composited) {
 				var add_time = 0LL;
@@ -363,16 +368,20 @@ namespace Plank
 					if (add_time > remove_time) {
 						move_time = frame_time - add_time;
 						if (move_time < move_duration) {
-							if (!current_items.contains (item))
+							if (!current_items.contains (item)) {
 								current_items.add (item);
+								current_items_owned.add (item);
+							}
 						} else {
 							transient_items_it.remove ();
 						}
 					} else if (remove_time > 0) {
 						move_time = frame_time - remove_time;
 						if (move_time < move_duration) {
-							if (!current_items.contains (item))
+							if (!current_items.contains (item)) {
 								current_items.add (item);
+								current_items_owned.add (item);
+							}
 						} else {
 							transient_items_it.remove ();
 						}

@@ -38,7 +38,7 @@ namespace Plank
 		public WeatherCityDialog (WeatherDockItem item, Gtk.Window? parent = null)
 		{
 			GLib.Object (
-				title: _("Weather Location Settings"),
+				title: _("天气城市与位置设置"),
 				window_position: Gtk.WindowPosition.CENTER
 			);
 			this.weather_item = item;
@@ -66,16 +66,16 @@ namespace Plank
 			content_area.spacing = 10;
 
 			// Header label
-			var lbl_city = new Gtk.Label (_("City / Location:"));
+			var lbl_city = new Gtk.Label (_("城市 / 位置:"));
 			lbl_city.xalign = 0.0f;
 			lbl_city.get_style_context ().add_class ("dim-label");
 			content_area.pack_start (lbl_city, false, false, 0);
 
 			// City input entry with autocomplete and clear icon
 			city_entry = new Gtk.Entry ();
-			city_entry.placeholder_text = _("e.g. Rome, London, New York...");
+			city_entry.placeholder_text = _("例如: 北京, 上海, 广州, 深圳, 罗马...");
 			city_entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-			city_entry.set_icon_tooltip_text (Gtk.EntryIconPosition.SECONDARY, _("Clear location (re-detect via IP)"));
+			city_entry.set_icon_tooltip_text (Gtk.EntryIconPosition.SECONDARY, _("清除位置 (重新通过 IP 检测)"));
 			city_entry.icon_press.connect ((pos, event) => {
 				if (pos == Gtk.EntryIconPosition.SECONDARY) {
 					city_entry.text = "";
@@ -92,7 +92,7 @@ namespace Plank
 			content_area.pack_start (city_entry, false, false, 0);
 
 			// Permanent intuitive helper label
-			var lbl_helper = new Gtk.Label (_("ℹ️ Leave blank (or click ✖ to clear) to re-detect your location using IP."));
+			var lbl_helper = new Gtk.Label (_("ℹ️ 留空 (或点击 ✖ 清空) 可通过公网 IP 自动重新检测所在城市。"));
 			lbl_helper.xalign = 0.0f;
 			lbl_helper.use_markup = true;
 			lbl_helper.get_style_context ().add_class ("dim-label");
@@ -109,7 +109,7 @@ namespace Plank
 			// Units selection
 			var unit_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 12);
 			unit_box.margin_top = 4;
-			var lbl_units = new Gtk.Label (_("Units:"));
+			var lbl_units = new Gtk.Label (_("温度单位:"));
 			unit_box.pack_start (lbl_units, false, false, 0);
 
 			unit_c_radio = new Gtk.RadioButton.with_label (null, "°C (Celsius)");
@@ -120,7 +120,7 @@ namespace Plank
 
 			// Dialog action buttons
 			add_button ("取消", Gtk.ResponseType.CANCEL);
-			var save_btn = add_button (_("Save & Apply"), Gtk.ResponseType.OK);
+			var save_btn = add_button (_("保存并应用"), Gtk.ResponseType.OK);
 			set_default_response (Gtk.ResponseType.OK);
 			save_btn.get_style_context ().add_class ("suggested-action");
 
@@ -312,7 +312,7 @@ namespace Plank
 				if (!is_valid_selection) {
 					if (!check_location_validity_sync (new_city)) {
 						lbl_status.set_markup ("<span color='#e05555' weight='bold'>⚠️ %s</span>".printf (
-							_("Location not found. Please choose from suggestions or leave blank.")
+							_("未找到指定位置。请从候选建议中挑选或留空自动检测。")
 						));
 						lbl_status.show ();
 						city_entry.grab_focus ();

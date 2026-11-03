@@ -45,7 +45,7 @@ namespace Plank
 		public IconChooserDialog (string current_icon, string item_name, Gtk.Window? parent = null)
 		{
 			GLib.Object (
-				title: _("Change Icon - %s").printf (item_name),
+				title: _("更改图标 - %s").printf (item_name),
 				window_position: Gtk.WindowPosition.CENTER
 			);
 
@@ -101,7 +101,7 @@ namespace Plank
 			var info_box = new Gtk.Box (Gtk.Orientation.VERTICAL, 2);
 			var title_lbl = new Gtk.Label ("");
 			title_lbl.xalign = 0.0f;
-			title_lbl.set_markup ("<b>" + _("Select icon for: ") + Markup.escape_text (item_name) + "</b>");
+			title_lbl.set_markup ("<b>" + _("选择图标: ") + Markup.escape_text (item_name) + "</b>");
 
 			preview_label = new Gtk.Label (selected_icon);
 			preview_label.xalign = 0.0f;
@@ -117,14 +117,14 @@ namespace Plank
 			var controls_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
 
 			search_entry = new Gtk.SearchEntry ();
-			search_entry.placeholder_text = _("Search theme icons (e.g. browser, folder, games, edit)...");
+			search_entry.placeholder_text = _("搜索主题图标库 (例如: browser, folder, games, edit)...");
 			search_entry.search_changed.connect (on_search_changed);
 			controls_box.pack_start (search_entry, true, true, 0);
 
-			var btn_browse = new Gtk.Button.with_mnemonic (_("_Browse File..."));
+			var btn_browse = new Gtk.Button.with_mnemonic (_("浏览文件(_B)..."));
 			btn_browse.image = new Gtk.Image.from_icon_name ("document-open-symbolic", Gtk.IconSize.BUTTON);
 			btn_browse.always_show_image = true;
-			btn_browse.tooltip_text = _("Choose a custom image file (PNG, SVG, ICO) from disk");
+			btn_browse.tooltip_text = _("从磁盘选择自定义图像文件 (PNG, SVG, ICO)");
 			btn_browse.clicked.connect (on_browse_file_clicked);
 			controls_box.pack_start (btn_browse, false, false, 0);
 
@@ -150,13 +150,13 @@ namespace Plank
 			content.pack_start (scrolled, true, true, 0);
 
 			// Action area buttons
-			btn_default = add_button (_("Restore Default"), Gtk.ResponseType.APPLY) as Gtk.Button;
-			btn_default.tooltip_text = _("Revert to the original default icon");
+			btn_default = add_button (_("恢复默认"), Gtk.ResponseType.APPLY) as Gtk.Button;
+			btn_default.tooltip_text = _("恢复原始默认图标");
 			btn_default.get_style_context ().add_class ("destructive-action");
 
 			add_button ("取消", Gtk.ResponseType.CANCEL);
 
-			btn_apply = add_button (_("Apply"), Gtk.ResponseType.OK) as Gtk.Button;
+			btn_apply = add_button (_("应用"), Gtk.ResponseType.OK) as Gtk.Button;
 			btn_apply.get_style_context ().add_class ("suggested-action");
 			set_default_response (Gtk.ResponseType.OK);
 
@@ -271,7 +271,7 @@ namespace Plank
 		private void on_browse_file_clicked ()
 		{
 			var chooser = new Gtk.FileChooserDialog (
-				_("Select Icon File"),
+				_("选择图标文件"),
 				this,
 				Gtk.FileChooserAction.OPEN,
 				"取消", Gtk.ResponseType.CANCEL,
@@ -279,7 +279,7 @@ namespace Plank
 			);
 
 			var filter = new Gtk.FileFilter ();
-			filter.set_name (_("Image Files (*.png, *.svg, *.ico, *.jpg)"));
+			filter.set_name (_("图像文件 (*.png, *.svg, *.ico, *.jpg)"));
 			filter.add_mime_type ("image/png");
 			filter.add_mime_type ("image/svg+xml");
 			filter.add_mime_type ("image/x-icon");

@@ -79,32 +79,32 @@ namespace Plank
 			var grid_mouse = create_shortcuts_grid ();
 			int r_m = 0;
 			add_shortcut_row (grid_mouse, r_m++, "鼠标左键单击", "启动应用；若已在运行，置顶或显示多窗口卡片");
-			add_shortcut_row (grid_mouse, r_m++, "左键单击（2个及以上窗口）", _("Display floating Cairo preview cards with live window thumbnails"));
-			add_shortcut_row (grid_mouse, r_m++, _("Middle Click (or Ctrl + Left)"), "强制启动该应用程序的新实例");
-			add_shortcut_row (grid_mouse, r_m++, _("Right Click on Any Item"), _("Open context menu (Recent Documents, Quicklists, Keep in Dock, Change Icon, Shortcuts & Gestures, Preferences)"));
+			add_shortcut_row (grid_mouse, r_m++, "左键单击（2个及以上窗口）", _("展开悬浮 Cairo 多窗口平铺卡片与实时缩略图"));
+			add_shortcut_row (grid_mouse, r_m++, _("中键单击 (或 Ctrl + 左键)"), "强制启动该应用程序的新实例");
+			add_shortcut_row (grid_mouse, r_m++, _("在任何项目上右键单击"), _("打开右键菜单 (最近打开文档、快捷操作列表、固定至 Dock、更改图标、快捷键与手势、首选项)"));
 			add_shortcut_row (grid_mouse, r_m++, "在应用图标上滚动滚轮", "依次轮巡切换该应用的所有已打开窗口");
-			add_shortcut_row (grid_mouse, r_m++, _("Shift + Left Click"), _("Focus the next open window of this application"));
-			add_shortcut_row (grid_mouse, r_m++, _("Left Click on Folder Drawer"), _("Open dark-themed categorized smart application menu"));
-			add_shortcut_row (grid_mouse, r_m++, _("Preferences Icon (Accordion)"), _("Hover or click to toggle docklet drawer; directional indicators (▸ / ◂ / ▾ / ▴) show state"));
-			add_shortcut_row (grid_mouse, r_m++, _("Accordion Auto-Retention"), _("Drawer stays open during menus & dialogs; full countdown (0.5s–20s) restarts on close"));
-			add_shortcut_row (grid_mouse, r_m++, _("Mouse Scroll on Brightness"), _("Adjust display brightness with multi-monitor hardware sync"));
-			add_shortcut_row (grid_mouse, r_m++, _("Mouse Scroll on Volume"), _("Adjust master audio volume up or down"));
-			add_shortcut_row (grid_mouse, r_m++, _("Middle Click on MPRIS"), _("Play or pause media playback"));
-			add_shortcut_row (grid_mouse, r_m++, _("Mouse Scroll on MPRIS"), _("Skip to next or previous media track"));
-			stack.add_titled (create_page (_("Interactions and gestures on application icons, drawers and docklets"), grid_mouse), "mouse", _("Mouse Actions"));
+			add_shortcut_row (grid_mouse, r_m++, _("Shift + 左键单击"), _("顺次聚焦该应用的下一个打开窗口"));
+			add_shortcut_row (grid_mouse, r_m++, _("左键单击文件夹抽屉"), _("打开深色高质感分类智能应用抽屉"));
+			add_shortcut_row (grid_mouse, r_m++, _("首选项图标 (折叠风琴)"), _("悬停或点击展开/折叠插件抽屉；方向指示箭头 (▸ / ◂ / ▾ / ▴) 实时展示抽屉状态"));
+			add_shortcut_row (grid_mouse, r_m++, _("折叠抽屉自动保持"), _("菜单与弹窗激活期间抽屉保持常开；弹窗关闭后完整倒计时 (0.5s–20s) 自动重启"));
+			add_shortcut_row (grid_mouse, r_m++, _("在亮度图标上滚动滚轮"), _("调节屏幕亮度并支持多显示器硬件同步"));
+			add_shortcut_row (grid_mouse, r_m++, _("在音量图标上滚动滚轮"), _("调节系统主音量大小"));
+			add_shortcut_row (grid_mouse, r_m++, _("中键单击媒体播放器"), _("播放或暂停多媒体播放"));
+			add_shortcut_row (grid_mouse, r_m++, _("在媒体播放器上滚动滚轮"), _("切歌至下一曲或上一曲"));
+			stack.add_titled (create_page (_("应用程序图标、抽屉及 Docklet 插件的交互与手势指南"), grid_mouse), "mouse", _("鼠标与手势操作"));
 
 			// Page 2: Drag & Drop & Organization
 			var grid_drag = create_shortcuts_grid ();
 			int r_d = 0;
-			add_shortcut_row (grid_drag, r_d++, _("Drag icon along dock (Free Mode)"), _("Freely reorder launchers, docklets, and folders anywhere on the dock"));
-			add_shortcut_row (grid_drag, r_d++, _("Drag icon along dock (Categorized)"), _("Reorder strictly within category bounds; Preferences anchor stays locked"));
+			add_shortcut_row (grid_drag, r_d++, _("沿停靠栏拖动图标 (自由排序模式)"), _("在停靠栏任意位置自由拖拽重排启动器、插件和文件夹"));
+			add_shortcut_row (grid_drag, r_d++, _("沿停靠栏拖动图标 (分类排序模式)"), _("严格在所属分类界限内重排；首选项锚点始终保持锁定"));
 			add_shortcut_row (grid_drag, r_d++, "将图标拖离 Dock 栏", "从 Dock 栏取消固定/移除（触发烟雾消散动画）");
 			add_shortcut_row (grid_drag, r_d++, "将文件拖放到应用图标上", "使用该应用程序直接打开拖入的文件");
-			add_shortcut_row (grid_drag, r_d++, "将网页 URL 拖放到浏览器图标", _("Drop http:// or https:// URL onto browser icon to open in new tab"));
-			add_shortcut_row (grid_drag, r_d++, "拖拽文件时悬停在应用图标上", _("Spring-loaded hover (500ms) brings target window to foreground"));
-			add_shortcut_row (grid_drag, r_d++, _("Drop .desktop or folder"), "将新应用程序或文件夹抽屉固定到 Dock 栏");
-			add_shortcut_row (grid_drag, r_d++, _("Align by Type (Preferences)"), _("One-shot sort in Free mode: [Plank] -> [Folders] -> [Docklets] -> [Apps] -> [Trash]"));
-			stack.add_titled (create_page (_("Organizing, pinning, reordering and interacting with dock items"), grid_drag), "drag", _("Drag & Drop"));
+			add_shortcut_row (grid_drag, r_d++, "将网页 URL 拖放到浏览器图标", _("将 http:// 或 https:// 网址拖放至浏览器图标直接在新标签页中打开"));
+			add_shortcut_row (grid_drag, r_d++, "拖拽文件时悬停在应用图标上", _("悬停 500 毫秒自动置顶唤醒目标窗口 (悬停弹窗)"));
+			add_shortcut_row (grid_drag, r_d++, _("拖放 .desktop 启动器或文件夹"), "将新应用程序或文件夹抽屉固定到 Dock 栏");
+			add_shortcut_row (grid_drag, r_d++, _("按类型对齐 (首选项)"), _("自由模式下一键自动排序: [Plank] -> [文件夹] -> [插件] -> [应用] -> [回收站]"));
+			stack.add_titled (create_page (_("停靠栏图标的整理、固定、重排及深度交互"), grid_drag), "drag", _("拖拽交互 (Drag & Drop)"));
 
 			// Page 3: Shortcuts & Tools
 			var grid_tools = create_shortcuts_grid ();
@@ -113,13 +113,13 @@ namespace Plank
 			add_shortcut_row (grid_tools, r_t++, "Ctrl + 鼠标滚轮向上", "实时无级放大 Dock 图标尺寸");
 			add_shortcut_row (grid_tools, r_t++, "Ctrl + 鼠标滚轮向下", "实时无级缩小 Dock 图标尺寸");
 			add_shortcut_row (grid_tools, r_t++, "Ctrl + 右键单击", "即使光标在应用图标上也可直接唤出 Dock 首选项菜单");
-			add_shortcut_row (grid_tools, r_t++, _("Right Click on space / separator"), _("Open dock preferences menu from any empty dock area or separator"));
-			add_shortcut_row (grid_tools, r_t++, _("Right Click -> Change Icon..."), _("Choose system icon or custom image for any launcher or folder drawer"));
-			add_shortcut_row (grid_tools, r_t++, _("Right Click -> Shortcuts & Gestures"), _("Open this interactive guide directly from any item context menu"));
-			add_shortcut_row (grid_tools, r_t++, "首选项 -> 主题管理器", _("Install theme archives (.zip, .tar.gz) and manage custom dock themes"));
+			add_shortcut_row (grid_tools, r_t++, _("在底板空白处或分隔线上右键单击"), _("从停靠栏任意空白区域或分隔线上打开首选项设置"));
+			add_shortcut_row (grid_tools, r_t++, _("右键单击 -> 更改图标..."), _("为启动器或文件夹抽屉选择系统图标或自定义图像"));
+			add_shortcut_row (grid_tools, r_t++, _("右键单击 -> 快捷键与手势"), _("从任意图标右键菜单中快速打开此交互式指南"));
+			add_shortcut_row (grid_tools, r_t++, "首选项 -> 主题管理器", _("安装主题压缩包 (.zip, .tar.gz) 并管理自定义停靠栏主题"));
 			add_shortcut_row (grid_tools, r_t++, "动态深浅主题自动匹配", "KDE Plasma 切换深色/浅色时自动无缝匹配 Dock 栏主题");
-			add_shortcut_row (grid_tools, r_t++, _("Ctrl + Alt + Shift + Right Click"), "打开开发者工具子菜单（检查启动项、配置与主题信息）");
-			stack.add_titled (create_page (_("Dynamic zoom, overflow scrolling, theme management and developer tools"), grid_tools), "tools", _("Shortcuts & Tools"));
+			add_shortcut_row (grid_tools, r_t++, _("Ctrl + Alt + Shift + 右键单击"), "打开开发者工具子菜单（检查启动项、配置与主题信息）");
+			stack.add_titled (create_page (_("动态悬浮缩放、超限平滑翻页、实时主题管理器与开发者调试工具"), grid_tools), "tools", _("快捷键与实用工具"));
 
 			// HeaderBar with StackSwitcher spanning full width
 			var header = new Gtk.HeaderBar ();
@@ -150,8 +150,8 @@ namespace Plank
 
 			header.show_all ();
 			set_titlebar (header);
-			set_title (_("WayPlank Shortcuts & Gestures"));
-			header.title = _("WayPlank Shortcuts & Gestures");
+			set_title (_("WayPlank 快捷键与手势指南"));
+			header.title = _("WayPlank 快捷键与手势指南");
 
 			// Main vertical content layout
 			var content = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
@@ -167,7 +167,7 @@ namespace Plank
 			actions.set_margin_bottom (12);
 			actions.set_halign (Gtk.Align.CENTER);
 
-			var ok_button = new Gtk.Button.with_label (_("OK"));
+			var ok_button = new Gtk.Button.with_label (_("确定"));
 			ok_button.set_size_request (160, 36);
 			ok_button.get_style_context ().add_class (Gtk.STYLE_CLASS_SUGGESTED_ACTION);
 			ok_button.clicked.connect (() => hide ());

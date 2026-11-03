@@ -134,8 +134,8 @@ namespace Plank
 				if (!GLib.FileUtils.get_contents (script_path, out content))
 					return;
 
-				// Limit scanning to small launcher wrapper scripts (< 4KB)
-				if (content.length > 4096)
+				// Limit scanning to launcher wrapper scripts (< 16KB, e.g. devecostudio.sh is ~4.3KB)
+				if (content.length > 16384)
 					return;
 
 				// Fast check: must start with a shell shebang
@@ -271,6 +271,19 @@ namespace Plank
 			executable_tokens.add (norm);
 			tokens.add (norm);
 
+			// Strip wrapper script extensions (.sh, .py, .run, .bin) so e.g. devecostudio.sh -> devecostudio
+			string[] script_exts = { ".sh", ".py", ".run", ".bin" };
+			foreach (var ext in script_exts) {
+				if (norm.has_suffix (ext)) {
+					var stem = norm.substring (0, norm.length - ext.length);
+					if (stem.length >= 3) {
+						executable_tokens.add (stem);
+						tokens.add (stem);
+					}
+					break;
+				}
+			}
+
 			// Auto-register binary aliases (-bin variant, google-chrome vs chrome, etc.)
 			if (norm.has_suffix ("-bin")) {
 				var base_name = norm.substring (0, norm.length - 4);
@@ -353,7 +366,8 @@ namespace Plank
 			       word == "version" || word == "pro" || word == "community" ||
 			       word == "professional" || word == "release" || word == "tool" ||
 			       word == "tools" || word == "viewer" || word == "editor" ||
-			       word == "manager" || word == "client";
+			       word == "manager" || word == "client" || word == "studio" ||
+			       word == "ide" || word == "browser" || word == "player";
 		}
 
 		private static bool is_common_path_stopword (string word)
@@ -368,7 +382,13 @@ namespace Plank
 		{
 			if (value == null || value.strip () == "")
 				return;
-			tokens.add (normalize (value));
+			var norm = normalize (value);
+			tokens.add (norm);
+			if (norm.contains ("-") || norm.contains (" ") || norm.contains ("_")) {
+				var collapsed = norm.replace ("-", "").replace (" ", "").replace ("_", "");
+				if (collapsed.length >= 4 && !norm.contains ("."))
+					tokens.add (collapsed);
+			}
 		}
 		
 		public static string normalize (string? value)

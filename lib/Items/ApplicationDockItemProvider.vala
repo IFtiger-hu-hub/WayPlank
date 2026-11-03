@@ -175,8 +175,7 @@ namespace Plank
 				if (appitem == null || (appitem is TransientDockItem))
 					continue;
 
-				var identity = discovery.identity_for_launcher (appitem.Launcher);
-				if (identity != null && identity.matches (window))
+				if (discovery.is_best_launcher_for_window (appitem.Launcher, window))
 					return true;
 			}
 			return false;

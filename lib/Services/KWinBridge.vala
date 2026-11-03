@@ -454,7 +454,7 @@ namespace Plank
 							var pentry = pid_cache.get (info.Pid);
 							info.Cmdline = pentry.cmdline;
 							info.Executable = pentry.executable;
-						} else {
+						} else if (!Matcher.is_pid_mmap_blocked (info.Pid)) {
 							string cmd = "";
 							if (GLib.FileUtils.get_contents ("/proc/%d/cmdline".printf (info.Pid), out cmd)) {
 								info.Cmdline = cmd.replace ("\0", " ").strip ();

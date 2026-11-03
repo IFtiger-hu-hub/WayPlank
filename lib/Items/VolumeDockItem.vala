@@ -127,7 +127,7 @@ namespace Plank
 		void update_display ()
 		{
 			if (is_muted) {
-				Text = _("Volume: %d%% (Muted)").printf (volume);
+				Text = _("音量: %d%% (静音)").printf (volume);
 				Icon = "audio-volume-muted;;stock_volume-mute";
 				BadgeText = null;
 				CountVisible = false;
@@ -263,11 +263,11 @@ namespace Plank
 			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			var mute_item = create_menu_item (is_muted ? _("Un_mute") : _("_Mute"), "audio-volume-muted", true);
+			var mute_item = create_menu_item (is_muted ? _("取消静音(_M)") : _("静音(_M)"), "audio-volume-muted", true);
 			mute_item.activate.connect (toggle_mute);
 			items.add (mute_item);
 			
-			var mixer_item = create_menu_item (_("_Audio Settings..."), "multimedia-volume-control", true);
+			var mixer_item = create_menu_item (_("声音设置(_A)..."), "multimedia-volume-control", true);
 			mixer_item.activate.connect (() => {
 				string[] mixers = { "kcmshell6 kcm_pulseaudio", "kcmshell5 kcm_pulseaudio", "pavucontrol" };
 				foreach (var m in mixers) {
