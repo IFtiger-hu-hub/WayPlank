@@ -30,6 +30,7 @@ namespace Plank
 		Gee.HashSet<string> executable_tokens = new Gee.HashSet<string> ();
 		Gee.ArrayList<string> argument_tokens = new Gee.ArrayList<string> ();
 		string app_name = "";
+		string pwa_id = "";
 		
 		public ApplicationIdentity (File desktop_file)
 		{
@@ -42,6 +43,15 @@ namespace Plank
 				key_file.load_from_file (path, KeyFileFlags.NONE);
 				if (key_file.has_key (KeyFileDesktop.GROUP, "StartupWMClass")) {
 					var swmc = key_file.get_string (KeyFileDesktop.GROUP, "StartupWMClass");
+					var norm_swmc = normalize (swmc);
+					if (norm_swmc.has_prefix ("crx_")) {
+						var crx_id = norm_swmc.substring (4);
+						if (crx_id.length >= 3) {
+							pwa_id = crx_id;
+							add_token (crx_id);
+							argument_tokens.add (crx_id);
+						}
+					}
 					add_token (swmc);
 					add_token_variants (swmc);
 				}
@@ -109,6 +119,10 @@ namespace Plank
 					if (opt_key.contains ("profile") || opt_key.contains ("class") || opt_key.contains ("app")) {
 						var val = part.substring (eq + 1).strip ().replace ("\"", "").replace ("'", "").down ();
 						if (val != "" && val.length >= 3) {
+							if (opt_key.contains ("app-id") && pwa_id == "") {
+								pwa_id = val;
+								add_token (val);
+							}
 							argument_tokens.add (val);
 						}
 					}
@@ -124,6 +138,14 @@ namespace Plank
 							argument_tokens.add (sub_name);
 					}
 				}
+			}
+
+			// If this launcher is a specific PWA (--app-id or StartupWMClass=crx_),
+			// purge shared browser flags (e.g. --profile-directory) from argument_tokens
+			// so multiple PWAs in the same browser profile never cross-match via /proc/<pid>/cmdline.
+			if (pwa_id != "") {
+				argument_tokens.clear ();
+				argument_tokens.add (pwa_id);
 			}
 		}
 
@@ -411,6 +433,22 @@ namespace Plank
 
 		public int match_score (WindowInfo window)
 		{
+			// Strict PWA Isolation: Single-process browsers (Chrome/Chromium/Brave/Edge) share a single
+			// master PID and /proc/<pid>/cmdline across all open browser and PWA windows.
+			// Therefore, a launcher with an explicit pwa_id (--app-id or StartupWMClass=crx_) MUST match
+			// strictly against the window's own compositor identifiers, never via shared Cmdline or Caption.
+			if (pwa_id != "") {
+				bool pwa_matched = false;
+				var win_ids = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
+				foreach (var wid in win_ids) {
+					if (wid != null && wid != "" && wid.down ().contains (pwa_id)) {
+						pwa_matched = true;
+						break;
+					}
+				}
+				return pwa_matched ? 120 : 0;
+			}
+
 			// If this launcher has specialized target arguments (e.g. Profile 14, specific VM/file),
 			// check if the window matches those arguments.
 			bool specialized = (argument_tokens.size > 0);

@@ -48,10 +48,22 @@ namespace Plank
 			+ "    var removedUuid = (removedClient && removedClient.internalId) ? String(removedClient.internalId) : null;\n"
 			+ "    var windows = [];\n"
 			+ "    var allClients = getAllWindows();\n"
+			+ "    var panelReported = false;\n"
 			+ "    allClients.forEach(function (client) {\n"
 			+ "        try {\n"
 			+ "            if (!client || client.deleted === true)\n"
 			+ "                return;\n"
+			+ "            if (!panelReported && client.dock === true && String(client.resourceClass || \"\").toLowerCase() === \"plasmashell\") {\n"
+			+ "                var ox = (client.output && client.output.geometry) ? client.output.geometry.x : client.frameGeometry.x;\n"
+			+ "                var oy = (client.output && client.output.geometry) ? client.output.geometry.y : client.frameGeometry.y;\n"
+			+ "                windows.push({\n"
+			+ "                    uuid: \"__wayplank_primary_panel__\",\n"
+			+ "                    x: ox,\n"
+			+ "                    y: oy\n"
+			+ "                });\n"
+			+ "                panelReported = true;\n"
+			+ "                return;\n"
+			+ "            }\n"
 			+ "            if (client.skipTaskbar === true || client.specialWindow === true)\n"
 			+ "                return;\n"
 			+ "            if (!client.frameGeometry)\n"
@@ -69,9 +81,9 @@ namespace Plank
 			+ "            capt.indexOf(\"xwaylandvideobridge\") !== -1) {\n"
 			+ "            try {\n"
 			+ "                if (resClass.indexOf(\"kde-dockbar\") !== -1 || resClass.indexOf(\"wayplank\") !== -1 || resClass.indexOf(\"plank\") !== -1) {\n"
-			+ "                    client.onAllDesktops = true;\n"
-			+ "                    client.skipTaskbar = true;\n"
-			+ "                    client.skipPager = true;\n"
+			+ "                    if (client.onAllDesktops !== true) client.onAllDesktops = true;\n"
+			+ "                    if (client.skipTaskbar !== true) client.skipTaskbar = true;\n"
+			+ "                    if (client.skipPager !== true) client.skipPager = true;\n"
 			+ "                }\n"
 			+ "            } catch (e) { }\n"
 			+ "            return;\n"
@@ -152,9 +164,16 @@ namespace Plank
 			+ "\n"
 			+ "function connectWindow (window) {\n"
 			+ "    if (!window) return;\n"
+			+ "    var resClass = (window.resourceClass ? String(window.resourceClass).toLowerCase() : \"\");\n"
+			+ "    if (resClass === \"plasmashell\" && (window.dock === true || window.specialWindow === true)) {\n"
+			+ "        if (window.frameGeometryChanged)\n"
+			+ "            window.frameGeometryChanged.connect(scheduleWindowState);\n"
+			+ "        if (window.outputChanged)\n"
+			+ "            window.outputChanged.connect(scheduleWindowState);\n"
+			+ "        return;\n"
+			+ "    }\n"
 			+ "    if (window.skipTaskbar === true || window.specialWindow === true)\n"
 			+ "        return;\n"
-			+ "    var resClass = (window.resourceClass ? String(window.resourceClass).toLowerCase() : \"\");\n"
 			+ "    var resName = (window.resourceName ? String(window.resourceName).toLowerCase() : \"\");\n"
 			+ "    var capt = (window.caption ? String(window.caption).toLowerCase() : \"\");\n"
 			+ "    var dName = (window.desktopFileName ? String(window.desktopFileName).toLowerCase() : \"\");\n"
@@ -185,6 +204,9 @@ namespace Plank
 			+ "\n"
 			+ "if (workspace.currentDesktopChanged) {\n"
 			+ "    workspace.currentDesktopChanged.connect(scheduleWindowState);\n"
+			+ "}\n"
+			+ "if (workspace.screensChanged) {\n"
+			+ "    workspace.screensChanged.connect(scheduleWindowState);\n"
 			+ "}\n"
 			+ "workspace.windowAdded.connect(function (window) {\n"
 			+ "    connectWindow(window);\n"
@@ -367,7 +389,18 @@ namespace Plank
 		static DBusConnection? dbus_connection;
 		static uint dbus_registration_id = 0U;
 		static uint kwin_watch_id = 0U;
+		static string last_kwin_owner = "";
+		static bool has_panel_mon = false;
+		static int panel_mon_x = 0;
+		static int panel_mon_y = 0;
 		public signal void state_changed ();
+
+		public static bool get_primary_panel_monitor (out int x, out int y)
+		{
+			x = panel_mon_x;
+			y = panel_mon_y;
+			return has_panel_mon;
+		}
 
 		public static unowned KWinBridge get_default ()
 		{
@@ -416,6 +449,14 @@ namespace Plank
 					var json = node.get_object ();
 					if (!json.has_member ("uuid"))
 						continue;
+					if (json.get_string_member ("uuid") == "__wayplank_primary_panel__") {
+						if (json.has_member ("x") && json.has_member ("y")) {
+							panel_mon_x = (int) json.get_double_member ("x");
+							panel_mon_y = (int) json.get_double_member ("y");
+							has_panel_mon = true;
+						}
+						continue;
+					}
 					var res_class_chk = json.has_member ("resourceClass") ? json.get_string_member ("resourceClass").down () : "";
 					var res_name_chk = json.has_member ("resourceName") ? json.get_string_member ("resourceName").down () : "";
 					var capt_chk = json.has_member ("caption") ? json.get_string_member ("caption").down () : "";
@@ -779,13 +820,27 @@ namespace Plank
 		static void clean_old_script_files ()
 		{
 			try {
+				DBusConnection? conn = null;
+				try {
+					conn = Bus.get_sync (BusType.SESSION, null);
+				} catch (Error e) {}
+
 				var tmp_dir = File.new_for_path ("/tmp");
 				var enumerator = tmp_dir.enumerate_children ("standard::name", FileQueryInfoFlags.NONE);
 				FileInfo? info = null;
 				while ((info = enumerator.next_file ()) != null) {
 					var name = info.get_name ();
 					if (name.has_prefix ("wayplank-kwin-") && name.has_suffix (".js")) {
-						FileUtils.remove ("/tmp/" + name);
+						var full_path = "/tmp/" + name;
+						if (conn != null) {
+							try {
+								conn.call_sync ("org.kde.KWin", "/Scripting",
+									"org.kde.kwin.Scripting", "unloadScript",
+									new Variant ("(s)", full_path), null,
+									DBusCallFlags.NONE, 200, null);
+							} catch (Error e) {}
+						}
+						FileUtils.remove (full_path);
 					}
 				}
 			} catch (Error e) {}
@@ -808,26 +863,19 @@ namespace Plank
 		static void on_kwin_appeared (DBusConnection connection, string name, string name_owner)
 		{
 			message ("KWinBridge: org.kde.KWin appeared on D-Bus (owner=%s), ensuring bridge script is active", name_owner);
-			if (script_id >= 0 && script_path != null) {
-				try {
-					var result = connection.call_sync ("org.kde.KWin", "/Scripting",
-						"org.kde.kwin.Scripting", "isScriptLoaded",
-						new Variant ("(s)", script_path),
-						new VariantType ("(b)"), DBusCallFlags.NONE, 250, null);
-					bool is_loaded = false;
-					result.get ("(b)", out is_loaded);
-					if (is_loaded) {
-						debug ("KWinBridge: bridge script is already alive in KWin");
-						return;
-					}
-				} catch (Error e) { }
+			if (script_id >= 0 && script_path != null && (last_kwin_owner == "" || last_kwin_owner == name_owner)) {
+				last_kwin_owner = name_owner;
+				debug ("KWinBridge: bridge script (id %d) is already active for current KWin owner", script_id);
+				return;
 			}
+			last_kwin_owner = name_owner;
 			reload_script ();
 		}
 
 		static void on_kwin_vanished (DBusConnection connection, string name)
 		{
 			message ("KWinBridge: org.kde.KWin vanished from D-Bus, resetting bridge state");
+			last_kwin_owner = "";
 			script_id = -1;
 			if (script_path != null) {
 				FileUtils.remove (script_path);

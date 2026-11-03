@@ -24,6 +24,7 @@ namespace Plank
 		enum ConfirmAction {
 			LOGOUT,
 			RESTART,
+			REBOOT_UEFI,
 			SHUTDOWN
 		}
 
@@ -112,7 +113,7 @@ namespace Plank
 			set_position (Gtk.WindowPosition.CENTER);
 			window_position = Gtk.WindowPosition.CENTER;
 			gravity = Gdk.Gravity.CENTER;
-			set_default_size (460, 310);
+			set_default_size (480, 410);
 			resizable = false;
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
@@ -151,7 +152,7 @@ namespace Plank
 			// Separator
 			actions_box.pack_start (new Gtk.Separator (Gtk.Orientation.HORIZONTAL), false, false, 0);
 
-			// Grid of 6 buttons (2 rows x 3 columns)
+			// Grid of 9 buttons (3 rows x 3 columns)
 			var grid = new Gtk.Grid ();
 			grid.row_spacing = 10;
 			grid.column_spacing = 10;
@@ -187,17 +188,64 @@ namespace Plank
 			});
 			grid.attach (btn_suspend, 0, 1, 1, 1);
 
-			// Col 1, Row 1: Restart (asks confirmation)
+			// Col 1, Row 1: Hibernate (direct, auto-checked via logind)
+			bool hibernate_ok = SessionDockItem.can_hibernate ();
+			var btn_hibernate = create_action_button (
+				_("休眠"),
+				"system-suspend-hibernate",
+				hibernate_ok
+					? _("将会话保存到磁盘并关闭电源")
+					: _("此系统不支持休眠（缺少交换分区或内核支持）"),
+				() => {
+					destroy ();
+					SessionDockItem.hibernate ();
+				}
+			);
+			btn_hibernate.sensitive = hibernate_ok;
+			grid.attach (btn_hibernate, 1, 1, 1, 1);
+
+			// Col 2, Row 1: Hybrid Sleep (direct, auto-checked via logind)
+			bool hybrid_ok = SessionDockItem.can_hybrid_sleep ();
+			var btn_hybrid = create_action_button (
+				_("混合睡眠"),
+				"system-suspend-hibernate",
+				hybrid_ok
+					? _("将会话保存到磁盘并将计算机置于低功耗睡眠模式")
+					: _("此系统不支持混合睡眠（缺少交换分区或内核支持）"),
+				() => {
+					destroy ();
+					SessionDockItem.hybrid_sleep ();
+				}
+			);
+			btn_hybrid.sensitive = hybrid_ok;
+			grid.attach (btn_hybrid, 2, 1, 1, 1);
+
+			// Col 0, Row 2: Restart (asks confirmation)
 			var btn_restart = create_action_button ("重启计算机", "system-reboot", _("重启操作系统"), () => {
 				show_confirmation (ConfirmAction.RESTART);
 			});
-			grid.attach (btn_restart, 1, 1, 1, 1);
+			grid.attach (btn_restart, 0, 2, 1, 1);
 
-			// Col 2, Row 1: Shut Down (asks confirmation, Destructive styling)
+			// Col 1, Row 2: UEFI / BIOS (asks confirmation, auto-checked via logind)
+			bool uefi_ok = SessionDockItem.can_reboot_to_firmware ();
+			var btn_uefi = create_action_button (
+				_("UEFI / BIOS"),
+				"preferences-system",
+				uefi_ok
+					? _("重启并进入主板 UEFI / BIOS 固件设置")
+					: _("此系统不支持进入 UEFI / BIOS 固件设置"),
+				() => {
+					show_confirmation (ConfirmAction.REBOOT_UEFI);
+				}
+			);
+			btn_uefi.sensitive = uefi_ok;
+			grid.attach (btn_uefi, 1, 2, 1, 1);
+
+			// Col 2, Row 2: Shut Down (asks confirmation, Destructive styling)
 			var btn_shutdown = create_action_button ("关机", "system-shutdown", _("彻底关闭计算机电源"), () => {
 				show_confirmation (ConfirmAction.SHUTDOWN);
 			}, true);
-			grid.attach (btn_shutdown, 2, 1, 1, 1);
+			grid.attach (btn_shutdown, 2, 2, 1, 1);
 
 			actions_box.pack_start (grid, true, true, 0);
 
@@ -272,6 +320,9 @@ namespace Plank
 					case ConfirmAction.RESTART:
 						SessionDockItem.restart (false);
 						break;
+					case ConfirmAction.REBOOT_UEFI:
+						SessionDockItem.reboot_to_firmware (false);
+						break;
 					case ConfirmAction.SHUTDOWN:
 						SessionDockItem.shutdown (false);
 						break;
@@ -333,6 +384,14 @@ namespace Plank
 					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("重启计算机系统？")));
 					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("确定要重启计算机吗？未保存的更改将会丢失。")));
 					confirm_action_btn.label = "重启计算机";
+					confirm_action_btn.get_style_context ().remove_class ("destructive-action");
+					confirm_action_btn.get_style_context ().add_class ("suggested-action");
+					break;
+				case ConfirmAction.REBOOT_UEFI:
+					confirm_icon.set_from_icon_name ("preferences-system", Gtk.IconSize.DIALOG);
+					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("重启进入 UEFI / BIOS？")));
+					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("确定要重启计算机并进入主板 UEFI / BIOS 固件设置吗？未保存的更改将会丢失。")));
+					confirm_action_btn.label = _("UEFI / BIOS");
 					confirm_action_btn.get_style_context ().remove_class ("destructive-action");
 					confirm_action_btn.get_style_context ().add_class ("suggested-action");
 					break;

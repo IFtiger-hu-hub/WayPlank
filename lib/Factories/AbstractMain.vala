@@ -418,6 +418,8 @@ namespace Plank
 			
 			action = new SimpleAction ("quit", null);
 			action.activate.connect (() => {
+				SystemTheme.cleanup_if_active ();
+				BrightnessControl.cleanup_if_active ();
 				WindowControl.cleanup ();
 				quit ();
 			});
