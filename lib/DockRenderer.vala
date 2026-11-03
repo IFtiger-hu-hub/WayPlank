@@ -309,6 +309,7 @@ namespace Plank
 			screen_is_composited = position_manager.screen_is_composited;
 			show_notifications = EnvironmentSettings.get_instance ().ShowNotifications;
 			dynamic_animation_offset = 0.0;
+			zoom_changed = false;
 			
 			var fade_opacity = theme.FadeOpacity;
 			
@@ -1237,11 +1238,8 @@ namespace Plank
 			if (controller.position_manager.is_scrolling ())
 				return true;
 
-			if (zoom_changed) {
-				//FIXME reset at a better place
-				zoom_changed = false;
+			if (zoom_changed)
 				return true;
-			}
 			
 			if (frame_time - last_hovered_changed <= DOCK_ZOOM_DURATION * 1000)
 				return true;

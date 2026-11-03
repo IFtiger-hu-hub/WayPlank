@@ -151,14 +151,12 @@ namespace Plank
 				return true;
 
 			frame_time = GLib.get_monotonic_time ();
-			// Throttle commits: GDK Wayland _exits on wl_display_flush EAGAIN
+			// Throttle commits: GDK Wayland _exits on wl_display_flush EAGAIN.
+			// Never drop the final frame when animation_needed () turns false,
+			// otherwise hide_progress / zoom_progress freezes short of 1.0 or 0.0.
 			if (last_queued_frame_us > 0 && (frame_time - last_queued_frame_us) < MIN_FRAME_INTERVAL_US) {
 				if (animation_needed (frame_time))
 					return true;
-				frame_clock.end_updating ();
-				is_updating = false;
-				animation_finished ();
-				return true;
 			}
 			last_queued_frame_us = frame_time;
 			initialize_frame (frame_time);
