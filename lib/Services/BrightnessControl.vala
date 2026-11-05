@@ -80,6 +80,8 @@ namespace Plank
 		private ulong mon_add_id = 0;
 		private ulong mon_rem_id = 0;
 		private bool shutting_down = false;
+		private bool brightness_poll_running = false;
+		private uint fallback_tick_counter = 0;
 
 		public int get_percent ()
 		{
@@ -525,6 +527,113 @@ namespace Plank
 			});
 		}
 
+		private int query_fallback_brightness_blocking (string? bl_dev, ref int cached_kde_max, out bool out_kde_avail, out bool out_gnome_avail)
+		{
+			int pct_result = -1;
+			out_kde_avail = kde_available;
+			out_gnome_avail = gnome_available;
+
+			// 2. Try KDE Solid PowerManagement D-Bus (Desktop PC or when backlight_device is null)
+			if (pct_result < 0 && session_bus != null && environment_is_session_desktop (XdgSessionDesktop.KDE)) {
+				try {
+					var reply = session_bus.call_sync (
+						"org.kde.Solid.PowerManagement",
+						"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
+						"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
+						"brightness",
+						null,
+						null,
+						GLib.DBusCallFlags.NONE,
+						200,
+						null
+					);
+					int cur = reply.get_child_value (0).get_int32 ();
+					if (cached_kde_max <= 0) {
+						var reply_max = session_bus.call_sync (
+							"org.kde.Solid.PowerManagement",
+							"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
+							"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
+							"brightnessMax",
+							null,
+							null,
+							GLib.DBusCallFlags.NONE,
+							200,
+							null
+						);
+						cached_kde_max = reply_max.get_child_value (0).get_int32 ();
+					}
+					if (cached_kde_max > 0) {
+						pct_result = (int) Math.round (((double) cur / (double) cached_kde_max) * 100.0);
+						out_kde_avail = true;
+					}
+				} catch (GLib.Error e) {
+					out_kde_avail = false;
+				}
+			}
+
+			// 3. Try GNOME SettingsDaemon Power D-Bus
+			if (pct_result < 0 && session_bus != null && environment_is_session_desktop (XdgSessionDesktop.GNOME)) {
+				try {
+					var reply = session_bus.call_sync (
+						"org.gnome.SettingsDaemon.Power",
+						"/org/gnome/SettingsDaemon/Power",
+						"org.freedesktop.DBus.Properties",
+						"Get",
+						new GLib.Variant ("(ss)", "org.gnome.SettingsDaemon.Power.Screen", "Brightness"),
+						null,
+						GLib.DBusCallFlags.NONE,
+						200,
+						null
+					);
+					GLib.Variant val_var = reply.get_child_value (0).get_variant ();
+					int val = 0;
+					if (val_var.is_of_type (GLib.VariantType.INT32)) val = val_var.get_int32 ();
+					else if (val_var.is_of_type (GLib.VariantType.UINT32)) val = (int) val_var.get_uint32 ();
+					else if (val_var.is_of_type (GLib.VariantType.DOUBLE)) val = (int) Math.round (val_var.get_double ());
+					if (val > 0) {
+						pct_result = val;
+						out_gnome_avail = true;
+					}
+				} catch (GLib.Error e) {
+					out_gnome_avail = false;
+				}
+			}
+
+			// 4. Try brightnessctl -m fallback (only when a kernel backlight device exists)
+			if (pct_result < 0 && bl_dev != null && GLib.Environment.find_program_in_path ("brightnessctl") != null) {
+				try {
+					string out_str;
+					int exit_code;
+					if (GLib.Process.spawn_command_line_sync ("brightnessctl -m", out out_str, null, out exit_code) && exit_code == 0) {
+						var parts = out_str.strip ().split (",");
+						if (parts.length >= 4) {
+							string pct_str = parts[3].replace ("%", "").strip ();
+							int pct = int.parse (pct_str);
+							if (pct > 0) {
+								pct_result = pct;
+							}
+						}
+					}
+				} catch (GLib.Error e) { }
+			}
+
+			return pct_result;
+		}
+
+		private void apply_polled_brightness (int polled_pct, bool is_initial_read)
+		{
+			if (polled_pct > 0 && !user_has_set_sp) {
+				int clamped = polled_pct.clamp (1, 100);
+				if ((clamped - target_sp).abs () > 2) {
+					target_sp = clamped;
+					current_percent = target_sp;
+					brightness_changed (target_sp);
+					if (!is_initial_read)
+						schedule_inbound_auto_sync (target_sp);
+				}
+			}
+		}
+
 		private void refresh_brightness (bool is_initial_read = false)
 		{
 			// If user has set an authoritative Set Point (SP), do not let periodic polling overwrite it!
@@ -548,100 +657,50 @@ namespace Plank
 				} catch (GLib.Error e) { }
 			}
 
-			// 2. Try KDE Solid PowerManagement D-Bus (Desktop PC or when backlight_device is null)
-			if (initial_pct < 0 && session_bus != null && environment_is_session_desktop (XdgSessionDesktop.KDE)) {
-				try {
-					var reply = session_bus.call_sync (
-						"org.kde.Solid.PowerManagement",
-						"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
-						"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
-						"brightness",
-						null,
-						null,
-						GLib.DBusCallFlags.NONE,
-						200,
-						null
-					);
-					int cur = reply.get_child_value (0).get_int32 ();
-					if (kde_max_brightness <= 0) {
-						var reply_max = session_bus.call_sync (
-							"org.kde.Solid.PowerManagement",
-							"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
-							"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
-							"brightnessMax",
-							null,
-							null,
-							GLib.DBusCallFlags.NONE,
-							200,
-							null
-						);
-						kde_max_brightness = reply_max.get_child_value (0).get_int32 ();
-					}
-					if (kde_max_brightness > 0) {
-						initial_pct = (int) Math.round (((double) cur / (double) kde_max_brightness) * 100.0);
-						kde_available = true;
-					}
-				} catch (GLib.Error e) {
-					kde_available = false;
-				}
-			}
-
-			// 3. Try GNOME SettingsDaemon Power D-Bus
-			if (initial_pct < 0 && session_bus != null && environment_is_session_desktop (XdgSessionDesktop.GNOME)) {
-				try {
-					var reply = session_bus.call_sync (
-						"org.gnome.SettingsDaemon.Power",
-						"/org/gnome/SettingsDaemon/Power",
-						"org.freedesktop.DBus.Properties",
-						"Get",
-						new GLib.Variant ("(ss)", "org.gnome.SettingsDaemon.Power.Screen", "Brightness"),
-						null,
-						GLib.DBusCallFlags.NONE,
-						200,
-						null
-					);
-					GLib.Variant val_var = reply.get_child_value (0).get_variant ();
-					int val = 0;
-					if (val_var.is_of_type (GLib.VariantType.INT32)) val = val_var.get_int32 ();
-					else if (val_var.is_of_type (GLib.VariantType.UINT32)) val = (int) val_var.get_uint32 ();
-					else if (val_var.is_of_type (GLib.VariantType.DOUBLE)) val = (int) Math.round (val_var.get_double ());
-					if (val > 0) {
-						initial_pct = val;
-						gnome_available = true;
-					}
-				} catch (GLib.Error e) {
-					gnome_available = false;
-				}
-			}
-
-			// 4. Try brightnessctl -m fallback (only when a kernel backlight device exists)
-			if (initial_pct < 0 && backlight_device != null && GLib.Environment.find_program_in_path ("brightnessctl") != null) {
-				try {
-					string out_str;
-					int exit_code;
-					if (GLib.Process.spawn_command_line_sync ("brightnessctl -m", out out_str, null, out exit_code) && exit_code == 0) {
-						var parts = out_str.strip ().split (",");
-						if (parts.length >= 4) {
-							string pct_str = parts[3].replace ("%", "").strip ();
-							int pct = int.parse (pct_str);
-							if (pct > 0) {
-								initial_pct = pct;
-							}
-						}
-					}
-				} catch (GLib.Error e) { }
-			}
-
 			if (initial_pct > 0) {
-				int clamped = initial_pct.clamp (1, 100);
-				if ((clamped - target_sp).abs () > 2) {
-					target_sp = clamped;
-					current_percent = target_sp;
-					brightness_changed (target_sp);
-					if (!is_initial_read)
-						schedule_inbound_auto_sync (target_sp);
-				}
+				apply_polled_brightness (initial_pct, is_initial_read);
+				return;
 			}
+
+			if (is_initial_read) {
+				int km = kde_max_brightness;
+				bool ka, ga;
+				initial_pct = query_fallback_brightness_blocking (backlight_device, ref km, out ka, out ga);
+				kde_max_brightness = km;
+				kde_available = ka;
+				gnome_available = ga;
+				apply_polled_brightness (initial_pct, true);
+				return;
+			}
+
+			// Real-time D-Bus signals handle KDE/GNOME updates immediately; skip polling when signals are active or no backend exists
+			if ((kde_available && kde_signal_id != 0) || (gnome_available && gnome_signal_id != 0) || (!kde_available && !gnome_available))
+				return;
+
+			fallback_tick_counter++;
+			if ((fallback_tick_counter & 3) != 0 || brightness_poll_running || shutting_down)
+				return;
+
+			brightness_poll_running = true;
+			string? bl_snapshot = backlight_device;
+			int km_snapshot = kde_max_brightness;
+			new GLib.Thread<void*> ("wayplank-brightness-poll", () => {
+				int km_local = km_snapshot;
+				bool ka_local, ga_local;
+				int polled = query_fallback_brightness_blocking (bl_snapshot, ref km_local, out ka_local, out ga_local);
+				GLib.Idle.add (() => {
+					brightness_poll_running = false;
+					if (shutting_down)
+						return GLib.Source.REMOVE;
+					if (km_local > 0)
+						kde_max_brightness = km_local;
+					kde_available = ka_local;
+					gnome_available = ga_local;
+					apply_polled_brightness (polled, false);
+					return GLib.Source.REMOVE;
+				});
+				return null;
+			});
 		}
 
 		private bool on_timer_tick ()

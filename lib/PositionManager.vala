@@ -286,8 +286,10 @@ namespace Plank
 			monitor_geo = get_effective_monitor_geometry (monitor);
 			bool monitor_changed = (monitor != current_monitor);
 			current_monitor = monitor;
+			bool dock_unmapped = (monitor != null && controller != null && controller.window != null && !controller.window.get_visible ());
 
 			if (!monitor_changed
+				&& !dock_unmapped
 				&& old_monitor_geo.x == monitor_geo.x
 				&& old_monitor_geo.y == monitor_geo.y
 				&& old_monitor_geo.width == monitor_geo.width

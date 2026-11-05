@@ -280,6 +280,9 @@ namespace Plank
 			
 			initialize ();
 			create_docks ();
+			WindowControl.get_default ().bridge_reconnected.connect (() => {
+				schedule_dock_refresh (150);
+			});
 			WindowControl.start ();
 			create_actions ();
 			setup_power_management_listener ();
@@ -676,8 +679,22 @@ namespace Plank
 					}
 				);
 				debug ("Subscribed to systemd-logind PrepareForSleep signal");
+
+				system_bus.signal_subscribe (
+					"org.freedesktop.login1",
+					"org.freedesktop.login1.Session",
+					"Unlock",
+					null,
+					null,
+					DBusSignalFlags.NONE,
+					(conn, sender, path, iface, signal_name, parameters) => {
+						message ("systemd-logind Session Unlock detected! Scheduling dock refresh...");
+						schedule_dock_refresh (500);
+					}
+				);
+				debug ("Subscribed to systemd-logind Session.Unlock signal");
 			} catch (Error e) {
-				debug ("Unable to subscribe to systemd-logind PrepareForSleep: %s", e.message);
+				debug ("Unable to subscribe to systemd-logind signals: %s", e.message);
 			}
 
 			// 2. Listen for ScreenSaver / Screen Lock unlock events (session bus)

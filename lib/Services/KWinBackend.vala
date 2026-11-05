@@ -28,11 +28,18 @@ namespace Plank
 		public KWinBackend ()
 		{
 			KWinBridge.get_default ().state_changed.connect (forward_state_changed);
+			KWinBridge.get_default ().bridge_reconnected.connect (forward_bridge_reconnected);
 		}
 		
 		~KWinBackend ()
 		{
 			KWinBridge.get_default ().state_changed.disconnect (forward_state_changed);
+			KWinBridge.get_default ().bridge_reconnected.disconnect (forward_bridge_reconnected);
+		}
+
+		void forward_bridge_reconnected ()
+		{
+			bridge_reconnected ();
 		}
 		
 		void forward_state_changed ()

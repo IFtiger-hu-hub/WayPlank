@@ -29,6 +29,22 @@ namespace Plank
 			+ "var wayplankInterface = \"net.launchpad.plank.KWin\";\n"
 			+ "var wayplankMinimizeSequence = 0;\n"
 			+ "var wayplankMinimizedWindows = {};\n"
+			+ "var wayplankTrackedUuids = {};\n"
+			+ "\n"
+			+ "function isWayplankOrIgnoredClient (client) {\n"
+			+ "    if (!client) return true;\n"
+			+ "    var resClass = (client.resourceClass ? String(client.resourceClass).toLowerCase() : \"\");\n"
+			+ "    var resName = (client.resourceName ? String(client.resourceName).toLowerCase() : \"\");\n"
+			+ "    var capt = (client.caption ? String(client.caption).toLowerCase() : \"\");\n"
+			+ "    var dName = (client.desktopFileName ? String(client.desktopFileName).toLowerCase() : \"\");\n"
+			+ "    return (resClass === \"kde-dockbar\" || resClass === \"wayplank\" || resClass === \"plank\" ||\n"
+			+ "        resName === \"kde-dockbar\" || resName === \"wayplank\" || resName === \"plank\" ||\n"
+			+ "        dName === \"kde-dockbar\" || dName === \"kde-dockbar.desktop\" || dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
+			+ "        capt === \"kde-dockbar\" || capt === \"wayplank\" || capt === \"wayplank-hover\" || capt === \"wayplank-folder-menu\" || capt === \"wayplank-hover-cards\" || capt === \"wayplank-poof\" ||\n"
+			+ "        resClass === \"xwaylandvideobridge\" || resName === \"xwaylandvideobridge\" ||\n"
+			+ "        dName === \"xwaylandvideobridge\" || dName === \"org.kde.xwaylandvideobridge\" ||\n"
+			+ "        capt.indexOf(\"xwaylandvideobridge\") !== -1);\n"
+			+ "}\n"
 			+ "\n"
 			+ "function getAllWindows () {\n"
 			+ "    if (typeof workspace.windowList === \"function\")\n"
@@ -54,6 +70,8 @@ namespace Plank
 			+ "            if (!client || client.deleted === true)\n"
 			+ "                return;\n"
 			+ "            if (!panelReported && client.dock === true && String(client.resourceClass || \"\").toLowerCase() === \"plasmashell\") {\n"
+			+ "                if (client.internalId)\n"
+			+ "                    wayplankTrackedUuids[String(client.internalId)] = true;\n"
 			+ "                var ox = (client.output && client.output.geometry) ? client.output.geometry.x : client.frameGeometry.x;\n"
 			+ "                var oy = (client.output && client.output.geometry) ? client.output.geometry.y : client.frameGeometry.y;\n"
 			+ "                windows.push({\n"
@@ -69,16 +87,7 @@ namespace Plank
 			+ "            if (!client.frameGeometry)\n"
 			+ "                return;\n"
 			+ "        var resClass = (client.resourceClass ? String(client.resourceClass).toLowerCase() : \"\");\n"
-			+ "        var resName = (client.resourceName ? String(client.resourceName).toLowerCase() : \"\");\n"
-			+ "        var capt = (client.caption ? String(client.caption).toLowerCase() : \"\");\n"
-			+ "        var dName = (client.desktopFileName ? String(client.desktopFileName).toLowerCase() : \"\");\n"
-			+ "        if (resClass === \"kde-dockbar\" || resClass === \"wayplank\" || resClass === \"plank\" ||\n"
-			+ "            resName === \"kde-dockbar\" || resName === \"wayplank\" || resName === \"plank\" ||\n"
-			+ "            dName === \"kde-dockbar\" || dName === \"kde-dockbar.desktop\" || dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
-			+ "            capt === \"kde-dockbar\" || capt === \"wayplank\" || capt === \"wayplank-hover\" ||\n"
-			+ "            resClass === \"xwaylandvideobridge\" || resName === \"xwaylandvideobridge\" ||\n"
-			+ "            dName === \"xwaylandvideobridge\" || dName === \"org.kde.xwaylandvideobridge\" ||\n"
-			+ "            capt.indexOf(\"xwaylandvideobridge\") !== -1) {\n"
+			+ "        if (isWayplankOrIgnoredClient(client)) {\n"
 			+ "            try {\n"
 			+ "                if (resClass.indexOf(\"kde-dockbar\") !== -1 || resClass.indexOf(\"wayplank\") !== -1 || resClass.indexOf(\"plank\") !== -1) {\n"
 			+ "                    if (client.onAllDesktops !== true) client.onAllDesktops = true;\n"
@@ -91,6 +100,7 @@ namespace Plank
 			+ "        var uuid = String(client.internalId);\n"
 			+ "        if (removedUuid && uuid === removedUuid)\n"
 			+ "            return;\n"
+			+ "        wayplankTrackedUuids[uuid] = true;\n"
 			+ "        if (client.minimized === true && !wayplankMinimizedWindows[uuid])\n"
 			+ "            wayplankMinimizedWindows[uuid] = ++wayplankMinimizeSequence;\n"
 			+ "        else if (client.minimized !== true)\n"
@@ -163,28 +173,33 @@ namespace Plank
 			+ "}\n"
 			+ "\n"
 			+ "function connectWindow (window) {\n"
-			+ "    if (!window) return;\n"
+			+ "    if (!window) return false;\n"
 			+ "    var resClass = (window.resourceClass ? String(window.resourceClass).toLowerCase() : \"\");\n"
 			+ "    if (resClass === \"plasmashell\" && (window.dock === true || window.specialWindow === true)) {\n"
+			+ "        if (window.internalId)\n"
+			+ "            wayplankTrackedUuids[String(window.internalId)] = true;\n"
 			+ "        if (window.frameGeometryChanged)\n"
 			+ "            window.frameGeometryChanged.connect(scheduleWindowState);\n"
 			+ "        if (window.outputChanged)\n"
 			+ "            window.outputChanged.connect(scheduleWindowState);\n"
-			+ "        return;\n"
+			+ "        return true;\n"
+			+ "    }\n"
+			+ "    if (isWayplankOrIgnoredClient(window)) {\n"
+			+ "        try {\n"
+			+ "            if (resClass.indexOf(\"kde-dockbar\") !== -1 || resClass.indexOf(\"wayplank\") !== -1 || resClass.indexOf(\"plank\") !== -1) {\n"
+			+ "                if (window.onAllDesktops !== true) window.onAllDesktops = true;\n"
+			+ "                if (window.skipTaskbar !== true) window.skipTaskbar = true;\n"
+			+ "                if (window.skipPager !== true) window.skipPager = true;\n"
+			+ "            }\n"
+			+ "        } catch (e) { }\n"
+			+ "        return false;\n"
 			+ "    }\n"
 			+ "    if (window.skipTaskbar === true || window.specialWindow === true)\n"
-			+ "        return;\n"
-			+ "    var resName = (window.resourceName ? String(window.resourceName).toLowerCase() : \"\");\n"
-			+ "    var capt = (window.caption ? String(window.caption).toLowerCase() : \"\");\n"
-			+ "    var dName = (window.desktopFileName ? String(window.desktopFileName).toLowerCase() : \"\");\n"
-			+ "    if (resClass === \"kde-dockbar\" || resClass === \"wayplank\" || resClass === \"plank\" ||\n"
-			+ "        resName === \"kde-dockbar\" || resName === \"wayplank\" || resName === \"plank\" ||\n"
-			+ "        dName === \"kde-dockbar\" || dName === \"kde-dockbar.desktop\" || dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
-			+ "        capt === \"kde-dockbar\" || capt === \"wayplank\" || capt === \"wayplank-hover\" ||\n"
-			+ "        resClass === \"xwaylandvideobridge\" || resName === \"xwaylandvideobridge\" ||\n"
-			+ "        dName === \"xwaylandvideobridge\" || dName === \"org.kde.xwaylandvideobridge\" ||\n"
-			+ "        capt.indexOf(\"xwaylandvideobridge\") !== -1)\n"
-			+ "        return;\n"
+			+ "        return false;\n"
+			+ "    if (window.popupWindow === true)\n"
+			+ "        return false;\n"
+			+ "    if (window.internalId)\n"
+			+ "        wayplankTrackedUuids[String(window.internalId)] = true;\n"
 			+ "    // frameGeometryChanged intentionally NOT connected: WindowInfo.Geometry is unused\n"
 			+ "    // and geometry spam during resize/move flooded Wayland via indicator redraws.\n"
 			+ "    if (window.minimizedChanged)\n"
@@ -200,6 +215,7 @@ namespace Plank
 			+ "    if (window.demandsAttentionChanged) {\n"
 			+ "        window.demandsAttentionChanged.connect(scheduleWindowState);\n"
 			+ "    }\n"
+			+ "    return true;\n"
 			+ "}\n"
 			+ "\n"
 			+ "if (workspace.currentDesktopChanged) {\n"
@@ -209,13 +225,20 @@ namespace Plank
 			+ "    workspace.screensChanged.connect(scheduleWindowState);\n"
 			+ "}\n"
 			+ "workspace.windowAdded.connect(function (window) {\n"
-			+ "    connectWindow(window);\n"
-			+ "    scheduleWindowState();\n"
+			+ "    if (connectWindow(window))\n"
+			+ "        scheduleWindowState();\n"
 			+ "});\n"
 			+ "workspace.windowRemoved.connect(function (w) {\n"
-			+ "    scheduleWindowState();\n"
+			+ "    var wUuid = (w && w.internalId) ? String(w.internalId) : null;\n"
+			+ "    if (wUuid && wayplankTrackedUuids[wUuid]) {\n"
+			+ "        delete wayplankTrackedUuids[wUuid];\n"
+			+ "        delete wayplankMinimizedWindows[wUuid];\n"
+			+ "        scheduleWindowState();\n"
+			+ "    }\n"
 			+ "});\n"
 			+ "workspace.windowActivated.connect(function (client) {\n"
+			+ "    if (client && (client.popupWindow === true || isWayplankOrIgnoredClient(client)))\n"
+			+ "        return;\n"
 			+ "    scheduleWindowState();\n"
 			+ "    if (wayplankShowingDesktop && client && client.normalWindow && !client.minimized && client.specialWindow !== true) {\n"
 			+ "        wayplankShowingDesktop = false;\n"
@@ -394,6 +417,7 @@ namespace Plank
 		static int panel_mon_x = 0;
 		static int panel_mon_y = 0;
 		public signal void state_changed ();
+		public signal void bridge_reconnected ();
 
 		public static bool get_primary_panel_monitor (out int x, out int y)
 		{
@@ -411,6 +435,8 @@ namespace Plank
 
 		public static void update_window_state (string state)
 		{
+			if (window_state != null && window_state == state)
+				return;
 			window_state = state;
 			window_infos = parse_window_infos (state);
 			get_default ().state_changed ();
@@ -464,7 +490,8 @@ namespace Plank
 					if (res_class_chk == "kde-dockbar" || res_class_chk == "wayplank" || res_class_chk == "plank" ||
 					    res_name_chk == "kde-dockbar" || res_name_chk == "wayplank" || res_name_chk == "plank" ||
 					    dname_chk == "kde-dockbar" || dname_chk == "kde-dockbar.desktop" || dname_chk == "wayplank" || dname_chk == "plank" || dname_chk == "wayplank.desktop" || dname_chk == "plank.desktop" ||
-					    capt_chk == "kde-dockbar" || capt_chk == "wayplank" || capt_chk == "wayplank-hover")
+					    capt_chk == "kde-dockbar" || capt_chk == "wayplank" || capt_chk == "wayplank-hover" ||
+					    capt_chk == "wayplank-folder-menu" || capt_chk == "wayplank-hover-cards" || capt_chk == "wayplank-poof")
 						continue;
 					var info = new WindowInfo ();
 					info.Id = json.get_string_member ("uuid");
@@ -480,6 +507,7 @@ namespace Plank
 					info.Minimized = json.has_member ("minimized") && json.get_boolean_member ("minimized");
 					info.Active = json.has_member ("active") && json.get_boolean_member ("active");
 					info.Maximized = json.has_member ("maximized") && json.get_boolean_member ("maximized");
+					info.IsDialog = json.has_member ("normal") && !json.get_boolean_member ("normal");
 					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
 					info.Normal = !json.has_member ("normal") || json.get_boolean_member ("normal");
 					info.Visible = !json.has_member ("visible") || json.get_boolean_member ("visible");
@@ -496,14 +524,18 @@ namespace Plank
 							info.Cmdline = pentry.cmdline;
 							info.Executable = pentry.executable;
 						} else if (!Matcher.is_pid_mmap_blocked (info.Pid)) {
-							string cmd = "";
-							if (GLib.FileUtils.get_contents ("/proc/%d/cmdline".printf (info.Pid), out cmd)) {
-								info.Cmdline = cmd.replace ("\0", " ").strip ();
-							}
-							string comm = "";
-							if (GLib.FileUtils.get_contents ("/proc/%d/comm".printf (info.Pid), out comm)) {
-								info.Executable = comm.strip ();
-							}
+							try {
+								string cmd = "";
+								if (GLib.FileUtils.get_contents ("/proc/%d/cmdline".printf (info.Pid), out cmd)) {
+									info.Cmdline = cmd.replace ("\0", " ").strip ();
+								}
+							} catch (Error e) {}
+							try {
+								string comm = "";
+								if (GLib.FileUtils.get_contents ("/proc/%d/comm".printf (info.Pid), out comm)) {
+									info.Executable = comm.strip ();
+								}
+							} catch (Error e) {}
 							if (pid_cache.size > 256)
 								pid_cache.clear ();
 							pid_cache.set (info.Pid, new PidCacheEntry (info.Cmdline, info.Executable));
@@ -659,6 +691,7 @@ namespace Plank
 
 		public static void cleanup ()
 		{
+			window_state = null;
 			if (kwin_watch_id > 0U) {
 				Bus.unwatch_name (kwin_watch_id);
 				kwin_watch_id = 0U;
@@ -719,6 +752,7 @@ namespace Plank
 			}
 
 			start ();
+			get_default ().bridge_reconnected ();
 		}
 
 		public static void handle_system_resume ()

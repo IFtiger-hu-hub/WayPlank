@@ -37,6 +37,8 @@ namespace Plank
 		public bool Minimized { get; set; default = false; }
 		public bool Active { get; set; default = false; }
 		public bool Maximized { get; set; default = false; }
+		public bool Fullscreen { get; set; default = false; }
+		public bool IsDialog { get; set; default = false; }
 		public bool DemandsAttention { get; set; default = false; }
 		public bool Normal { get; set; default = true; }
 		public bool Visible { get; set; default = true; }

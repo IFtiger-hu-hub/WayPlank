@@ -30,6 +30,7 @@ namespace Plank
 		 * Fired whenever the active backend's window state changes.
 		 */
 		public signal void state_changed ();
+		public signal void bridge_reconnected ();
 		public signal void primary_monitor_changed ();
 		
 		static WindowControl? instance;
@@ -50,6 +51,7 @@ namespace Plank
 		{
 			backend = b;
 			backend.state_changed.connect (() => state_changed ());
+			backend.bridge_reconnected.connect (() => bridge_reconnected ());
 			backend.primary_monitor_changed.connect (() => primary_monitor_changed ());
 		}
 		

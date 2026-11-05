@@ -30,6 +30,7 @@ namespace Plank
 		public signal void changed ();
 		Gee.ArrayList<File> indexed_desktop_files;
 		Gee.HashMap<string, ApplicationIdentity> identities;
+		Gee.HashSet<string> monitored_folder_uris;
 		Gee.ArrayList<FileMonitor> folder_monitors;
 		string last_window_signature = "";
 		string[] cached_active_ids = {};
@@ -47,22 +48,37 @@ namespace Plank
 		{
 			indexed_desktop_files = new Gee.ArrayList<File> ();
 			identities = new Gee.HashMap<string, ApplicationIdentity> ();
+			monitored_folder_uris = new Gee.HashSet<string> ();
 			folder_monitors = new Gee.ArrayList<FileMonitor> ();
 			refresh_desktop_index ();
+			ensure_folder_monitors ();
 
+			WindowControl.get_default ().state_changed.connect (schedule_changed);
+		}
+
+		void ensure_folder_monitors ()
+		{
 			foreach (var folder in application_folders ()) {
 				if (!folder.query_exists ())
+					continue;
+				var f_uri = folder.get_uri ();
+				if (monitored_folder_uris.contains (f_uri))
 					continue;
 				try {
 					var monitor = folder.monitor_directory (FileMonitorFlags.NONE, null);
 					monitor.changed.connect (on_folder_changed);
 					folder_monitors.add (monitor);
+					monitored_folder_uris.add (f_uri);
 				} catch (Error e) {
 					debug ("Unable to monitor folder '%s': %s", folder.get_path (), e.message);
 				}
 			}
+		}
 
-			WindowControl.get_default ().state_changed.connect (schedule_changed);
+		public void refresh_index_now ()
+		{
+			ensure_folder_monitors ();
+			refresh_desktop_index ();
 		}
 
 		~ApplicationDiscovery ()

@@ -26,6 +26,7 @@ namespace Plank
 	public interface WindowBackend : GLib.Object
 	{
 		public signal void state_changed ();
+		public signal void bridge_reconnected ();
 		public signal void primary_monitor_changed ();
 		public abstract bool start ();
 		public abstract void cleanup ();
