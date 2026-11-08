@@ -380,24 +380,81 @@ namespace Plank
 		public double scroll_offset { get; set; default = 0.0; }
 		public double target_scroll_offset { get; set; default = 0.0; }
 		public double max_scroll_offset { get; private set; default = 0.0; }
+		public double scroll_viewport_start { get; private set; default = 0.0; }
+		public double scroll_viewport_end { get; private set; default = 0.0; }
+
+		public double pinned_scroll_offset { get; set; default = 0.0; }
+		public double target_pinned_scroll_offset { get; set; default = 0.0; }
+		public double max_pinned_scroll_offset { get; private set; default = 0.0; }
+		public double pinned_viewport_start { get; private set; default = 0.0; }
+		public double pinned_viewport_end { get; private set; default = 0.0; }
+
+		int pinned_zone_first_idx = -1;
+		int pinned_zone_last_idx = -1;
+		int scroll_zone_first_idx = -1;
+		int scroll_zone_last_idx = -1;
+		int mid_sep_idx = -1;
+		int right_fixed_first_idx = -1;
+
+		public bool has_overflow ()
+		{
+			return (max_scroll_offset > 0.0 || max_pinned_scroll_offset > 0.0);
+		}
+
+		public bool is_pinned_scrollable_item (DockElement element)
+		{
+			if (max_pinned_scroll_offset <= 0.0 || pinned_zone_first_idx < 0 || pinned_zone_last_idx < pinned_zone_first_idx)
+				return false;
+			unowned DockItem? dock_item = (element as DockItem);
+			if (dock_item == null)
+				return false;
+			var items = controller.VisibleItems;
+			int idx = items.index_of (dock_item);
+			return (idx >= pinned_zone_first_idx && idx <= pinned_zone_last_idx);
+		}
+
+		public bool is_scrollable_item (DockElement element)
+		{
+			if (max_scroll_offset <= 0.0 || scroll_zone_first_idx < 0 || scroll_zone_last_idx < scroll_zone_first_idx)
+				return false;
+			unowned DockItem? dock_item = (element as DockItem);
+			if (dock_item == null)
+				return false;
+			var items = controller.VisibleItems;
+			int idx = items.index_of (dock_item);
+			return (idx >= scroll_zone_first_idx && idx <= scroll_zone_last_idx);
+		}
 
 		public bool is_scrolling ()
 		{
-			return (max_scroll_offset > 0.0 && Math.fabs (target_scroll_offset - scroll_offset) > 0.5);
+			return (max_scroll_offset > 0.0 && Math.fabs (target_scroll_offset - scroll_offset) > 0.5)
+				|| (max_pinned_scroll_offset > 0.0 && Math.fabs (target_pinned_scroll_offset - pinned_scroll_offset) > 0.5);
 		}
 
 		public void scroll_by (double delta)
 		{
-			if (max_scroll_offset <= 0.0)
+			if (!has_overflow ())
 				return;
 
-			target_scroll_offset = (target_scroll_offset + delta).clamp (0.0, max_scroll_offset);
+			double cursor_coord = is_horizontal_dock () ? controller.renderer.local_cursor.x : controller.renderer.local_cursor.y;
+			if (max_pinned_scroll_offset > 0.0 && max_scroll_offset > 0.0) {
+				double split_coord = (pinned_viewport_end + scroll_viewport_start) / 2.0;
+				if (cursor_coord <= split_coord) {
+					target_pinned_scroll_offset = (target_pinned_scroll_offset + delta).clamp (0.0, max_pinned_scroll_offset);
+				} else {
+					target_scroll_offset = (target_scroll_offset + delta).clamp (0.0, max_scroll_offset);
+				}
+			} else if (max_pinned_scroll_offset > 0.0) {
+				target_pinned_scroll_offset = (target_pinned_scroll_offset + delta).clamp (0.0, max_pinned_scroll_offset);
+			} else if (max_scroll_offset > 0.0) {
+				target_scroll_offset = (target_scroll_offset + delta).clamp (0.0, max_scroll_offset);
+			}
 			controller.renderer.animated_draw ();
 		}
 
 		public void ensure_item_visible (DockItem? item)
 		{
-			if (item == null || max_scroll_offset <= 0.0)
+			if (item == null || !has_overflow ())
 				return;
 
 			if (!draw_values.has_key (item))
@@ -411,13 +468,24 @@ namespace Plank
 			double slot = get_item_slot (item);
 			double left = cx - slot / 2.0;
 			double right = cx + slot / 2.0;
-			double vis_min = (double) items_offset;
-			double vis_max = (double) ((is_horizontal_dock () ? DockWidth : DockHeight) - items_offset);
 
-			if (left < vis_min)
-				scroll_by (left - vis_min - 20.0);
-			else if (right > vis_max)
-				scroll_by (right - vis_max + 20.0);
+			if (is_pinned_scrollable_item (item)) {
+				double vis_min = pinned_viewport_start;
+				double vis_max = pinned_viewport_end;
+				if (left < vis_min)
+					target_pinned_scroll_offset = (target_pinned_scroll_offset + (left - vis_min - 20.0)).clamp (0.0, max_pinned_scroll_offset);
+				else if (right > vis_max)
+					target_pinned_scroll_offset = (target_pinned_scroll_offset + (right - vis_max + 20.0)).clamp (0.0, max_pinned_scroll_offset);
+				controller.renderer.animated_draw ();
+			} else if (is_scrollable_item (item)) {
+				double vis_min = scroll_viewport_start;
+				double vis_max = scroll_viewport_end;
+				if (left < vis_min)
+					target_scroll_offset = (target_scroll_offset + (left - vis_min - 20.0)).clamp (0.0, max_scroll_offset);
+				else if (right > vis_max)
+					target_scroll_offset = (target_scroll_offset + (right - vis_max + 20.0)).clamp (0.0, max_scroll_offset);
+				controller.renderer.animated_draw ();
+			}
 		}
 		
 		public void update (DockTheme theme)
@@ -441,7 +509,7 @@ namespace Plank
 		inline int get_reverse_roundness_padding (int rev_round, int bot_round)
 		{
 			if (rev_round > 0 && bot_round == 0)
-				return int.max (8, (int) Math.round (rev_round * 0.75));
+				return rev_round + int.max (6, TopRoundness / 2);
 			return 0;
 		}
 		
@@ -703,16 +771,26 @@ namespace Plank
 				}
 			}
 			
-			if (!controller.hide_manager.Hidden || controller.hide_manager.unhide_pending ()) {
+			if (!controller.hide_manager.Hidden) {
 				return cursor_region;
 			}
 			
-			int edge_size = controller.prefs.PressureReveal ? (1 * window_scale_factor) : (10 * window_scale_factor);
+			int edge_size = 1;
+			int win_width = DockWidth;
+			int win_height = DockHeight;
+			if (controller.window != null && controller.window.get_realized ()) {
+				int alloc_w = controller.window.get_allocated_width ();
+				int alloc_h = controller.window.get_allocated_height ();
+				if (alloc_w > 0)
+					win_width = alloc_w;
+				if (alloc_h > 0)
+					win_height = alloc_h;
+			}
 			switch (Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
 				cursor_region.height = edge_size;
-				cursor_region.y = DockHeight - edge_size;
+				cursor_region.y = win_height - edge_size;
 				break;
 			case Gtk.PositionType.TOP:
 				cursor_region.height = edge_size;
@@ -724,7 +802,7 @@ namespace Plank
 				break;
 			case Gtk.PositionType.RIGHT:
 				cursor_region.width = edge_size;
-				cursor_region.x = DockWidth - edge_size;
+				cursor_region.x = win_width - edge_size;
 				break;
 			}
 			
@@ -902,19 +980,138 @@ namespace Plank
 			
 			double center_y = (is_horizontal_dock () ? static_dock_region.height / 2.0 : static_dock_region.width / 2.0);
 			
-			double current_items_span = 0.0;
-			for (int j = 0; j < items.size; j++) {
-				current_items_span += get_item_slot (items[j]);
+			// Partition items into 5 logical zones:
+			// [Zone L: Left Fixed Docklets + Sep] [Viewport P: Pinned Apps] [Mid Sep] [Viewport T: Temp Apps & Previews] [Zone R: Sep + Trash]
+			int r_fixed_first = items.size;
+			if (items.size > 0 && items[items.size - 1] is TrashDockItem) {
+				r_fixed_first = items.size - 1;
+				if (r_fixed_first > 0 && items[r_fixed_first - 1] is SeparatorDockItem)
+					r_fixed_first--;
 			}
 
+			int t_first = -1;
+			int t_last = -1;
+			for (int j = 0; j < r_fixed_first; j++) {
+				unowned DockItem it = items[j];
+				if (it is TransientDockItem || it is MinimizedWindowDockItem) {
+					if (t_first < 0)
+						t_first = j;
+					t_last = j;
+				}
+			}
+
+			int m_sep = -1;
+			int p_end_excl = r_fixed_first;
+			if (t_first >= 0) {
+				t_last = r_fixed_first - 1;
+				if (t_first > 0 && items[t_first - 1] is SeparatorDockItem) {
+					m_sep = t_first - 1;
+					p_end_excl = m_sep;
+				} else {
+					p_end_excl = t_first;
+				}
+			}
+
+			int p_first = 0;
+			while (p_first < p_end_excl && DefaultApplicationDockItemProvider.is_docklet_element (items[p_first])) {
+				p_first++;
+			}
+			if (p_first > 0 && p_first < p_end_excl && items[p_first] is SeparatorDockItem) {
+				p_first++;
+			}
+			int p_last = p_end_excl - 1;
+			int l_fixed_last = p_first - 1;
+			if (p_first > p_last) {
+				l_fixed_last = p_end_excl - 1;
+				p_first = -1;
+				p_last = -1;
+			}
+
+			double left_fixed_span = 0.0;
+			double pinned_span = 0.0;
+			double mid_sep_span = (m_sep >= 0) ? get_item_slot (items[m_sep]) : 0.0;
+			double temp_span = 0.0;
+			double right_fixed_span = 0.0;
+
+			for (int j = 0; j < items.size; j++) {
+				double slot = get_item_slot (items[j]);
+				if (j >= r_fixed_first)
+					right_fixed_span += slot;
+				else if (t_first >= 0 && j >= t_first && j <= t_last)
+					temp_span += slot;
+				else if (j == m_sep)
+					continue;
+				else if (p_first >= 0 && j >= p_first && j <= p_last)
+					pinned_span += slot;
+				else
+					left_fixed_span += slot;
+			}
+
+			double current_items_span = left_fixed_span + pinned_span + mid_sep_span + temp_span + right_fixed_span;
 			double current_dock_width = current_items_span + 2 * items_offset;
 			double available_content_span = (double) width - 2.0 * items_offset;
+
+			double pinned_viewport_span = pinned_span;
+			double temp_viewport_span = temp_span;
+
 			if (controller.prefs.ScrollOverflow && available_content_span > 0 && current_items_span > available_content_span) {
-				max_scroll_offset = current_items_span - available_content_span;
+				double total_scrollable_budget = double.max (icon_size * 2.0, available_content_span - left_fixed_span - mid_sep_span - right_fixed_span);
+				if (t_first < 0 || temp_span <= 0.0) {
+					temp_viewport_span = 0.0;
+					pinned_viewport_span = total_scrollable_budget;
+				} else if (p_first < 0 || pinned_span <= 0.0) {
+					pinned_viewport_span = 0.0;
+					temp_viewport_span = total_scrollable_budget;
+				} else {
+					double max_pinned_share = Math.round (total_scrollable_budget * 0.60);
+					double max_temp_share = total_scrollable_budget - max_pinned_share;
+					if (pinned_span <= max_pinned_share) {
+						pinned_viewport_span = pinned_span;
+						temp_viewport_span = total_scrollable_budget - pinned_viewport_span;
+					} else if (temp_span <= max_temp_share) {
+						temp_viewport_span = temp_span;
+						pinned_viewport_span = total_scrollable_budget - temp_viewport_span;
+					} else {
+						pinned_viewport_span = max_pinned_share;
+						temp_viewport_span = max_temp_share;
+					}
+				}
+
+				max_pinned_scroll_offset = double.max (0.0, pinned_span - pinned_viewport_span);
+				max_scroll_offset = double.max (0.0, temp_span - temp_viewport_span);
+				pinned_zone_first_idx = p_first;
+				pinned_zone_last_idx = p_last;
+				scroll_zone_first_idx = t_first;
+				scroll_zone_last_idx = t_last;
+				mid_sep_idx = m_sep;
+				right_fixed_first_idx = r_fixed_first;
 			} else {
+				max_pinned_scroll_offset = 0.0;
+				target_pinned_scroll_offset = 0.0;
+				pinned_scroll_offset = 0.0;
 				max_scroll_offset = 0.0;
 				target_scroll_offset = 0.0;
 				scroll_offset = 0.0;
+				pinned_zone_first_idx = -1;
+				pinned_zone_last_idx = -1;
+				scroll_zone_first_idx = -1;
+				scroll_zone_last_idx = -1;
+				mid_sep_idx = -1;
+				right_fixed_first_idx = items.size;
+			}
+
+			if (max_pinned_scroll_offset > 0.0) {
+				target_pinned_scroll_offset = target_pinned_scroll_offset.clamp (0.0, max_pinned_scroll_offset);
+				if (Math.fabs (target_pinned_scroll_offset - pinned_scroll_offset) > 0.1) {
+					pinned_scroll_offset += (target_pinned_scroll_offset - pinned_scroll_offset) * 0.35;
+					if (Math.fabs (target_pinned_scroll_offset - pinned_scroll_offset) <= 0.1)
+						pinned_scroll_offset = target_pinned_scroll_offset;
+				} else {
+					pinned_scroll_offset = target_pinned_scroll_offset;
+				}
+			} else {
+				target_pinned_scroll_offset = 0.0;
+				pinned_scroll_offset = 0.0;
 			}
 
 			if (max_scroll_offset > 0.0) {
@@ -926,12 +1123,23 @@ namespace Plank
 				} else {
 					scroll_offset = target_scroll_offset;
 				}
+			} else {
+				target_scroll_offset = 0.0;
+				scroll_offset = 0.0;
 			}
 
 			double dock_start_coord = 0.0;
-			if (max_scroll_offset > 0.0) {
+			if (has_overflow ()) {
 				dock_start_coord = 0.0;
+				pinned_viewport_start = dock_start_coord + items_offset + left_fixed_span;
+				pinned_viewport_end = pinned_viewport_start + pinned_viewport_span;
+				scroll_viewport_start = pinned_viewport_end + mid_sep_span;
+				scroll_viewport_end = scroll_viewport_start + temp_viewport_span;
 			} else if (screen_is_composited) {
+				pinned_viewport_start = 0.0;
+				pinned_viewport_end = (double) width;
+				scroll_viewport_start = 0.0;
+				scroll_viewport_end = (double) width;
 				double base_span = (double) width - current_dock_width;
 				switch (Alignment) {
 				default:
@@ -949,12 +1157,16 @@ namespace Plank
 					break;
 				}
 			} else {
+				pinned_viewport_start = 0.0;
+				pinned_viewport_end = (double) width;
+				scroll_viewport_start = 0.0;
+				scroll_viewport_end = (double) width;
 				dock_start_coord = is_horizontal_dock () ? static_dock_region.x : static_dock_region.y;
 			}
 
 			double first_slot = (items.size > 0) ? get_item_slot (items.first ()) : (icon_size + ItemPadding);
 			double center_x;
-			if (Alignment == Gtk.Align.FILL && max_scroll_offset <= 0.0) {
+			if (Alignment == Gtk.Align.FILL && !has_overflow ()) {
 				center_x = first_slot / 2.0 + items_offset;
 				switch (ItemsAlignment) {
 				default:
@@ -974,10 +1186,57 @@ namespace Plank
 						center_x += static_dock_region.y + (static_dock_region.height - 2 * items_offset - items_width);
 					break;
 				}
-			} else if (max_scroll_offset <= 0.0) {
+			} else if (!has_overflow ()) {
 				center_x = first_slot / 2.0 + items_offset + (is_horizontal_dock () ? static_dock_region.x : static_dock_region.y);
 			} else {
-				center_x = dock_start_coord + items_offset + first_slot / 2.0 - scroll_offset;
+				center_x = dock_start_coord + items_offset + first_slot / 2.0;
+			}
+
+			double[] item_centers = new double[items.size];
+			if (!has_overflow ()) {
+				double cur_x = center_x;
+				for (int j = 0; j < items.size; j++) {
+					item_centers[j] = Math.floor (cur_x);
+					if (items[j].RemoveTime == 0 && j + 1 < items.size)
+						cur_x += (get_item_slot (items[j]) + get_item_slot (items[j + 1])) / 2.0;
+				}
+			} else {
+				double cur_x = dock_start_coord + items_offset;
+				for (int j = 0; j <= l_fixed_last && j < items.size; j++) {
+					double s = get_item_slot (items[j]);
+					item_centers[j] = Math.floor (cur_x + s / 2.0);
+					if (items[j].RemoveTime == 0)
+						cur_x += s;
+				}
+				if (p_first >= 0 && p_last >= p_first) {
+					cur_x = pinned_viewport_start - pinned_scroll_offset;
+					for (int j = p_first; j <= p_last && j < items.size; j++) {
+						double s = get_item_slot (items[j]);
+						item_centers[j] = Math.floor (cur_x + s / 2.0);
+						if (items[j].RemoveTime == 0)
+							cur_x += s;
+					}
+				}
+				if (m_sep >= 0 && m_sep < items.size) {
+					double s = get_item_slot (items[m_sep]);
+					item_centers[m_sep] = Math.floor (pinned_viewport_end + s / 2.0);
+				}
+				if (t_first >= 0 && t_last >= t_first) {
+					cur_x = scroll_viewport_start - scroll_offset;
+					for (int j = t_first; j <= t_last && j < items.size; j++) {
+						double s = get_item_slot (items[j]);
+						item_centers[j] = Math.floor (cur_x + s / 2.0);
+						if (items[j].RemoveTime == 0)
+							cur_x += s;
+					}
+				}
+				cur_x = scroll_viewport_end;
+				for (int j = r_fixed_first; j < items.size; j++) {
+					double s = get_item_slot (items[j]);
+					item_centers[j] = Math.floor (cur_x + s / 2.0);
+					if (items[j].RemoveTime == 0)
+						cur_x += s;
+				}
 			}
 			
 			PointD center = { Math.floor (center_x), Math.floor (center_y) };
@@ -990,6 +1249,7 @@ namespace Plank
 			
 			for (int i = 0; i < items.size; i++) {
 				unowned DockItem item = items[i];
+				center = { item_centers[i], Math.floor (center_y) };
 				DockItemDrawValue val = new DockItemDrawValue ();
 				val.opacity = 1.0;
 				val.darken = 0.0;
@@ -1001,8 +1261,22 @@ namespace Plank
 				
 				double cursor_position = cursor.x;
 				double center_position = center.x;
+
+				bool same_zone = true;
+				if (has_overflow ()) {
+					if (i >= r_fixed_first)
+						same_zone = (cursor_position >= scroll_viewport_end);
+					else if (t_first >= 0 && i >= t_first && i <= t_last)
+						same_zone = (cursor_position >= scroll_viewport_start && cursor_position < scroll_viewport_end);
+					else if (i == m_sep)
+						same_zone = false;
+					else if (p_first >= 0 && i >= p_first && i <= p_last)
+						same_zone = (cursor_position >= pinned_viewport_start && cursor_position < pinned_viewport_end);
+					else
+						same_zone = (cursor_position < pinned_viewport_start);
+				}
 				
-				double offset = double.min (Math.fabs (cursor_position - center_position), zoom_icon_size);
+				double offset = same_zone ? double.min (Math.fabs (cursor_position - center_position), zoom_icon_size) : zoom_icon_size;
 				
 				double offset_percent;
 				if (expand_for_drop) {
@@ -1041,6 +1315,8 @@ namespace Plank
 				// The separator is a real item for layout/animation purposes, but its
 				// own rendered size must stay fixed regardless of hover-zoom.
 				if (item is SeparatorDockItem) {
+					if (has_overflow () && (i == l_fixed_last || i == m_sep || i == r_fixed_first))
+						val.center.x = center.x;
 					val.center.y = icon_size / 2.0;
 					val.zoom = 1.0;
 					val.icon_size = icon_size;
@@ -1075,11 +1351,6 @@ namespace Plank
 					func (item, val);
 				
 				draw_values[item] = val;
-				
-				if (item.RemoveTime == 0 && i + 1 < items.size) {
-					unowned DockItem next_item = items[i + 1];
-					center.x += (get_item_slot (item) + get_item_slot (next_item)) / 2.0;
-				}
 			}
 			
 			if (post_func != null)
@@ -1089,7 +1360,8 @@ namespace Plank
 			
 			draw_values.map_iterator ().foreach ((i, val) => {
 				val.draw_region = get_item_draw_region (val);
-				val.hover_region = get_item_hover_region (val);
+				int vp_mode = is_pinned_scrollable_item (i) ? 1 : (is_scrollable_item (i) ? 2 : 0);
+				val.hover_region = get_item_hover_region (val, vp_mode);
 				val.background_region = get_item_background_region (val);
 				return true;
 			});
@@ -1134,7 +1406,7 @@ namespace Plank
 			return rect;
 		}
 		
-		Gdk.Rectangle get_item_hover_region (DockItemDrawValue val)
+		Gdk.Rectangle get_item_hover_region (DockItemDrawValue val, int vp_mode = 0)
 		{
 			Gdk.Rectangle rect;
 			
@@ -1188,6 +1460,44 @@ namespace Plank
 			
 			if (rect.intersect (get_background_region (), out background_region))
 				background_region.union (get_item_draw_region (val), out rect);
+
+			if (vp_mode == 1 && max_pinned_scroll_offset > 0.0) {
+				int min_coord = (int) Math.round (pinned_viewport_start);
+				int max_coord = (int) Math.round (pinned_viewport_end);
+				if (is_horizontal_dock ()) {
+					int x1 = int.max (rect.x, min_coord);
+					int x2 = int.min (rect.x + rect.width, max_coord);
+					if (x2 <= x1)
+						return { x1.clamp (min_coord, max_coord), rect.y, 0, 0 };
+					rect.x = x1;
+					rect.width = x2 - x1;
+				} else {
+					int y1 = int.max (rect.y, min_coord);
+					int y2 = int.min (rect.y + rect.height, max_coord);
+					if (y2 <= y1)
+						return { rect.x, y1.clamp (min_coord, max_coord), 0, 0 };
+					rect.y = y1;
+					rect.height = y2 - y1;
+				}
+			} else if (vp_mode == 2 && max_scroll_offset > 0.0) {
+				int min_coord = (int) Math.round (scroll_viewport_start);
+				int max_coord = (int) Math.round (scroll_viewport_end);
+				if (is_horizontal_dock ()) {
+					int x1 = int.max (rect.x, min_coord);
+					int x2 = int.min (rect.x + rect.width, max_coord);
+					if (x2 <= x1)
+						return { x1.clamp (min_coord, max_coord), rect.y, 0, 0 };
+					rect.x = x1;
+					rect.width = x2 - x1;
+				} else {
+					int y1 = int.max (rect.y, min_coord);
+					int y2 = int.min (rect.y + rect.height, max_coord);
+					if (y2 <= y1)
+						return { rect.x, y1.clamp (min_coord, max_coord), 0, 0 };
+					rect.y = y1;
+					rect.height = y2 - y1;
+				}
+			}
 			
 			return rect;
 		}
@@ -1226,6 +1536,8 @@ namespace Plank
 			var draw_values_it = draw_values.map_iterator ();
 			while (draw_values_it.next ()) {
 				var val = draw_values_it.get_value ();
+				if (has_overflow () && (val.hover_region.width <= 0 || val.hover_region.height <= 0))
+					continue;
 				var center = val.static_center;
 				var new_square_distance = (x - center.x) * (x - center.x) + (y - center.y) * (y - center.y);
 				if (square_distance > new_square_distance) {
@@ -1495,6 +1807,18 @@ namespace Plank
 		{
 			return background_rect;
 		}
+
+		public int get_items_offset ()
+		{
+			return items_offset;
+		}
+
+		public int get_reverse_padding ()
+		{
+			if (ReverseRoundness > 0 && BottomRoundness == 0)
+				return ReverseRoundness;
+			return 0;
+		}
 		
 		void update_background_region (DockItemDrawValue val_first, DockItemDrawValue val_last)
 		{
@@ -1541,7 +1865,7 @@ namespace Plank
 			var padding_first = (val_first.icon_size + padding) / 2.0;
 			var padding_last = (val_last.icon_size + padding) / 2.0;
 			
-			if (max_scroll_offset > 0.0) {
+			if (has_overflow ()) {
 				if (is_horizontal_dock ()) {
 					x = static_dock_region.x;
 					width = monitor_geo.width;

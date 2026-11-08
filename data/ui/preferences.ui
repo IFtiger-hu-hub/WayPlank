@@ -674,7 +674,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">边缘压力唤出:</property>
-                <property name="tooltip_text" translatable="yes">Requires touching the physical screen edge (1px) to reveal the dock, preventing accidental triggers; when disabled, reveals 10px before the edge for fluid unhiding</property>
+                <property name="tooltip_text" translatable="yes">仅在鼠标触碰屏幕最外侧边缘 (1px) 时才唤出 Dock，防止操作屏幕底部应用时误触</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -687,7 +687,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Requires touching the physical screen edge (1px) to reveal the dock, preventing accidental triggers; when disabled, reveals 10px before the edge for fluid unhiding</property>
+                <property name="tooltip_text" translatable="yes">仅在鼠标触碰屏幕最外侧边缘 (1px) 时才唤出 Dock，防止操作屏幕底部应用时误触</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>

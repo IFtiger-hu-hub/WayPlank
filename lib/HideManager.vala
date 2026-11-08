@@ -61,7 +61,7 @@ namespace Plank
 		// the results of our update
 		const uint UPDATE_TIMEOUT = 200U;
 		const uint PRESSURE_REVEAL_TIMEOUT = 50U;
-		const int PRESSURE_REVEAL_SIZE = 8;
+		const int PRESSURE_REVEAL_SIZE = 1;
 		
 		
 		static int plank_pid;
@@ -187,13 +187,13 @@ namespace Plank
 			if (gdk_win != null) {
 				var seat = window.get_display ().get_default_seat ();
 				var pointer = seat != null ? seat.get_pointer () : null;
-				if (pointer != null)
-					gdk_win.get_device_position (pointer, out x, out y, null);
-			}
-
-			if (x < 0 && y < 0) {
-				x = controller.renderer.local_cursor.x;
-				y = controller.renderer.local_cursor.y;
+				if (pointer != null) {
+					var win_under = gdk_win.get_device_position (pointer, out x, out y, null);
+					if (win_under == null) {
+						x = -1;
+						y = -1;
+					}
+				}
 			}
 			
 			update_hovered_with_coords (x, y);
@@ -219,8 +219,16 @@ namespace Plank
 			var dock_rect = position_manager.get_cursor_region ();
 			
 			// use the dock rect and cursor location to determine if dock is hovered
-			var hovered = (x >= dock_rect.x && x < dock_rect.x + dock_rect.width
-				&& y >= dock_rect.y && y < dock_rect.y + dock_rect.height);
+			bool hovered = false;
+			if (x >= 0 && y >= 0) {
+				if (Hidden) {
+					hovered = (x >= dock_rect.x - 1 && x <= dock_rect.x + dock_rect.width
+						&& y >= dock_rect.y - 1 && y <= dock_rect.y + dock_rect.height);
+				} else {
+					hovered = (x >= dock_rect.x && x < dock_rect.x + dock_rect.width
+						&& y >= dock_rect.y && y < dock_rect.y + dock_rect.height);
+				}
+			}
 			
 			if (Hovered != hovered) {
 				Hovered = hovered;

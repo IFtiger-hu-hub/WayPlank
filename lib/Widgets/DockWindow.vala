@@ -647,7 +647,7 @@ namespace Plank
 						smooth_scroll_dy = 0.0;
 						smooth_scroll_dx = 0.0;
 					} else {
-						if (controller.position_manager.max_scroll_offset > 0.0) {
+						if (controller.position_manager.has_overflow ()) {
 							string? item_type_name = (HoveredItem != null) ? HoveredItem.get_type ().name () : null;
 							bool is_volume = (item_type_name != null && item_type_name.contains ("Volume"));
 							bool is_brightness = (item_type_name != null && item_type_name.contains ("Brightness"));
@@ -680,7 +680,7 @@ namespace Plank
 			// =====================================================================
 			// Dock Overflow Smooth Scrolling (Fork Integration by 史有虎 / IFtiger-hu)
 			// =====================================================================
-			if (controller.position_manager.max_scroll_offset > 0.0) {
+			if (controller.position_manager.has_overflow ()) {
 				string? item_type_name = (HoveredItem != null) ? HoveredItem.get_type ().name () : null;
 				bool is_volume = (item_type_name != null && item_type_name.contains ("Volume"));
 				bool is_brightness = (item_type_name != null && item_type_name.contains ("Brightness"));
@@ -719,6 +719,7 @@ namespace Plank
 			} else {
 				window_position_retry = 0;
 			}
+			set_input_mask ();
 
 			return base.configure_event (event);
 		}
@@ -988,9 +989,7 @@ namespace Plank
 			if (needs_resize || width_current <= 0) {
 				Logger.verbose ("DockWindow.set_size_request (width = %i, height = %i)", win_rect.width, win_rect.height);
 				set_size_request (win_rect.width, win_rect.height);
-				if (!GtkLayerShell.is_supported ()) {
-					resize (win_rect.width, win_rect.height);
-				}
+				resize (win_rect.width, win_rect.height);
 				controller.renderer.reset_buffers ();
 
 				update_icon_regions ();
@@ -1338,6 +1337,8 @@ namespace Plank
 
 			if (cursor_region.width <= 0 || cursor_region.height <= 0) {
 				window.input_shape_combine_region (new Cairo.Region (), 0, 0);
+				if (GtkLayerShell.is_supported ())
+					queue_draw ();
 				return;
 			}
 
@@ -1348,6 +1349,8 @@ namespace Plank
 				cursor_region.height
 			};
 			window.input_shape_combine_region (new Cairo.Region.rectangle (region_rect), 0, 0);
+			if (GtkLayerShell.is_supported ())
+				queue_draw ();
 		}
 	}
 }

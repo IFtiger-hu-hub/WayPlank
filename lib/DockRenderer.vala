@@ -493,42 +493,137 @@ namespace Plank
 			benchmark.add ("background render time - %f ms".printf (end2.difference (start2) / 1000.0));
 #endif
 			
-			// Clip items and shadows to the dock background area so scrolled-out items don't leak
-			bool need_clip = (position_manager.max_scroll_offset > 0.0);
-			if (need_clip) {
-				item_cr.save ();
-				shadow_cr.save ();
-				if (position_manager.is_horizontal_dock ()) {
-					item_cr.rectangle (background_rect.x, 0, background_rect.width, win_rect.height);
-					shadow_cr.rectangle (background_rect.x, 0, background_rect.width, win_rect.height);
-				} else {
-					item_cr.rectangle (0, background_rect.y, win_rect.width, background_rect.height);
-					shadow_cr.rectangle (0, background_rect.y, win_rect.width, background_rect.height);
-				}
-				item_cr.clip ();
-				shadow_cr.clip ();
-			}
+			// Multi-pass item rendering when overflow scrolling is active:
+			// Pass 1 renders overflowing pinned apps inside [pinned_viewport_start, pinned_viewport_end].
+			// Pass 2 renders overflowing temporary items inside [scroll_viewport_start, scroll_viewport_end].
+			// Pass 3 renders stationary items (docklets, non-overflowing pinned apps, separators, trash) unclipped.
+			bool pinned_overflow = (position_manager.max_pinned_scroll_offset > 0.0);
+			bool temp_overflow = (position_manager.max_scroll_offset > 0.0);
+			if (pinned_overflow || temp_overflow) {
+				double max_dim = position_manager.is_horizontal_dock () ? win_rect.width : win_rect.height;
+				double split_limit = (pinned_overflow && temp_overflow)
+					? ((position_manager.pinned_viewport_end + position_manager.scroll_viewport_start) / 2.0)
+					: (pinned_overflow ? max_dim : 0.0);
 
-			// draw each item onto the dock buffer
-			foreach (unowned DockItem item in current_items) {
-#if BENCHMARK
-				start2 = new DateTime.now_local ();
-#endif
-				// Do not draw the currently dragged item
-				if (item.IsVisible && dragged_item != item) {
-					var draw_value = position_manager.get_draw_value_for_item (item);
-					draw_item (item_cr, item, draw_value, frame_time);
-					draw_item_shadow (shadow_cr, item, draw_value);
-				}
-#if BENCHMARK
-				end2 = new DateTime.now_local ();
-				benchmark.add ("item render time - %f ms".printf (end2.difference (start2) / 1000.0));
-#endif
-			}
+				if (pinned_overflow) {
+					double p_start_t = ((position_manager.pinned_scroll_offset - 1.0) / 10.0).clamp (0.0, 1.0);
+					double p_end_t = ((position_manager.max_pinned_scroll_offset - position_manager.pinned_scroll_offset - 1.0) / 10.0).clamp (0.0, 1.0);
+					int p_clip_start = (int) Math.round (position_manager.pinned_viewport_start + 12.0 * p_start_t - (1.0 - p_start_t) * 6.0);
+					int p_clip_end = (int) Math.round (position_manager.pinned_viewport_end - 12.0 * p_end_t + (1.0 - p_end_t) * 6.0);
 
-			if (need_clip) {
-				item_cr.restore ();
-				shadow_cr.restore ();
+					item_cr.save ();
+					shadow_cr.save ();
+					if (position_manager.is_horizontal_dock ()) {
+						int clip_w = int.max (0, p_clip_end - p_clip_start);
+						item_cr.rectangle (p_clip_start, 0, clip_w, win_rect.height);
+						shadow_cr.rectangle (p_clip_start, 0, clip_w, win_rect.height);
+					} else {
+						int clip_h = int.max (0, p_clip_end - p_clip_start);
+						item_cr.rectangle (0, p_clip_start, win_rect.width, clip_h);
+						shadow_cr.rectangle (0, p_clip_start, win_rect.width, clip_h);
+					}
+					item_cr.clip ();
+					shadow_cr.clip ();
+
+					foreach (unowned DockItem item in current_items) {
+#if BENCHMARK
+						start2 = new DateTime.now_local ();
+#endif
+						if (item.IsVisible && dragged_item != item && position_manager.is_pinned_scrollable_item (item)) {
+							var draw_value = position_manager.get_draw_value_for_item (item);
+							draw_item (item_cr, item, draw_value, frame_time);
+							draw_item_shadow (shadow_cr, item, draw_value);
+						}
+#if BENCHMARK
+						end2 = new DateTime.now_local ();
+						benchmark.add ("item render time - %f ms".printf (end2.difference (start2) / 1000.0));
+#endif
+					}
+
+					apply_viewport_overflow_mask (item_cr, position_manager.pinned_viewport_start, position_manager.pinned_viewport_end,
+						position_manager.pinned_scroll_offset, position_manager.max_pinned_scroll_offset, 0.0, split_limit, win_rect);
+					apply_viewport_overflow_mask (shadow_cr, position_manager.pinned_viewport_start, position_manager.pinned_viewport_end,
+						position_manager.pinned_scroll_offset, position_manager.max_pinned_scroll_offset, 0.0, split_limit, win_rect);
+					item_cr.restore ();
+					shadow_cr.restore ();
+				}
+
+				if (temp_overflow) {
+					double start_t = ((position_manager.scroll_offset - 1.0) / 10.0).clamp (0.0, 1.0);
+					double end_t = ((position_manager.max_scroll_offset - position_manager.scroll_offset - 1.0) / 10.0).clamp (0.0, 1.0);
+					int clip_start = (int) Math.round (position_manager.scroll_viewport_start + 12.0 * start_t - (1.0 - start_t) * 6.0);
+					int clip_end = (int) Math.round (position_manager.scroll_viewport_end - 12.0 * end_t + (1.0 - end_t) * 6.0);
+
+					item_cr.save ();
+					shadow_cr.save ();
+					if (position_manager.is_horizontal_dock ()) {
+						int clip_w = int.max (0, clip_end - clip_start);
+						item_cr.rectangle (clip_start, 0, clip_w, win_rect.height);
+						shadow_cr.rectangle (clip_start, 0, clip_w, win_rect.height);
+					} else {
+						int clip_h = int.max (0, clip_end - clip_start);
+						item_cr.rectangle (0, clip_start, win_rect.width, clip_h);
+						shadow_cr.rectangle (0, clip_start, win_rect.width, clip_h);
+					}
+					item_cr.clip ();
+					shadow_cr.clip ();
+
+					foreach (unowned DockItem item in current_items) {
+#if BENCHMARK
+						start2 = new DateTime.now_local ();
+#endif
+						if (item.IsVisible && dragged_item != item && position_manager.is_scrollable_item (item)) {
+							var draw_value = position_manager.get_draw_value_for_item (item);
+							draw_item (item_cr, item, draw_value, frame_time);
+							draw_item_shadow (shadow_cr, item, draw_value);
+						}
+#if BENCHMARK
+						end2 = new DateTime.now_local ();
+						benchmark.add ("item render time - %f ms".printf (end2.difference (start2) / 1000.0));
+#endif
+					}
+
+					apply_viewport_overflow_mask (item_cr, position_manager.scroll_viewport_start, position_manager.scroll_viewport_end,
+						position_manager.scroll_offset, position_manager.max_scroll_offset, split_limit, max_dim, win_rect);
+					apply_viewport_overflow_mask (shadow_cr, position_manager.scroll_viewport_start, position_manager.scroll_viewport_end,
+						position_manager.scroll_offset, position_manager.max_scroll_offset, split_limit, max_dim, win_rect);
+					item_cr.restore ();
+					shadow_cr.restore ();
+				}
+
+				foreach (unowned DockItem item in current_items) {
+#if BENCHMARK
+					start2 = new DateTime.now_local ();
+#endif
+					bool in_pinned_vp = (pinned_overflow && position_manager.is_pinned_scrollable_item (item));
+					bool in_temp_vp = (temp_overflow && position_manager.is_scrollable_item (item));
+					if (item.IsVisible && dragged_item != item && !in_pinned_vp && !in_temp_vp) {
+						var draw_value = position_manager.get_draw_value_for_item (item);
+						draw_item (item_cr, item, draw_value, frame_time);
+						draw_item_shadow (shadow_cr, item, draw_value);
+					}
+#if BENCHMARK
+					end2 = new DateTime.now_local ();
+					benchmark.add ("item render time - %f ms".printf (end2.difference (start2) / 1000.0));
+#endif
+				}
+			} else {
+				// draw each item onto the dock buffer
+				foreach (unowned DockItem item in current_items) {
+#if BENCHMARK
+					start2 = new DateTime.now_local ();
+#endif
+					// Do not draw the currently dragged item
+					if (item.IsVisible && dragged_item != item) {
+						var draw_value = position_manager.get_draw_value_for_item (item);
+						draw_item (item_cr, item, draw_value, frame_time);
+						draw_item_shadow (shadow_cr, item, draw_value);
+					}
+#if BENCHMARK
+					end2 = new DateTime.now_local ();
+					benchmark.add ("item render time - %f ms".printf (end2.difference (start2) / 1000.0));
+#endif
+				}
 			}
 			
 			update_separator_colors ();
@@ -542,7 +637,7 @@ namespace Plank
 			main_cr.paint ();
 
 			// draw scroll indicators if overflowed
-			if (position_manager.max_scroll_offset > 0.0) {
+			if (position_manager.has_overflow ()) {
 				draw_scroll_edge_indicators (main_cr, background_rect, x_offset, y_offset);
 			}
 			
@@ -1315,102 +1410,122 @@ namespace Plank
 		}
 
 		// =========================================================================
-		// Dock Overflow Edge Indicators (Fork Integration by 史有虎 / IFtiger-hu)
+		// Dock Overflow Inner Viewport Mask & Edge Indicators (Fork Integration by 史有虎 / IFtiger-hu)
 		// =========================================================================
-		void draw_scroll_edge_indicators (Cairo.Context cr, Gdk.Rectangle base_rect, int x_offset = 0, int y_offset = 0)
+		void apply_viewport_overflow_mask (Cairo.Context target_cr, double vp_start, double vp_end,
+			double cur_offset, double max_offset, double clear_min, double clear_max, Gdk.Rectangle win_rect)
 		{
 			unowned PositionManager pm = controller.position_manager;
-			Gdk.Rectangle rect = { base_rect.x + x_offset, base_rect.y + y_offset, base_rect.width, base_rect.height };
-			double fade_w = 42.0;
+			double start_t = ((cur_offset - 1.0) / 10.0).clamp (0.0, 1.0);
+			double end_t = ((max_offset - cur_offset - 1.0) / 10.0).clamp (0.0, 1.0);
+			double left_limit = vp_start + 12.0 * start_t - (1.0 - start_t) * 6.0;
+			double right_limit = vp_end - 12.0 * end_t + (1.0 - end_t) * 6.0;
 
 			if (pm.is_horizontal_dock ()) {
-				// Left edge gradient when scroll_offset > 2
-				if (pm.scroll_offset > 2.0) {
-					cr.save ();
-					var pat = new Cairo.Pattern.linear (rect.x, 0, rect.x + fade_w, 0);
-					pat.add_color_stop_rgba (0.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.85);
-					pat.add_color_stop_rgba (1.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.0);
-					cr.set_source (pat);
-					cr.rectangle (rect.x, rect.y, fade_w, rect.height);
-					cr.fill ();
+				target_cr.save ();
+				target_cr.set_operator (Cairo.Operator.CLEAR);
+				if (left_limit > clear_min)
+					target_cr.rectangle (clear_min, 0, left_limit - clear_min, win_rect.height);
+				if (right_limit < clear_max)
+					target_cr.rectangle (right_limit, 0, clear_max - right_limit, win_rect.height);
+				target_cr.fill ();
+				target_cr.restore ();
+			} else {
+				target_cr.save ();
+				target_cr.set_operator (Cairo.Operator.CLEAR);
+				if (left_limit > clear_min)
+					target_cr.rectangle (0, clear_min, win_rect.width, left_limit - clear_min);
+				if (right_limit < clear_max)
+					target_cr.rectangle (0, right_limit, win_rect.width, clear_max - right_limit);
+				target_cr.fill ();
+				target_cr.restore ();
+			}
+		}
 
-					// Subtle glow indicator chevron "<"
-					cr.set_source_rgba (1.0, 1.0, 1.0, 0.65);
-					cr.set_line_width (2.0);
+		void draw_viewport_edge_chevrons (Cairo.Context cr, Gdk.Rectangle rect, double vp_start, double vp_end,
+			double cur_offset, double max_offset, double fg_c, double base_alpha, int x_offset, int y_offset)
+		{
+			unowned PositionManager pm = controller.position_manager;
+			double start_t = ((cur_offset - 1.0) / 10.0).clamp (0.0, 1.0);
+			double end_t = ((max_offset - cur_offset - 1.0) / 10.0).clamp (0.0, 1.0);
+
+			if (pm.is_horizontal_dock ()) {
+				double cy = rect.y + rect.height / 2.0;
+				if (start_t > 0.01) {
+					double cx = vp_start + x_offset + 5.0;
+					cr.save ();
+					cr.set_source_rgba (fg_c, fg_c, fg_c, base_alpha * start_t);
+					cr.set_line_width (1.8);
 					cr.set_line_cap (Cairo.LineCap.ROUND);
 					cr.set_line_join (Cairo.LineJoin.ROUND);
-					cr.move_to (rect.x + 16, rect.y + rect.height / 2.0 - 6);
-					cr.line_to (rect.x + 10, rect.y + rect.height / 2.0);
-					cr.line_to (rect.x + 16, rect.y + rect.height / 2.0 + 6);
+					cr.move_to (cx + 2.5, cy - 5.0);
+					cr.line_to (cx - 2.5, cy);
+					cr.line_to (cx + 2.5, cy + 5.0);
 					cr.stroke ();
 					cr.restore ();
 				}
-
-				// Right edge gradient when scroll_offset < max_scroll_offset - 2
-				if (pm.scroll_offset < pm.max_scroll_offset - 2.0) {
+				if (end_t > 0.01) {
+					double cx = vp_end + x_offset - 5.0;
 					cr.save ();
-					var pat = new Cairo.Pattern.linear (rect.x + rect.width - fade_w, 0, rect.x + rect.width, 0);
-					pat.add_color_stop_rgba (0.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.0);
-					pat.add_color_stop_rgba (1.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.85);
-					cr.set_source (pat);
-					cr.rectangle (rect.x + rect.width - fade_w, rect.y, fade_w, rect.height);
-					cr.fill ();
-
-					// Subtle glow indicator chevron ">"
-					cr.set_source_rgba (1.0, 1.0, 1.0, 0.65);
-					cr.set_line_width (2.0);
+					cr.set_source_rgba (fg_c, fg_c, fg_c, base_alpha * end_t);
+					cr.set_line_width (1.8);
 					cr.set_line_cap (Cairo.LineCap.ROUND);
 					cr.set_line_join (Cairo.LineJoin.ROUND);
-					cr.move_to (rect.x + rect.width - 16, rect.y + rect.height / 2.0 - 6);
-					cr.line_to (rect.x + rect.width - 10, rect.y + rect.height / 2.0);
-					cr.line_to (rect.x + rect.width - 16, rect.y + rect.height / 2.0 + 6);
+					cr.move_to (cx - 2.5, cy - 5.0);
+					cr.line_to (cx + 2.5, cy);
+					cr.line_to (cx - 2.5, cy + 5.0);
 					cr.stroke ();
 					cr.restore ();
 				}
 			} else {
-				// Top edge gradient when scroll_offset > 2
-				if (pm.scroll_offset > 2.0) {
+				double cx = rect.x + rect.width / 2.0;
+				if (start_t > 0.01) {
+					double cy = vp_start + y_offset + 5.0;
 					cr.save ();
-					var pat = new Cairo.Pattern.linear (0, rect.y, 0, rect.y + fade_w);
-					pat.add_color_stop_rgba (0.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.85);
-					pat.add_color_stop_rgba (1.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.0);
-					cr.set_source (pat);
-					cr.rectangle (rect.x, rect.y, rect.width, fade_w);
-					cr.fill ();
-
-					// Subtle glow indicator chevron "^"
-					cr.set_source_rgba (1.0, 1.0, 1.0, 0.65);
-					cr.set_line_width (2.0);
+					cr.set_source_rgba (fg_c, fg_c, fg_c, base_alpha * start_t);
+					cr.set_line_width (1.8);
 					cr.set_line_cap (Cairo.LineCap.ROUND);
 					cr.set_line_join (Cairo.LineJoin.ROUND);
-					cr.move_to (rect.x + rect.width / 2.0 - 6, rect.y + 16);
-					cr.line_to (rect.x + rect.width / 2.0, rect.y + 10);
-					cr.line_to (rect.x + rect.width / 2.0 + 6, rect.y + 16);
+					cr.move_to (cx - 5.0, cy + 2.5);
+					cr.line_to (cx, cy - 2.5);
+					cr.line_to (cx + 5.0, cy + 2.5);
 					cr.stroke ();
 					cr.restore ();
 				}
-
-				// Bottom edge gradient when scroll_offset < max_scroll_offset - 2
-				if (pm.scroll_offset < pm.max_scroll_offset - 2.0) {
+				if (end_t > 0.01) {
+					double cy = vp_end + y_offset - 5.0;
 					cr.save ();
-					var pat = new Cairo.Pattern.linear (0, rect.y + rect.height - fade_w, 0, rect.y + rect.height);
-					pat.add_color_stop_rgba (0.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.0);
-					pat.add_color_stop_rgba (1.0, theme.FillEndColor.red, theme.FillEndColor.green, theme.FillEndColor.blue, 0.85);
-					cr.set_source (pat);
-					cr.rectangle (rect.x, rect.y + rect.height - fade_w, rect.width, fade_w);
-					cr.fill ();
-
-					// Subtle glow indicator chevron "v"
-					cr.set_source_rgba (1.0, 1.0, 1.0, 0.65);
-					cr.set_line_width (2.0);
+					cr.set_source_rgba (fg_c, fg_c, fg_c, base_alpha * end_t);
+					cr.set_line_width (1.8);
 					cr.set_line_cap (Cairo.LineCap.ROUND);
 					cr.set_line_join (Cairo.LineJoin.ROUND);
-					cr.move_to (rect.x + rect.width / 2.0 - 6, rect.y + rect.height - 16);
-					cr.line_to (rect.x + rect.width / 2.0, rect.y + rect.height - 10);
-					cr.line_to (rect.x + rect.width / 2.0 + 6, rect.y + rect.height - 16);
+					cr.move_to (cx - 5.0, cy - 2.5);
+					cr.line_to (cx, cy + 2.5);
+					cr.line_to (cx + 5.0, cy - 2.5);
 					cr.stroke ();
 					cr.restore ();
 				}
+			}
+		}
+
+		void draw_scroll_edge_indicators (Cairo.Context cr, Gdk.Rectangle base_rect, int x_offset = 0, int y_offset = 0)
+		{
+			unowned PositionManager pm = controller.position_manager;
+			Gdk.Rectangle rect = { base_rect.x + x_offset, base_rect.y + y_offset, base_rect.width, base_rect.height };
+
+			var reference = (cached_background_average_color != null ? cached_background_average_color : theme.FillEndColor);
+			var luminance = 0.299 * reference.red + 0.587 * reference.green + 0.114 * reference.blue;
+			var is_light = (reference.alpha < 0.35 || luminance > 0.5);
+			double fg_c = is_light ? 0.15 : 1.0;
+			double base_alpha = is_light ? 0.55 : 0.72;
+
+			if (pm.max_pinned_scroll_offset > 0.0) {
+				draw_viewport_edge_chevrons (cr, rect, pm.pinned_viewport_start, pm.pinned_viewport_end,
+					pm.pinned_scroll_offset, pm.max_pinned_scroll_offset, fg_c, base_alpha, x_offset, y_offset);
+			}
+			if (pm.max_scroll_offset > 0.0) {
+				draw_viewport_edge_chevrons (cr, rect, pm.scroll_viewport_start, pm.scroll_viewport_end,
+					pm.scroll_offset, pm.max_scroll_offset, fg_c, base_alpha, x_offset, y_offset);
 			}
 		}
 

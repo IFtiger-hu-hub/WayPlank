@@ -150,7 +150,7 @@
 			<description>Show urgent application attention indicators.</description>
 		</key>
 		<key name="pressure-reveal" type="b">
-			<default>false</default>
+			<default>true</default>
 			<summary>Pressure Reveal</summary>
 			<description>If true, use pressure-based revealing of the dock if the input device supports it.</description>
 		</key>

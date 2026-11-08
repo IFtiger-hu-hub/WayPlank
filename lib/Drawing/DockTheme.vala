@@ -347,6 +347,7 @@ namespace Plank
 			}
 			
 			cr.save ();
+			cr.save ();
 			cr.rotate (rotate);
 			cr.translate (xoffset, yoffset);
 			if (pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP)
@@ -365,7 +366,7 @@ namespace Plank
 			cr.set_source (gradient);
 			cr.fill ();
 			
-			cr.reset_clip ();
+			cr.restore ();
 		}
 		
 		/**
