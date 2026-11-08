@@ -114,6 +114,11 @@ namespace Plank
 			return KWinBridge.maximized_window_intersects (rect);
 		}
 
+		public bool fullscreen_window_intersects (Gdk.Rectangle rect)
+		{
+			return KWinBridge.fullscreen_window_intersects (rect);
+		}
+
 		public void handle_system_resume ()
 		{
 			KWinBridge.handle_system_resume ();

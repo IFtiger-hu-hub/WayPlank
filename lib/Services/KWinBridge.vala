@@ -147,7 +147,8 @@ namespace Plank
 			+ "            minimized: client.minimized === true,\n"
 			+ "            minimizedSequence: wayplankMinimizedWindows[uuid] || 0,\n"
 			+ "            demandsAttention: (client.demandsAttention === true && client !== workspace.activeWindow),\n"
-			+ "            maximized: (typeof client.maximizeMode === \"number\" && client.maximizeMode !== 0),\n"
+			+ "            maximized: ((typeof client.maximizeMode === \"number\" && client.maximizeMode !== 0) || client.fullScreen === true),\n"
+			+ "            fullscreen: (client.fullScreen === true),\n"
 			+ "            active: client === workspace.activeWindow,\n"
 			+ "            normal: client.normalWindow !== false,\n"
 			+ "            visible: client.visible !== false,\n"
@@ -206,6 +207,8 @@ namespace Plank
 			+ "        window.minimizedChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.maximizedChanged)\n"
 			+ "        window.maximizedChanged.connect(scheduleWindowState);\n"
+			+ "    if (window.fullScreenChanged)\n"
+			+ "        window.fullScreenChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.activeChanged)\n"
 			+ "        window.activeChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.desktopsChanged)\n"
@@ -413,6 +416,8 @@ namespace Plank
 		static uint dbus_registration_id = 0U;
 		static uint kwin_watch_id = 0U;
 		static string last_kwin_owner = "";
+		static uint showing_desktop_signal_id = 0U;
+		static bool handling_show_desktop = false;
 		static bool has_panel_mon = false;
 		static int panel_mon_x = 0;
 		static int panel_mon_y = 0;
@@ -507,6 +512,7 @@ namespace Plank
 					info.Minimized = json.has_member ("minimized") && json.get_boolean_member ("minimized");
 					info.Active = json.has_member ("active") && json.get_boolean_member ("active");
 					info.Maximized = json.has_member ("maximized") && json.get_boolean_member ("maximized");
+					info.Fullscreen = json.has_member ("fullscreen") && json.get_boolean_member ("fullscreen");
 					info.IsDialog = json.has_member ("normal") && !json.get_boolean_member ("normal");
 					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
 					info.Normal = !json.has_member ("normal") || json.get_boolean_member ("normal");
@@ -692,6 +698,13 @@ namespace Plank
 		public static void cleanup ()
 		{
 			window_state = null;
+			if (showing_desktop_signal_id > 0U) {
+				try {
+					var connection = Bus.get_sync (BusType.SESSION, null);
+					connection.signal_unsubscribe (showing_desktop_signal_id);
+				} catch (Error e) { }
+				showing_desktop_signal_id = 0U;
+			}
 			if (kwin_watch_id > 0U) {
 				Bus.unwatch_name (kwin_watch_id);
 				kwin_watch_id = 0U;
@@ -791,6 +804,21 @@ namespace Plank
 		public static bool maximized_window_intersects (Gdk.Rectangle dock_rect)
 		{
 			return window_intersects (dock_rect, false, true);
+		}
+
+		public static bool fullscreen_window_intersects (Gdk.Rectangle dock_rect)
+		{
+			foreach (var window in window_infos) {
+				if (window.Minimized || !window.Normal || !window.Visible || !window.CurrentDesktop)
+					continue;
+				if (!window.Active || !window.Fullscreen)
+					continue;
+				if (window.Geometry.width <= 0 || window.Geometry.height <= 0)
+					continue;
+				if (window.Geometry.intersect (dock_rect, null))
+					return true;
+			}
+			return false;
 		}
 
 		static bool window_intersects (Gdk.Rectangle dock_rect, bool active_only, bool maximized_only)
@@ -894,9 +922,62 @@ namespace Plank
 			);
 		}
 
+		static void setup_showing_desktop_listener (DBusConnection? conn = null)
+		{
+			if (showing_desktop_signal_id > 0U)
+				return;
+
+			try {
+				var connection = conn != null ? conn : Bus.get_sync (BusType.SESSION, null);
+				showing_desktop_signal_id = connection.signal_subscribe (
+					"org.kde.KWin",
+					"org.kde.KWin",
+					"showingDesktopChanged",
+					"/KWin",
+					null,
+					DBusSignalFlags.NONE,
+					on_showing_desktop_changed
+				);
+				debug ("KWinBridge: subscribed to org.kde.KWin showingDesktopChanged signal (id=%u)", showing_desktop_signal_id);
+			} catch (Error e) {
+				warning ("KWinBridge: failed to subscribe to showingDesktopChanged: %s", e.message);
+			}
+		}
+
+		static void on_showing_desktop_changed (DBusConnection connection,
+		                                        string? sender_name,
+		                                        string object_path,
+		                                        string interface_name,
+		                                        string signal_name,
+		                                        Variant parameters)
+		{
+			if (handling_show_desktop)
+				return;
+
+			bool showing = false;
+			parameters.get ("(b)", out showing);
+			debug ("KWinBridge: showingDesktopChanged received showing=%s", showing ? "true" : "false");
+
+			if (showing) {
+				handling_show_desktop = true;
+				try {
+					connection.call_sync ("org.kde.KWin", "/KWin",
+						"org.kde.KWin", "showDesktop",
+						new Variant ("(b)", false), null,
+						DBusCallFlags.NONE, 250, null);
+				} catch (Error e) {
+					debug ("KWinBridge: failed to reset KWin showDesktop: %s", e.message);
+				}
+
+				queue_command ("desktop", "toggle_desktop");
+				handling_show_desktop = false;
+			}
+		}
+
 		static void on_kwin_appeared (DBusConnection connection, string name, string name_owner)
 		{
 			message ("KWinBridge: org.kde.KWin appeared on D-Bus (owner=%s), ensuring bridge script is active", name_owner);
+			setup_showing_desktop_listener (connection);
 			if (script_id >= 0 && script_path != null && (last_kwin_owner == "" || last_kwin_owner == name_owner)) {
 				last_kwin_owner = name_owner;
 				debug ("KWinBridge: bridge script (id %d) is already active for current KWin owner", script_id);
@@ -909,6 +990,10 @@ namespace Plank
 		static void on_kwin_vanished (DBusConnection connection, string name)
 		{
 			message ("KWinBridge: org.kde.KWin vanished from D-Bus, resetting bridge state");
+			if (showing_desktop_signal_id > 0U) {
+				connection.signal_unsubscribe (showing_desktop_signal_id);
+				showing_desktop_signal_id = 0U;
+			}
 			last_kwin_owner = "";
 			script_id = -1;
 			if (script_path != null) {
@@ -924,6 +1009,7 @@ namespace Plank
 				return;
 
 			setup_kwin_watcher ();
+			setup_showing_desktop_listener ();
 			clean_old_script_files ();
 
 			try {

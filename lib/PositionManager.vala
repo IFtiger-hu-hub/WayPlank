@@ -756,6 +756,9 @@ namespace Plank
 		
 		public Gdk.Rectangle get_cursor_region ()
 		{
+			if (controller.hide_manager.FullscreenInhibit)
+				return { 0, 0, 0, 0 };
+
 			var cursor_region = static_dock_region;
 			if (background_rect.width > 0 && background_rect.height > 0) {
 				cursor_region.union (background_rect, out cursor_region);

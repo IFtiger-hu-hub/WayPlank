@@ -111,6 +111,14 @@ namespace Plank
 			return get_default ().backend != null && get_default ().backend.maximized_window_intersects (dock_rect);
 		}
 
+		/**
+		 * Whether an active fullscreen window intersects the given dock region.
+		 */
+		public static bool fullscreen_window_intersects (Gdk.Rectangle dock_rect)
+		{
+			return get_default ().backend != null && get_default ().backend.fullscreen_window_intersects (dock_rect);
+		}
+
 		public static Gee.ArrayList<WindowInfo> get_windows ()
 		{
 			return get_default ().backend != null
